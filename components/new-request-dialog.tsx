@@ -20,6 +20,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Layers,
+  Settings2,
+  ListChecks,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -68,6 +72,21 @@ const steps = [
   { id: "review", label: "Review", icon: ClipboardCheck },
 ] as const
 
+const departments = ["IT", "Operations", "Marketing", "Finance", "Facilities", "Legal"]
+const costCenters = ["CC-100 · Headquarters", "CC-200 · Sales", "CC-300 · R&D", "CC-400 · Logistics"]
+const suppliers = ["ProcFly Logistics", "Office Supplies Baltics", "TechWare Solutions", "Nordic Consulting"]
+const priorities = ["Low", "Medium", "High", "Critical"]
+
+const fieldClass =
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+
+interface LineItem {
+  id: number
+  name: string
+  qty: string
+  price: string
+}
+
 function Stepper({ current }: { current: number }) {
   return (
     <div className="flex items-center">
@@ -114,24 +133,95 @@ function Stepper({ current }: { current: number }) {
   )
 }
 
+function Section({
+  icon: Icon,
+  iconClass,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: typeof Package
+  iconClass: string
+  title: string
+  subtitle: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", iconClass)}>
+          <Icon className="size-5" />
+        </span>
+        <div>
+          <h3 className="font-semibold text-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+      </div>
+      <div className="mt-5">{children}</div>
+    </div>
+  )
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs font-medium text-muted-foreground">
+        {label}
+        {required && <span className="text-destructive"> *</span>}
+      </Label>
+      {children}
+    </div>
+  )
+}
+
 export function NewRequestDialog() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [category, setCategory] = useState<CategoryId | null>(null)
-  const [title, setTitle] = useState("")
-  const [amount, setAmount] = useState("")
+
+  // General
   const [department, setDepartment] = useState("")
+  const [costCenter, setCostCenter] = useState("")
   const [description, setDescription] = useState("")
+  const [amount, setAmount] = useState("")
+  const [currency, setCurrency] = useState("EUR")
+
+  // Specific
+  const [supplier, setSupplier] = useState("")
+  const [neededBy, setNeededBy] = useState("")
+  const [deliveryAddress, setDeliveryAddress] = useState("")
+
+  // Custom
+  const [productName, setProductName] = useState("")
+  const [priority, setPriority] = useState("Medium")
+
+  // Line items
+  const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
 
   const selectedCategory = categories.find((c) => c.id === category)
 
   function reset() {
     setStep(0)
     setCategory(null)
-    setTitle("")
-    setAmount("")
     setDepartment("")
+    setCostCenter("")
     setDescription("")
+    setAmount("")
+    setCurrency("EUR")
+    setSupplier("")
+    setNeededBy("")
+    setDeliveryAddress("")
+    setProductName("")
+    setPriority("Medium")
+    setLines([{ id: 1, name: "", qty: "", price: "" }])
   }
 
   function handleOpenChange(next: boolean) {
@@ -139,9 +229,19 @@ export function NewRequestDialog() {
     if (!next) setTimeout(reset, 200)
   }
 
+  function updateLine(id: number, key: keyof LineItem, value: string) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, [key]: value } : l)))
+  }
+  function addLine() {
+    setLines((prev) => [...prev, { id: Date.now(), name: "", qty: "", price: "" }])
+  }
+  function removeLine(id: number) {
+    setLines((prev) => (prev.length > 1 ? prev.filter((l) => l.id !== id) : prev))
+  }
+
   const canContinue =
     (step === 0 && category !== null) ||
-    (step === 1 && title.trim() !== "") ||
+    (step === 1 && department.trim() !== "" && description.trim() !== "") ||
     step === 2
 
   function next() {
@@ -160,25 +260,25 @@ export function NewRequestDialog() {
       </button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
-          <DialogHeader className="px-6 pb-5 pt-6">
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+          <DialogHeader className="shrink-0 px-6 pb-5 pt-6">
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
-              {step === 1 && "Tell us the details"}
+              {step === 1 && "Create a purchase request"}
               {step === 2 && "Review your request"}
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               {step === 0 && "Choose a category to get started. Three quick steps to send for approval."}
-              {step === 1 && "Add the key information approvers need to make a decision."}
+              {step === 1 && "Fill in the details below. Required fields are marked with an asterisk."}
               {step === 2 && "Make sure everything looks right before submitting."}
             </p>
           </DialogHeader>
 
-          <div className="bg-muted/40 px-6 py-5">
+          <div className="shrink-0 bg-muted/40 px-6 py-5">
             <Stepper current={step} />
           </div>
 
-          <div className="px-6 py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
             {step === 0 && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {categories.map((c) => {
@@ -226,71 +326,215 @@ export function NewRequestDialog() {
             )}
 
             {step === 1 && (
-              <div className="flex flex-col gap-4">
-                {selectedCategory && (
-                  <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-                    <span
-                      className={cn(
-                        "flex size-8 items-center justify-center rounded-md",
-                        selectedCategory.iconClass,
-                      )}
-                    >
-                      <selectedCategory.icon className="size-4" />
-                    </span>
-                    <span className="text-sm font-medium text-foreground">
-                      {selectedCategory.title}
-                    </span>
+              <div className="flex flex-col gap-5">
+                <Section
+                  icon={Layers}
+                  iconClass="bg-primary/12 text-primary"
+                  title="General"
+                  subtitle="Department, cost center, and the basics of your request."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Department" required>
+                      <select
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose department...</option>
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Cost center" required>
+                      <select
+                        value={costCenter}
+                        onChange={(e) => setCostCenter(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose cost center...</option>
+                        {costCenters.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Category">
+                      <input
+                        readOnly
+                        value={selectedCategory?.title ?? ""}
+                        className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <Field label="Description" required>
+                      <input
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter a short description"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Total amount">
+                      <div className="relative">
+                        <input
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          inputMode="numeric"
+                          placeholder="20.000"
+                          className={cn(fieldClass, "pr-12")}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                          {currency}
+                        </span>
+                      </div>
+                    </Field>
+                    <Field label="Currency">
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {["EUR", "USD", "GBP", "PLN"].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                <Section
+                  icon={Package}
+                  iconClass="bg-chart-2/15 text-chart-2"
+                  title="Specific"
+                  subtitle="Details specific to this request category."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Supplier" required>
+                      <select
+                        value={supplier}
+                        onChange={(e) => setSupplier(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose supplier...</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Needed by">
+                      <input
+                        type="date"
+                        value={neededBy}
+                        onChange={(e) => setNeededBy(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Delivery address">
+                      <input
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        placeholder="42077 Main Road, New Braunfels 66853-8101"
+                        className={fieldClass}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                <Section
+                  icon={Settings2}
+                  iconClass="bg-chart-3/12 text-chart-3"
+                  title="Custom Fields"
+                  subtitle="Additional information required for this request type."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Product Name" required>
+                      <input
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        placeholder="iPhone 15 Pro"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Business Priority" required>
+                      <select
+                        value={priority}
+                        onChange={(e) => setPriority(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {priorities.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                <Section
+                  icon={ListChecks}
+                  iconClass="bg-primary/12 text-primary"
+                  title="Line-items"
+                  subtitle="Add one line for each item. Filled line items will be sent to the backend."
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="hidden grid-cols-[1fr_90px_120px_40px] gap-3 px-1 text-xs font-medium text-muted-foreground sm:grid">
+                      <span>Item</span>
+                      <span>Qty</span>
+                      <span>Unit price</span>
+                      <span className="sr-only">Remove</span>
+                    </div>
+                    {lines.map((line) => (
+                      <div
+                        key={line.id}
+                        className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_90px_120px_40px] sm:items-center"
+                      >
+                        <input
+                          value={line.name}
+                          onChange={(e) => updateLine(line.id, "name", e.target.value)}
+                          placeholder="Item description"
+                          className={fieldClass}
+                        />
+                        <input
+                          value={line.qty}
+                          onChange={(e) => updateLine(line.id, "qty", e.target.value)}
+                          inputMode="numeric"
+                          placeholder="1"
+                          className={fieldClass}
+                        />
+                        <input
+                          value={line.price}
+                          onChange={(e) => updateLine(line.id, "price", e.target.value)}
+                          inputMode="numeric"
+                          placeholder="0.00"
+                          className={fieldClass}
+                        />
+                        <button
+                          onClick={() => removeLine(line.id)}
+                          disabled={lines.length === 1}
+                          aria-label="Remove line"
+                          className="flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    ))}
                     <button
-                      onClick={() => setStep(0)}
-                      className="ml-auto text-xs font-semibold text-primary hover:underline"
+                      onClick={addLine}
+                      className="flex w-fit items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                     >
-                      Change
+                      <Plus className="size-4" />
+                      Add Line
                     </button>
                   </div>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="req-title">Request title</Label>
-                  <input
-                    id="req-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Standing desks for new hires"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="req-amount">Estimated amount (EUR)</Label>
-                    <input
-                      id="req-amount"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      inputMode="numeric"
-                      placeholder="0"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="req-dept">Department</Label>
-                    <input
-                      id="req-dept"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="e.g. IT, Marketing"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="req-desc">Description</Label>
-                  <Textarea
-                    id="req-desc"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add any details to help approvers decide..."
-                    rows={3}
-                  />
-                </div>
+                </Section>
               </div>
             )}
 
@@ -313,20 +557,28 @@ export function NewRequestDialog() {
                   </div>
                 )}
                 <div className="flex flex-col divide-y divide-border">
-                  <ReviewRow label="Title" value={title || "—"} />
+                  <ReviewRow label="Description" value={description || "—"} />
+                  <ReviewRow label="Department" value={department || "—"} />
+                  <ReviewRow label="Cost center" value={costCenter || "—"} />
                   <ReviewRow
-                    label="Estimated amount"
-                    value={amount ? `${Number(amount).toLocaleString("en-US")} EUR` : "No cost"}
+                    label="Total amount"
+                    value={amount ? `${Number(amount).toLocaleString("en-US")} ${currency}` : "No cost"}
                     emphasize={!!amount}
                   />
-                  <ReviewRow label="Department" value={department || "—"} />
-                  <ReviewRow label="Description" value={description || "—"} />
+                  <ReviewRow label="Supplier" value={supplier || "—"} />
+                  <ReviewRow label="Needed by" value={neededBy || "—"} />
+                  <ReviewRow label="Product" value={productName || "—"} />
+                  <ReviewRow label="Business priority" value={priority} />
+                  <ReviewRow
+                    label="Line items"
+                    value={`${lines.filter((l) => l.name.trim() !== "").length} item(s)`}
+                  />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
+          <div className="flex shrink-0 items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
             <button
               onClick={() => (step === 0 ? handleOpenChange(false) : setStep((s) => s - 1))}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
