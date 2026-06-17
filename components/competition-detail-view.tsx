@@ -60,6 +60,7 @@ import {
 import { formatAmount, initials } from "@/lib/dashboard-data"
 import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
 import { LaunchCompetitionDialog } from "@/components/launch-competition-dialog"
+import { EditTermsDialog } from "@/components/edit-terms-dialog"
 import { useCountdown } from "@/components/use-countdown"
 
 // ---------------------------------------------------------------------------
@@ -228,6 +229,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
   // page in place (Ready → Active) without a server round-trip.
   const [competition, setCompetition] = useState(initialCompetition)
   const [launchOpen, setLaunchOpen] = useState(false)
+  const [editTermsOpen, setEditTermsOpen] = useState(false)
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
   const saving = savingsAmount(competition)
@@ -273,6 +275,18 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
       invitedSuppliers: Math.max(c.invitedSuppliers, settings.invitedSuppliers),
     }))
     setTab("overview")
+  }
+
+  // Save edited terms (scope, budget, category) back into the page state.
+  function handleSaveTerms(terms: {
+    title: string
+    category: string
+    description: string
+    baseline: number
+    currency: string
+  }) {
+    console.log("[v0] handleSaveTerms", terms)
+    setCompetition((c) => ({ ...c, ...terms }))
   }
 
   // Hero primary action: launch (pre-live) or award the winner (live).
@@ -433,6 +447,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
           roster={roster}
           onGoToTab={setTab}
           onLaunch={() => setLaunchOpen(true)}
+          onEditTerms={() => setEditTermsOpen(true)}
         />
       )}
       {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
@@ -447,6 +462,13 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
         onOpenChange={setLaunchOpen}
         competition={competition}
         onLaunch={handleLaunch}
+      />
+
+      <EditTermsDialog
+        open={editTermsOpen}
+        onOpenChange={setEditTermsOpen}
+        competition={competition}
+        onSave={handleSaveTerms}
       />
 
       {best && (
@@ -581,6 +603,7 @@ function OverviewTab({
   roster,
   onGoToTab,
   onLaunch,
+  onEditTerms,
 }: {
   competition: Competition
   countdown: ReturnType<typeof useCountdown>
@@ -590,6 +613,7 @@ function OverviewTab({
   roster: SupplierRow[]
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
+  onEditTerms: () => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
     SupplierRow,
@@ -602,7 +626,7 @@ function OverviewTab({
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
   if (isDraft || isReady) {
-    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} onLaunch={onLaunch} />
+    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} onLaunch={onLaunch} onEditTerms={onEditTerms} />
   }
 
   return (
@@ -763,11 +787,13 @@ function SetupOverview({
   isReady,
   onGoToTab,
   onLaunch,
+  onEditTerms,
 }: {
   competition: Competition
   isReady: boolean
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
+  onEditTerms: () => void
 }) {
   const hasSuppliers = competition.invitedSuppliers > 0
   const checklist = [
@@ -775,6 +801,7 @@ function SetupOverview({
       label: "Define scope & budget",
       done: true,
       detail: `Baseline budget set to ${formatAmount(competition.baseline)} ${competition.currency}.`,
+      action: onEditTerms,
     },
     {
       label: "Invite suppliers",
@@ -868,12 +895,12 @@ function SetupOverview({
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   <p className="text-xs text-muted-foreground">{item.detail}</p>
                 </div>
-                {item.action && !item.done && (
+                {item.action && (
                   <button
                     onClick={item.action}
                     className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    Manage
+                    {item.done ? "Edit" : "Manage"}
                     <ArrowRight className="size-3.5" />
                   </button>
                 )}
