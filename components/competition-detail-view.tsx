@@ -43,6 +43,8 @@ import {
   FileArchive,
   Download,
   Paperclip,
+  RotateCcw,
+  Minus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -124,12 +126,34 @@ function buildRoster(c: Competition): SupplierRow[] {
 // supplier name so the UI is rich and consistent across renders without
 // needing extra data in the model. Price score is the real, computed value.
 // ---------------------------------------------------------------------------
-const WEIGHTS = { price: 0.5, quality: 0.3, delivery: 0.2 } as const
+// Default weighting (percent points, sum to 100).
+const DEFAULT_WEIGHTS = { price: 50, quality: 30, delivery: 20 }
+
+interface Weights {
+  price: number
+  quality: number
+  delivery: number
+}
+
+// Manual non-price scores, keyed by supplier name.
+type ManualScores = Record<string, { quality: number; delivery: number }>
 
 function hashScore(seed: string, min: number, max: number) {
   let h = 0
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 100000
   return min + (h % (max - min + 1))
+}
+
+// Stable starting quality/delivery scores so manual editing has a baseline.
+function defaultManualScores(c: Competition): ManualScores {
+  const out: ManualScores = {}
+  for (const bid of c.bids) {
+    out[bid.supplier] = {
+      quality: hashScore(bid.supplier + "q", 72, 98),
+      delivery: hashScore(bid.supplier + "d", 70, 99),
+    }
+  }
+  return out
 }
 
 interface ScoredBid {
@@ -140,23 +164,26 @@ interface ScoredBid {
   total: number
 }
 
-function scoreBids(c: Competition): ScoredBid[] {
+function scoreBids(c: Competition, weights: Weights, manual: ManualScores): ScoredBid[] {
   const bids = c.bids
   if (bids.length === 0) return []
   const amounts = bids.map((b) => b.amount)
   const min = Math.min(...amounts)
   const max = Math.max(...amounts)
   const range = Math.max(1, max - min)
+  const wSum = Math.max(1, weights.price + weights.quality + weights.delivery)
 
   const scored = bids.map((bid) => {
     // Cheapest bid scores 100, most expensive scales down to 70.
     const priceScore = Math.round(100 - ((bid.amount - min) / range) * 30)
-    const qualityScore = hashScore(bid.supplier + "q", 72, 98)
-    const deliveryScore = hashScore(bid.supplier + "d", 70, 99)
+    const m = manual[bid.supplier] ?? { quality: 80, delivery: 80 }
+    const qualityScore = m.quality
+    const deliveryScore = m.delivery
     const total =
-      priceScore * WEIGHTS.price +
-      qualityScore * WEIGHTS.quality +
-      deliveryScore * WEIGHTS.delivery
+      (priceScore * weights.price +
+        qualityScore * weights.quality +
+        deliveryScore * weights.delivery) /
+      wSum
     return { bid, priceScore, qualityScore, deliveryScore, total: Math.round(total) }
   })
   return scored.sort((a, b) => b.total - a.total)
@@ -1257,7 +1284,29 @@ function EvaluationTab({
   competition: Competition
   best: SupplierBid | null
 }) {
-  const scored = scoreBids(competition)
+  const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS)
+  const [manual, setManual] = useState<ManualScores>(() => defaultManualScores(competition))
+  const locked = competition.status === "Awarded" || competition.status === "Closed"
+
+  const scored = scoreBids(competition, weights, manual)
+  const weightSum = weights.price + weights.quality + weights.delivery
+
+  function setWeight(key: keyof Weights, value: number) {
+    setWeights((w) => ({ ...w, [key]: value }))
+  }
+
+  function setManualScore(supplier: string, key: "quality" | "delivery", value: number) {
+    const clamped = Math.max(0, Math.min(100, value))
+    setManual((m) => ({
+      ...m,
+      [supplier]: { ...(m[supplier] ?? { quality: 80, delivery: 80 }), [key]: clamped },
+    }))
+  }
+
+  function reset() {
+    setWeights(DEFAULT_WEIGHTS)
+    setManual(defaultManualScores(competition))
+  }
 
   if (scored.length === 0) {
     return (
@@ -1292,15 +1341,72 @@ function EvaluationTab({
         </div>
       </div>
 
-      {/* Weighting legend */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border bg-card px-6 py-4 text-sm shadow-sm">
-        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-          <Scale className="size-4 text-primary" />
-          Scoring weights
-        </span>
-        <WeightLegend icon={CircleDollarSign} label="Price" pct={WEIGHTS.price} color="bg-primary" />
-        <WeightLegend icon={Star} label="Quality" pct={WEIGHTS.quality} color="bg-chart-3" />
-        <WeightLegend icon={Truck} label="Delivery" pct={WEIGHTS.delivery} color="bg-chart-2" />
+      {/* Scoring weights — adjustable */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Scale className="size-4 text-primary" />
+            Scoring weights
+          </h3>
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
+                weightSum === 100
+                  ? "bg-chart-2/15 text-chart-2"
+                  : "bg-chart-3/15 text-chart-3",
+              )}
+            >
+              Total {weightSum}%
+            </span>
+            <button
+              type="button"
+              onClick={reset}
+              disabled={locked}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="size-3.5" />
+              Reset
+            </button>
+          </div>
+        </div>
+        {weightSum !== 100 && (
+          <p className="mt-2 text-xs text-chart-3">
+            Weights are normalised to 100% when scoring. Adjust the sliders so they sum to 100% for direct control.
+          </p>
+        )}
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          <WeightSlider
+            label="Price"
+            icon={CircleDollarSign}
+            color="accent-primary"
+            value={weights.price}
+            onChange={(v) => setWeight("price", v)}
+            disabled={locked}
+          />
+          <WeightSlider
+            label="Quality"
+            icon={Star}
+            color="accent-chart-3"
+            value={weights.quality}
+            onChange={(v) => setWeight("quality", v)}
+            disabled={locked}
+          />
+          <WeightSlider
+            label="Delivery"
+            icon={Truck}
+            color="accent-chart-2"
+            value={weights.delivery}
+            onChange={(v) => setWeight("delivery", v)}
+            disabled={locked}
+          />
+        </div>
+        {!locked && (
+          <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Sparkles className="size-3.5" />
+            Adjust weights and edit each supplier&apos;s quality &amp; delivery scores below — the ranking updates instantly.
+          </p>
+        )}
       </div>
 
       {/* Scoring matrix */}
@@ -1347,9 +1453,21 @@ function EvaluationTab({
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <ScoreBar label="Price" score={s.priceScore} color="bg-primary" />
-                <ScoreBar label="Quality" score={s.qualityScore} color="bg-chart-3" />
-                <ScoreBar label="Delivery" score={s.deliveryScore} color="bg-chart-2" />
+                <ScoreBar label="Price" score={s.priceScore} color="bg-primary" hint="auto · from bid" />
+                <EditableScore
+                  label="Quality"
+                  score={s.qualityScore}
+                  color="bg-chart-3"
+                  disabled={locked}
+                  onChange={(v) => setManualScore(s.bid.supplier, "quality", v)}
+                />
+                <EditableScore
+                  label="Delivery"
+                  score={s.deliveryScore}
+                  color="bg-chart-2"
+                  disabled={locked}
+                  onChange={(v) => setManualScore(s.bid.supplier, "delivery", v)}
+                />
               </div>
             </div>
           )
@@ -1359,32 +1477,120 @@ function EvaluationTab({
   )
 }
 
-function WeightLegend({
-  icon: Icon,
+function WeightSlider({
   label,
-  pct,
+  icon: Icon,
   color,
+  value,
+  onChange,
+  disabled,
 }: {
-  icon: typeof Trophy
   label: string
-  pct: number
+  icon: typeof Trophy
   color: string
+  value: number
+  onChange: (v: number) => void
+  disabled?: boolean
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-      <span className={cn("size-2.5 rounded-full", color)} />
-      <Icon className="size-3.5" />
-      {label}
-      <span className="font-semibold text-foreground">{Math.round(pct * 100)}%</span>
-    </span>
+    <div>
+      <div className="mb-2 flex items-center justify-between text-sm">
+        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+          <Icon className="size-4 text-muted-foreground" />
+          {label}
+        </span>
+        <span className="font-bold tabular-nums text-foreground">{value}%</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className={cn("w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50", color)}
+        aria-label={`${label} weight`}
+      />
+    </div>
   )
 }
 
-function ScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
+// Editable non-price score with a +/- stepper and progress bar.
+function EditableScore({
+  label,
+  score,
+  color,
+  disabled,
+  onChange,
+}: {
+  label: string
+  score: number
+  color: string
+  disabled?: boolean
+  onChange: (v: number) => void
+}) {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
+        {disabled ? (
+          <span className="font-semibold tabular-nums text-foreground">{score}</span>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onChange(score - 1)}
+              className="flex size-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-muted"
+              aria-label={`Decrease ${label}`}
+            >
+              <Minus className="size-3" />
+            </button>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={score}
+              onChange={(e) => onChange(Number(e.target.value))}
+              className="w-12 rounded border border-border bg-background px-1 py-0.5 text-center text-xs font-semibold tabular-nums text-foreground focus:border-primary focus:outline-none"
+              aria-label={`${label} score`}
+            />
+            <button
+              type="button"
+              onClick={() => onChange(score + 1)}
+              className="flex size-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-muted"
+              aria-label={`Increase ${label}`}
+            >
+              <Plus className="size-3" />
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${score}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function ScoreBar({
+  label,
+  score,
+  color,
+  hint,
+}: {
+  label: string
+  score: number
+  color: string
+  hint?: string
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">
+          {label}
+          {hint && <span className="ml-1 text-[10px] text-muted-foreground/70">{hint}</span>}
+        </span>
         <span className="font-semibold tabular-nums text-foreground">{score}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
