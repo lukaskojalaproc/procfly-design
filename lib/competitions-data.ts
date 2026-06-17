@@ -54,6 +54,8 @@ export interface Competition {
   awardedOn?: string
   /** Drives the hero spotlight. Exactly one competition should set this. */
   featured?: boolean
+  /** Set when this competition was converted from an approved request. */
+  sourceRequestRef?: string
 }
 
 export const competitions: Competition[] = [
@@ -304,3 +306,44 @@ export const avgSavingsPct = (() => {
 export const liveBids = competitions
   .filter((c) => c.status === "Active")
   .reduce((sum, c) => sum + c.bids.length, 0)
+
+// ---------------------------------------------------------------------------
+// Convert an approved request into a sourcing competition.
+//
+// Deterministic so a converted competition always rebuilds identically from
+// the static request data (no persistence needed). The request amount becomes
+// the savings baseline and the requester becomes the competition owner.
+// ---------------------------------------------------------------------------
+
+import type { ProcurementRequest } from "./dashboard-data"
+
+/** Stable competition id/ref derived from a request. */
+export function convertedCompetitionId(requestId: string) {
+  return `from-${requestId}`
+}
+
+/**
+ * Build a Draft competition auto-filled from an approved request. The new
+ * sourcing event starts with no bids — suppliers are invited and bid live.
+ */
+export function requestToCompetition(r: ProcurementRequest): Competition {
+  // Reuse the request's REQ number to keep traceability obvious.
+  const refNumber = r.ref.replace(/[^0-9]/g, "") || "0000"
+  return {
+    id: convertedCompetitionId(r.id),
+    ref: `CMP-${refNumber}`,
+    title: r.title,
+    description: `Sourcing competition created from approved request ${r.ref}. Invite suppliers and collect competitive bids against the approved budget.`,
+    category: r.category,
+    status: "Ready",
+    created: new Date().toISOString().slice(0, 16).replace("T", " "),
+    deadlineInHours: null,
+    baseline: r.amount,
+    currency: r.currency,
+    invitedSuppliers: 0,
+    owner: r.requester,
+    bids: [],
+    sourceRequestRef: r.ref,
+  }
+}
+

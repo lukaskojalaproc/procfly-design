@@ -17,6 +17,7 @@ import {
   Wallet,
   TrendingUp,
   Users,
+  Trophy,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -171,14 +172,25 @@ function ApprovalRow({
             </button>
           </>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-            {decision === "Approved" ? (
-              <CheckCircle2 className="size-4 text-primary" />
-            ) : (
-              <XCircle className="size-4 text-destructive" />
+          <div className="flex flex-1 flex-col items-end gap-2 sm:flex-none sm:flex-row sm:items-center">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+              {decision === "Approved" ? (
+                <CheckCircle2 className="size-4 text-primary" />
+              ) : (
+                <XCircle className="size-4 text-destructive" />
+              )}
+              {decision} {actedByYou ? "by you" : ""}
+            </span>
+            {decision === "Approved" && (
+              <Link
+                href={`/competitions/from/${request.id}`}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
+              >
+                <Trophy className="size-4" />
+                Convert to Competition
+              </Link>
             )}
-            {decision} {actedByYou ? "by you" : ""}
-          </span>
+          </div>
         )}
       </div>
     </Card>
