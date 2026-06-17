@@ -274,6 +274,20 @@ export function NewRequestDialog() {
   const [region, setRegion] = useState("")
   const [businessOwner, setBusinessOwner] = useState("")
 
+  // Specific — software (SaaS / license)
+  const [softwareName, setSoftwareName] = useState("")
+  const [licenseType, setLicenseType] = useState("SaaS subscription")
+  const [numberOfUsers, setNumberOfUsers] = useState("")
+  const [billingCycle, setBillingCycle] = useState("Annual")
+  const [subscriptionStart, setSubscriptionStart] = useState("")
+  const [renewalType, setRenewalType] = useState("Auto-renew")
+  const [renewalDate, setRenewalDate] = useState("")
+  // Software — compliance (EU / GDPR)
+  const [dataProcessing, setDataProcessing] = useState("No personal data")
+  const [hostingRegion, setHostingRegion] = useState("EU / EEA")
+  const [dpaRequired, setDpaRequired] = useState("Yes")
+  const [softwareOwner, setSoftwareOwner] = useState("")
+
   // Specific — supplier onboarding
   const [supplierName, setSupplierName] = useState("")
   const [country, setCountry] = useState("")
@@ -301,6 +315,7 @@ export function NewRequestDialog() {
   const selectedCategory = categories.find((c) => c.id === category)
   const isService = category === "service"
   const isSupplier = category === "supplier"
+  const isSoftware = category === "software"
 
   const docSlots = isSupplier ? supplierDocs : purchaseDocs
   const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
@@ -333,6 +348,17 @@ export function NewRequestDialog() {
     setRequestName("")
     setRegion("")
     setBusinessOwner("")
+    setSoftwareName("")
+    setLicenseType("SaaS subscription")
+    setNumberOfUsers("")
+    setBillingCycle("Annual")
+    setSubscriptionStart("")
+    setRenewalType("Auto-renew")
+    setRenewalDate("")
+    setDataProcessing("No personal data")
+    setHostingRegion("EU / EEA")
+    setDpaRequired("Yes")
+    setSoftwareOwner("")
     setSupplierName("")
     setCountry("")
     setVatNumber("")
@@ -671,6 +697,39 @@ export function NewRequestDialog() {
                               </select>
                             </Field>
                           </>
+                        ) : isSoftware ? (
+                          <>
+                            <Field label="Number of users / seats">
+                              <input
+                                value={numberOfUsers}
+                                onChange={(e) => setNumberOfUsers(e.target.value)}
+                                inputMode="numeric"
+                                placeholder="25"
+                                className={fieldClass}
+                              />
+                            </Field>
+                            <Field label="Billing cycle">
+                              <select
+                                value={billingCycle}
+                                onChange={(e) => setBillingCycle(e.target.value)}
+                                className={fieldClass}
+                              >
+                                {["Monthly", "Quarterly", "Annual", "Multi-year", "One-time"].map((b) => (
+                                  <option key={b} value={b}>
+                                    {b}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                            <Field label="Subscription start">
+                              <input
+                                type="date"
+                                value={subscriptionStart}
+                                onChange={(e) => setSubscriptionStart(e.target.value)}
+                                className={fieldClass}
+                              />
+                            </Field>
+                          </>
                         ) : (
                           <>
                             <Field label="Needed by">
@@ -725,6 +784,138 @@ export function NewRequestDialog() {
                           value={bic}
                           onChange={(e) => setBic(e.target.value.toUpperCase())}
                           placeholder="CBVILT2X"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+                )}
+
+                {isSoftware && (
+                  <Section
+                    icon={Monitor}
+                    iconClass="bg-chart-2/15 text-chart-2"
+                    title="License & renewal"
+                    subtitle="License model and renewal terms for budgeting and contract tracking."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <Field label="License type">
+                        <select
+                          value={licenseType}
+                          onChange={(e) => setLicenseType(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {[
+                            "SaaS subscription",
+                            "Perpetual license",
+                            "Per-seat license",
+                            "Usage-based",
+                            "Open source / support",
+                          ].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Renewal">
+                        <select
+                          value={renewalType}
+                          onChange={(e) => setRenewalType(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {["Auto-renew", "Manual renewal", "No renewal (one-time)"].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field
+                        label="Renewal / notice date"
+                        hint="Trigger a reminder before auto-renewal"
+                      >
+                        <input
+                          type="date"
+                          value={renewalDate}
+                          onChange={(e) => setRenewalDate(e.target.value)}
+                          disabled={renewalType === "No renewal (one-time)"}
+                          className={cn(
+                            fieldClass,
+                            renewalType === "No renewal (one-time)" && "opacity-50",
+                          )}
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+                )}
+
+                {isSoftware && (
+                  <Section
+                    icon={ShieldCheck}
+                    iconClass="bg-destructive/12 text-destructive"
+                    title="Data protection & compliance"
+                    subtitle="Required for GDPR review before the tool can be approved."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field
+                        label="Personal data processed"
+                        hint="Does the tool process personal data?"
+                      >
+                        <select
+                          value={dataProcessing}
+                          onChange={(e) => setDataProcessing(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {[
+                            "No personal data",
+                            "Employee data",
+                            "Customer data",
+                            "Special category data",
+                          ].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Data hosting region" hint="Where data is stored">
+                        <select
+                          value={hostingRegion}
+                          onChange={(e) => setHostingRegion(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {[
+                            "EU / EEA",
+                            "UK (adequacy)",
+                            "US (DPF certified)",
+                            "Other / non-EU",
+                          ].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="DPA required" hint="Data Processing Agreement">
+                        <select
+                          value={dpaRequired}
+                          onChange={(e) => setDpaRequired(e.target.value)}
+                          disabled={dataProcessing === "No personal data"}
+                          className={cn(
+                            fieldClass,
+                            dataProcessing === "No personal data" && "opacity-50",
+                          )}
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                      </Field>
+                      <Field label="Internal owner" required>
+                        <input
+                          value={softwareOwner}
+                          onChange={(e) => setSoftwareOwner(e.target.value)}
+                          placeholder="Person responsible for the tool"
                           className={fieldClass}
                         />
                       </Field>
@@ -837,6 +1028,30 @@ export function NewRequestDialog() {
                             placeholder="Full name"
                             className={fieldClass}
                           />
+                        </Field>
+                      </>
+                    ) : isSoftware ? (
+                      <>
+                        <Field label="Software Name" required>
+                          <input
+                            value={softwareName}
+                            onChange={(e) => setSoftwareName(e.target.value)}
+                            placeholder="e.g. Procurement platform license"
+                            className={fieldClass}
+                          />
+                        </Field>
+                        <Field label="Business Priority" required>
+                          <select
+                            value={priority}
+                            onChange={(e) => setPriority(e.target.value)}
+                            className={fieldClass}
+                          >
+                            {priorities.map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                          </select>
                         </Field>
                       </>
                     ) : (
@@ -1120,6 +1335,8 @@ export function NewRequestDialog() {
                             label="Start date"
                             value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
                           />
+                        ) : isSoftware ? (
+                          <MetaCell label="Users / seats" value={numberOfUsers || "Not provided"} />
                         ) : (
                           <MetaCell
                             label="Needed by"
@@ -1222,6 +1439,41 @@ export function NewRequestDialog() {
                     </table>
                   </div>
                 </div>
+                )}
+
+                {/* Software license & compliance card */}
+                {isSoftware && (
+                  <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="border-b border-border p-5">
+                      <h3 className="font-semibold text-foreground">License &amp; Compliance</h3>
+                    </div>
+
+                    <ReviewGroup title="License & renewal">
+                      <MetaCell label="License type" value={licenseType} />
+                      <MetaCell label="Billing cycle" value={billingCycle} />
+                      <MetaCell label="Renewal" value={renewalType} />
+                      <MetaCell
+                        label="Renewal date"
+                        value={
+                          renewalType === "No renewal (one-time)"
+                            ? "—"
+                            : renewalDate
+                              ? new Date(renewalDate).toLocaleDateString("en-GB")
+                              : "Not set"
+                        }
+                      />
+                    </ReviewGroup>
+
+                    <ReviewGroup title="Data protection (GDPR)" last>
+                      <MetaCell label="Personal data" value={dataProcessing} />
+                      <MetaCell label="Hosting region" value={hostingRegion} />
+                      <MetaCell
+                        label="DPA required"
+                        value={dataProcessing === "No personal data" ? "—" : dpaRequired}
+                      />
+                      <MetaCell label="Internal owner" value={softwareOwner || "Not provided"} />
+                    </ReviewGroup>
+                  </div>
                 )}
 
                 {/* Documents card */}
