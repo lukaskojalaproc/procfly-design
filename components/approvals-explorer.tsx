@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -63,11 +63,13 @@ const APPROVER_ROLE = "Manager"
 function ApprovalRow({
   request,
   decision,
+  actedByYou,
   onApprove,
   onReject,
 }: {
   request: ProcurementRequest
   decision: Decision
+  actedByYou: boolean
   onApprove: () => void
   onReject: () => void
 }) {
@@ -152,7 +154,7 @@ function ApprovalRow({
             ) : (
               <XCircle className="size-4 text-destructive" />
             )}
-            {decision} by you
+            {decision} {actedByYou ? "by you" : ""}
           </span>
         )}
       </div>
@@ -161,13 +163,16 @@ function ApprovalRow({
 }
 
 export function ApprovalsExplorer() {
-  // Only requests currently awaiting a decision are part of the reviewer's
-  // queue; seed everything from the shared dataset's Pending items.
-  const queue = useMemo(() => requests.filter((r) => r.status === "Pending"), [])
+  // The reviewer's queue spans every request: Pending items are actionable,
+  // while Approved / Rejected ones form the decision history shown under their
+  // respective tabs. Seed each row's decision from the request's own status.
+  const queue = requests
 
   const [decisions, setDecisions] = useState<Record<string, Decision>>(() =>
-    Object.fromEntries(queue.map((r) => [r.id, "Pending" as Decision])),
+    Object.fromEntries(queue.map((r) => [r.id, r.status as Decision])),
   )
+  // Ids the reviewer actioned during this session (vs. seeded history).
+  const [actedByYou, setActedByYou] = useState<Record<string, boolean>>({})
   const [tab, setTab] = useState<FilterTab>("Pending")
   const [query, setQuery] = useState("")
 
@@ -191,8 +196,10 @@ export function ApprovalsExplorer() {
     return matchesTab && matchesQuery
   })
 
-  const setDecision = (id: string, value: Decision) =>
+  const setDecision = (id: string, value: Decision) => {
     setDecisions((prev) => ({ ...prev, [id]: value }))
+    setActedByYou((prev) => ({ ...prev, [id]: true }))
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -256,9 +263,15 @@ export function ApprovalsExplorer() {
             <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <ShieldCheck className="size-6" />
             </span>
-            <p className="font-semibold text-foreground">No approvals to review</p>
+            <p className="font-semibold text-foreground">
+              {tab === "Pending" ? "No approvals to review" : `No ${tab.toLowerCase()} requests`}
+            </p>
             <p className="text-sm text-muted-foreground">
-              You&apos;re all caught up — new approval requests will appear here.
+              {tab === "Pending"
+                ? "You're all caught up — new approval requests will appear here."
+                : query.trim() !== ""
+                  ? "No requests match your search."
+                  : `Requests you ${tab === "Approved" ? "approve" : "reject"} will appear here.`}
             </p>
           </Card>
         ) : (
@@ -267,6 +280,7 @@ export function ApprovalsExplorer() {
               key={request.id}
               request={request}
               decision={decisions[request.id]}
+              actedByYou={!!actedByYou[request.id]}
               onApprove={() => setDecision(request.id, "Approved")}
               onReject={() => setDecision(request.id, "Rejected")}
             />
