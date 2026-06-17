@@ -15,6 +15,8 @@ export interface BidAttachment {
   kind: AttachmentKind
   /** Human-readable file size, e.g. "1.2 MB". */
   size: string
+  /** Data URL for real, supplier-uploaded files so the buyer can download them. */
+  dataUrl?: string
 }
 
 export interface SupplierBid {
@@ -27,6 +29,10 @@ export interface SupplierBid {
   trend: "down" | "up" | "new"
   /** Supporting documents the supplier attached to their proposal. */
   attachments?: BidAttachment[]
+  /** How this bid arrived: a real portal submission, a buyer upload, or seed demo data. */
+  source?: "portal" | "buyer"
+  /** Optional 1-2 sentence proposal summary. */
+  summary?: string
 }
 
 export interface Competition {

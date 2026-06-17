@@ -45,6 +45,12 @@ import {
   Paperclip,
   RotateCcw,
   Minus,
+  Link2,
+  Copy,
+  Check,
+  Trash2,
+  UploadCloud,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -64,6 +70,15 @@ import { EditTermsDialog, type TermsFocus } from "@/components/edit-terms-dialog
 import { AiImportBanner } from "@/components/ai-import-banner"
 import type { ExtractedTerms } from "@/app/actions/extract-competition"
 import { useCountdown } from "@/components/use-countdown"
+import {
+  useSubmittedProposals,
+  inviteLink,
+  removeProposal,
+  addProposal,
+  type SubmittedProposal,
+} from "@/lib/proposal-store"
+import { extractProposalFromFile } from "@/app/actions/extract-proposal"
+import { fileKind, formatFileSize, fileToDataUrl, MAX_INLINE_BYTES } from "@/lib/file-utils"
 
 // ---------------------------------------------------------------------------
 // Status pill
@@ -226,10 +241,58 @@ type TabKey = (typeof TABS)[number]["key"]
 // ===========================================================================
 // Main detail view
 // ===========================================================================
+
+/**
+ * Convert a portal/buyer submission into a SupplierBid so submitted proposals
+ * flow into every tab (Proposals, Evaluation, Award) just like seed bids.
+ */
+function submissionToBid(p: SubmittedProposal): SupplierBid {
+  return {
+    supplier: p.supplier,
+    amount: p.amount,
+    submittedAgo: relativeTime(p.submittedAt),
+    trend: "new",
+    source: "portal",
+    summary: p.summary,
+    attachments: p.documents.map((d) => ({
+      name: d.name,
+      kind: d.kind,
+      size: d.size,
+      dataUrl: d.dataUrl,
+    })),
+  }
+}
+
+/** Merge a competition's seed bids with live submitted proposals (dedup by supplier). */
+function mergeSubmissions(competition: Competition, submissions: SubmittedProposal[]): Competition {
+  if (submissions.length === 0) return competition
+  const submitted = submissions.map(submissionToBid)
+  const submittedNames = new Set(submitted.map((b) => b.supplier.toLowerCase()))
+  // Submitted proposals win over any seed bid from the same supplier.
+  const seed = competition.bids.filter((b) => !submittedNames.has(b.supplier.toLowerCase()))
+  return { ...competition, bids: [...seed, ...submitted] }
+}
+
+/** Short relative time label from an ISO timestamp. */
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.round(diff / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
 export function CompetitionDetailView({ competition: initialCompetition }: { competition: Competition }) {
   // Hold the competition in local state so launching it updates the whole
   // page in place (Ready → Active) without a server round-trip.
-  const [competition, setCompetition] = useState(initialCompetition)
+  const [baseCompetition, setBaseCompetition] = useState(initialCompetition)
+  // Live supplier/buyer submissions (from the invite-link portal), merged in so
+  // every tab reflects real proposals as they arrive.
+  const submissions = useSubmittedProposals(initialCompetition.id)
+  const competition = mergeSubmissions(baseCompetition, submissions)
+  const setCompetition = setBaseCompetition
   const [launchOpen, setLaunchOpen] = useState(false)
   const [editTermsOpen, setEditTermsOpen] = useState(false)
   const [editTermsFocus, setEditTermsFocus] = useState<TermsFocus>("all")
