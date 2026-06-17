@@ -1085,25 +1085,30 @@ export function NewRequestDialog() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Amount
-                      </p>
-                      <p className="text-xl font-bold text-foreground">
-                        {isSupplier
-                          ? "—"
-                          : reviewTotal
-                            ? `${fmt(reviewTotal)} ${currency}`
-                            : "No cost"}
-                      </p>
+                      {isSupplier ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                          <UserPlus className="size-3.5" />
+                          New supplier
+                        </span>
+                      ) : (
+                        <>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Amount
+                          </p>
+                          <p className="text-xl font-bold text-foreground">
+                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
                     {isSupplier ? (
                       <>
                         <MetaCell label="Department" value={department || "Not provided"} />
-                        <MetaCell label="Supplier name" value={supplierName || "Not provided"} />
-                        <MetaCell label="Country" value={country || "Not provided"} />
-                        <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
+                        <MetaCell label="Cost center" value={costCenter || "Not provided"} />
+                        <MetaCell label="Contact email" value={contactEmail || "Not provided"} />
+                        <MetaCell label="Payment terms" value={paymentTerms} />
                       </>
                     ) : (
                       <>
@@ -1132,7 +1137,8 @@ export function NewRequestDialog() {
                     <div className="border-b border-border p-5">
                       <h3 className="font-semibold text-foreground">Supplier Onboarding Details</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
+
+                    <ReviewGroup title="Identity & registration">
                       <MetaCell label="Legal entity" value={supplierName || "Not provided"} />
                       <MetaCell
                         label="Country"
@@ -1140,10 +1146,16 @@ export function NewRequestDialog() {
                       />
                       <MetaCell label="Registration no." value={registrationNumber || "Not provided"} />
                       <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
-                      <MetaCell label="Contact email" value={contactEmail || "Not provided"} />
-                      <MetaCell label="Payment terms" value={paymentTerms} />
+                    </ReviewGroup>
+
+                    <ReviewGroup title="Banking">
+                      <MetaCell label="Account holder" value={accountHolder || "Not provided"} />
                       <MetaCell label="IBAN" value={iban || "Not provided"} />
                       <MetaCell label="BIC / SWIFT" value={bic || "Not provided"} />
+                      <MetaCell label="Payment terms" value={paymentTerms} />
+                    </ReviewGroup>
+
+                    <ReviewGroup title="Tax & accounting" last>
                       <MetaCell label="VAT treatment" value={vatTreatment} />
                       <MetaCell label="Supplier type" value={supplierType} />
                       <MetaCell
@@ -1151,7 +1163,7 @@ export function NewRequestDialog() {
                         value={vatTreatment === "Standard" ? taxRate : "—"}
                       />
                       <MetaCell label="Invoicing email" value={invoicingEmail || contactEmail || "Not provided"} />
-                    </div>
+                    </ReviewGroup>
                   </div>
                 ) : (
                   <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -1303,6 +1315,23 @@ function MetaCell({ label, value }: { label: string; value: string }) {
         {label}
       </span>
       <span className="text-sm font-medium text-foreground">{value}</span>
+    </div>
+  )
+}
+
+function ReviewGroup({
+  title,
+  last,
+  children,
+}: {
+  title: string
+  last?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className={cn("p-5", !last && "border-b border-border")}>
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-primary">{title}</p>
+      <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">{children}</div>
     </div>
   )
 }
