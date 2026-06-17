@@ -361,9 +361,9 @@ function LifecycleStepper({ status }: { status: CompetitionStatus }) {
                 className={cn(
                   "flex size-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                   done
-                    ? "border-chart-2 bg-chart-2 text-background"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : current
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-chart-3 bg-chart-3 text-background"
                       : "border-border bg-muted text-muted-foreground",
                 )}
               >
@@ -387,7 +387,7 @@ function LifecycleStepper({ status }: { status: CompetitionStatus }) {
               <span
                 className={cn(
                   "h-0.5 flex-1 rounded-full",
-                  i < currentIndex ? "bg-chart-2" : "bg-border",
+                  i < currentIndex ? "bg-primary" : "bg-border",
                 )}
               />
             )}
