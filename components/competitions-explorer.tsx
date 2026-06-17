@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   Trophy,
   Zap,
@@ -198,10 +198,8 @@ function CountdownDigit({ value, unit }: { value: number; unit: string }) {
 
 function Spotlight({
   competition,
-  onView,
 }: {
   competition: Competition
-  onView: (c: Competition) => void
 }) {
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
@@ -349,13 +347,13 @@ function Spotlight({
             })}
           </ol>
 
-          <button
-            onClick={() => onView(competition)}
+          <Link
+            href={`/competitions/${competition.id}`}
             className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
           >
             View competition
             <ChevronRight className="size-4" />
-          </button>
+          </Link>
         </div>
       </div>
     </div>
@@ -367,11 +365,9 @@ function Spotlight({
 // ===========================================================================
 function CompetitionCard({
   competition,
-  onOpen,
   onLaunch,
 }: {
   competition: Competition
-  onOpen: (c: Competition) => void
   onLaunch: (c: Competition) => void
 }) {
   const best = bestBid(competition)
@@ -396,16 +392,8 @@ function CompetitionCard({
             : "border-l-border"
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(competition)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onOpen(competition)
-        }
-      }}
+    <Link
+      href={`/competitions/${competition.id}`}
       className={cn(
         "group flex cursor-pointer flex-col gap-4 rounded-xl border border-l-4 border-border bg-card p-5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         accent,
@@ -483,6 +471,7 @@ function CompetitionCard({
         ) : canLaunch ? (
           <button
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onLaunch(competition)
             }}
@@ -503,7 +492,7 @@ function CompetitionCard({
           </span>
         )}
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -586,12 +575,9 @@ function StatRow({ filter, onFilter }: { filter: FilterKey; onFilter: (k: Filter
 // Main explorer
 // ===========================================================================
 export function CompetitionsExplorer() {
-  const router = useRouter()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<FilterKey>("all")
   const [launching, setLaunching] = useState<string | null>(null)
-
-  const openCompetition = (c: Competition) => router.push(`/competitions/${c.id}`)
 
   const featured = competitions.find((c) => c.featured)
 
@@ -632,7 +618,7 @@ export function CompetitionsExplorer() {
       <Hero />
 
       {featured && !query && filter === "all" && (
-        <Spotlight competition={featured} onView={openCompetition} />
+        <Spotlight competition={featured} />
       )}
 
       <StatRow filter={filter} onFilter={setFilter} />
@@ -678,7 +664,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-primary/10 text-primary"
           >
             {active.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -689,7 +675,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-3/10 text-chart-3"
           >
             {ready.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -700,7 +686,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-muted text-muted-foreground"
           >
             {drafts.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -711,7 +697,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-2/15 text-chart-2"
           >
             {finished.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onLaunch={handleLaunch} />
             ))}
           </Section>
         </>
