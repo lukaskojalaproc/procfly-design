@@ -1,35 +1,41 @@
 export type RequestStatus = "Pending" | "Approved" | "Rejected"
 export type RequestKind = "Buy Product" | "Buy Service" | "Add New Supplier"
 
+export type Department = "IT" | "Operations" | "Marketing" | "Finance" | "Facilities" | "Legal"
+
 export interface ProcurementRequest {
   id: string
+  ref: string
   title: string
   date: string
   kind: RequestKind
   amount: number
   currency: string
   status: RequestStatus
+  requester: string
+  department: Department
+  quotes: number
 }
 
 export const requests: ProcurementRequest[] = [
   // critical tier (>= 100k)
-  { id: "r4", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", kind: "Buy Service", amount: 1000000, currency: "EUR", status: "Pending" },
-  { id: "r9", title: "Fleet of 12 delivery vehicles", date: "2026-06-15 16:30", kind: "Buy Product", amount: 384000, currency: "EUR", status: "Approved" },
-  { id: "r10", title: "Annual cloud infrastructure commitment", date: "2026-06-14 11:05", kind: "Buy Service", amount: 128400, currency: "EUR", status: "Rejected" },
+  { id: "r4", ref: "REQ-1042", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", kind: "Buy Service", amount: 1000000, currency: "EUR", status: "Pending", requester: "Vaidas Petrauskas", department: "IT", quotes: 4 },
+  { id: "r9", ref: "REQ-1039", title: "Fleet of 12 delivery vehicles", date: "2026-06-15 16:30", kind: "Buy Product", amount: 384000, currency: "EUR", status: "Approved", requester: "Greta Jonaitis", department: "Operations", quotes: 3 },
+  { id: "r10", ref: "REQ-1036", title: "Annual cloud infrastructure commitment", date: "2026-06-14 11:05", kind: "Buy Service", amount: 128400, currency: "EUR", status: "Rejected", requester: "Marius Kazlauskas", department: "IT", quotes: 2 },
   // high tier (10k - 100k)
-  { id: "r11", title: "Warehouse racking and shelving system", date: "2026-06-14 09:20", kind: "Buy Product", amount: 47250, currency: "EUR", status: "Pending" },
-  { id: "r12", title: "Marketing agency retainer — Q3", date: "2026-06-13 14:42", kind: "Buy Service", amount: 18900, currency: "EUR", status: "Approved" },
+  { id: "r11", ref: "REQ-1034", title: "Warehouse racking and shelving system", date: "2026-06-14 09:20", kind: "Buy Product", amount: 47250, currency: "EUR", status: "Pending", requester: "Greta Jonaitis", department: "Facilities", quotes: 3 },
+  { id: "r12", ref: "REQ-1031", title: "Marketing agency retainer — Q3", date: "2026-06-13 14:42", kind: "Buy Service", amount: 18900, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2 },
   // mid tier (1k - 10k)
-  { id: "r8", title: "Customer research interviews for Q3 campaign", date: "2026-06-10 01:52", kind: "Buy Service", amount: 8500, currency: "EUR", status: "Approved" },
-  { id: "r1", title: "Standing desks for new hires (x8)", date: "2026-06-16 08:58", kind: "Buy Product", amount: 2033, currency: "EUR", status: "Pending" },
-  { id: "r13", title: "Legal review of supplier contracts", date: "2026-06-12 10:15", kind: "Buy Service", amount: 1450, currency: "EUR", status: "Rejected" },
+  { id: "r8", ref: "REQ-1028", title: "Customer research interviews for Q3 campaign", date: "2026-06-10 01:52", kind: "Buy Service", amount: 8500, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2 },
+  { id: "r1", ref: "REQ-1025", title: "Standing desks for new hires (x8)", date: "2026-06-16 08:58", kind: "Buy Product", amount: 2033, currency: "EUR", status: "Pending", requester: "Tomas Vasiliauskas", department: "Facilities", quotes: 3 },
+  { id: "r13", ref: "REQ-1022", title: "Legal review of supplier contracts", date: "2026-06-12 10:15", kind: "Buy Service", amount: 1450, currency: "EUR", status: "Rejected", requester: "Rūta Stankevičius", department: "Legal", quotes: 1 },
   // low tier (< 1k)
-  { id: "r2", title: "Translation services — product sheet", date: "2026-06-16 08:40", kind: "Buy Service", amount: 123, currency: "EUR", status: "Pending" },
-  { id: "r3", title: "Translation services — landing page", date: "2026-06-16 08:38", kind: "Buy Service", amount: 123, currency: "EUR", status: "Pending" },
-  { id: "r5", title: "USB-C docking station", date: "2026-06-15 18:45", kind: "Buy Product", amount: 30, currency: "EUR", status: "Approved" },
+  { id: "r2", ref: "REQ-1019", title: "Translation services — product sheet", date: "2026-06-16 08:40", kind: "Buy Service", amount: 123, currency: "EUR", status: "Pending", requester: "Aistė Navickas", department: "Marketing", quotes: 1 },
+  { id: "r3", ref: "REQ-1018", title: "Translation services — landing page", date: "2026-06-16 08:38", kind: "Buy Service", amount: 123, currency: "EUR", status: "Pending", requester: "Aistė Navickas", department: "Marketing", quotes: 1 },
+  { id: "r5", ref: "REQ-1015", title: "USB-C docking station", date: "2026-06-15 18:45", kind: "Buy Product", amount: 30, currency: "EUR", status: "Approved", requester: "Tomas Vasiliauskas", department: "IT", quotes: 2 },
   // no cost (supplier onboarding)
-  { id: "r6", title: "Onboard ProcFly Logistics as preferred carrier", date: "2026-06-15 12:17", kind: "Add New Supplier", amount: 0, currency: "EUR", status: "Approved" },
-  { id: "r7", title: "Onboard Office Supplies Baltics for recurring office orders", date: "2026-06-11 01:52", kind: "Add New Supplier", amount: 0, currency: "EUR", status: "Pending" },
+  { id: "r6", ref: "REQ-1012", title: "Onboard ProcFly Logistics as preferred carrier", date: "2026-06-15 12:17", kind: "Add New Supplier", amount: 0, currency: "EUR", status: "Approved", requester: "Marius Kazlauskas", department: "Operations", quotes: 0 },
+  { id: "r7", ref: "REQ-1008", title: "Onboard Office Supplies Baltics for recurring office orders", date: "2026-06-11 01:52", kind: "Add New Supplier", amount: 0, currency: "EUR", status: "Pending", requester: "Tomas Vasiliauskas", department: "Operations", quotes: 0 },
 ]
 
 export const stats = {
@@ -85,4 +91,13 @@ export function priceTier(amount: number): PriceTier {
   if (amount < 10000) return "mid"
   if (amount < 100000) return "high"
   return "critical"
+}
+
+export function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
 }

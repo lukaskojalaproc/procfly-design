@@ -1,10 +1,11 @@
-import { Package, Briefcase, UserPlus, MoreVertical } from "lucide-react"
+import { Package, Briefcase, UserPlus, MoreVertical, Users } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { PriceTag } from "@/components/price-tag"
 import {
   requests,
   maxAmount,
+  initials,
   type ProcurementRequest,
   type RequestKind,
   type RequestStatus,
@@ -38,10 +39,34 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold text-foreground">{request.title}</p>
-        <p className="truncate text-sm text-muted-foreground">
-          {request.date} · {request.kind}
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+            {request.ref}
+          </span>
+          <p className="truncate font-semibold text-foreground">{request.title}</p>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
+              {initials(request.requester)}
+            </span>
+            {request.requester}
+          </span>
+          <span className="hidden items-center gap-1 sm:inline-flex">
+            <span className="size-1 rounded-full bg-border" />
+            {request.department}
+          </span>
+          <span className="hidden items-center gap-1 md:inline-flex">
+            <span className="size-1 rounded-full bg-border" />
+            {request.date} · {request.kind}
+          </span>
+          {request.quotes > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+              <Users className="size-3" />
+              {request.quotes} quotes
+            </span>
+          )}
+        </div>
       </div>
 
       <PriceTag amount={request.amount} currency={request.currency} max={maxAmount} />
