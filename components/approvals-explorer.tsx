@@ -240,10 +240,10 @@ export function ApprovalsExplorer() {
     <div className="flex flex-col gap-5">
       {/* Command-center hero */}
       <div className="relative overflow-hidden rounded-2xl bg-hero text-hero-foreground shadow-sm">
-        {/* subtle radial highlight — brand green tie-in */}
+        {/* subtle radial highlight */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-primary/25 blur-3xl"
+          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-primary-foreground/15 blur-3xl"
         />
         <div className="relative flex flex-col gap-8 p-6 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -269,7 +269,7 @@ export function ApprovalsExplorer() {
 
             {actionedCount > 0 && (
               <div className="flex items-center gap-2 rounded-xl bg-hero-accent px-4 py-2.5 text-sm ring-1 ring-inset ring-hero-border/50">
-                <CheckCircle2 className="size-4 text-primary" />
+                <CheckCircle2 className="size-4 text-hero-foreground" />
                 <span className="font-semibold">{actionedCount}</span>
                 <span className="text-hero-muted">actioned today</span>
               </div>
