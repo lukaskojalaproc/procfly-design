@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   FileText,
@@ -17,34 +19,37 @@ import {
 import { cn } from "@/lib/utils"
 
 const primaryNav = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "Requests", icon: FileText },
-  { label: "New Request", icon: FilePlus2 },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { label: "Requests", icon: FileText, href: "/requests" },
+  { label: "New Request", icon: FilePlus2, href: "/requests" },
 ]
 
 const secondaryNav = [
-  { label: "Approvals", icon: CheckSquare },
-  { label: "Competitions", icon: Trophy },
-  { label: "Orders", icon: ShoppingCart },
+  { label: "Approvals", icon: CheckSquare, href: "/requests" },
+  { label: "Competitions", icon: Trophy, href: "/requests" },
+  { label: "Orders", icon: ShoppingCart, href: "/requests" },
 ]
 
 const tertiaryNav = [
-  { label: "Contracts", icon: FileSignature },
-  { label: "Suppliers", icon: Network },
-  { label: "Warehouse", icon: Warehouse },
+  { label: "Contracts", icon: FileSignature, href: "/requests" },
+  { label: "Suppliers", icon: Network, href: "/requests" },
+  { label: "Warehouse", icon: Warehouse, href: "/requests" },
 ]
 
 function NavItem({
   label,
   icon: Icon,
+  href,
   active,
 }: {
   label: string
   icon: typeof LayoutDashboard
+  href: string
   active?: boolean
 }) {
   return (
-    <button
+    <Link
+      href={href}
       className={cn(
         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         active
@@ -54,11 +59,12 @@ function NavItem({
     >
       <Icon className="size-5 shrink-0" />
       <span>{label}</span>
-    </button>
+    </Link>
   )
 }
 
 export function Sidebar() {
+  const pathname = usePathname()
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
       <div className="flex items-center justify-between px-5 py-5">
@@ -71,7 +77,7 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
         <div className="flex flex-col gap-1">
           {primaryNav.map((item) => (
-            <NavItem key={item.label} {...item} />
+            <NavItem key={item.label} {...item} active={pathname === item.href} />
           ))}
         </div>
         <div className="flex flex-col gap-1">
@@ -85,7 +91,7 @@ export function Sidebar() {
           ))}
         </div>
         <div className="mt-auto flex flex-col gap-1">
-          <NavItem label="Settings" icon={Settings} />
+          <NavItem label="Settings" icon={Settings} href="/requests" />
         </div>
       </nav>
 

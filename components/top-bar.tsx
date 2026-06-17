@@ -25,23 +25,27 @@ export function TopBar() {
   )
 }
 
-export function PageHeader() {
+export function PageHeader({
+  crumb = "Overview",
+  title = "Overview",
+  description = "Manage procurement requests, approvals, and suppliers in one place.",
+}: {
+  crumb?: string
+  title?: string
+  description?: string
+}) {
   return (
     <div className="flex flex-col gap-4">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <span>Home</span>
         <ChevronRight className="size-3.5" />
-        <span>Dashboard</span>
-        <ChevronRight className="size-3.5" />
-        <span className="font-medium text-foreground">Overview</span>
+        <span className="font-medium text-foreground">{crumb}</span>
       </nav>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage procurement requests, approvals, and suppliers in one place.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+          <p className="mt-1 text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
