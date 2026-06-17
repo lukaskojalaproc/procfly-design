@@ -64,8 +64,8 @@ function HeroStat({
   value: string
 }) {
   return (
-    <div className="flex flex-col gap-2 bg-sidebar p-4">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/55">
+    <div className="flex flex-col gap-2 bg-hero p-4">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-hero-muted">
         <Icon className="size-3.5" />
         {label}
       </span>
@@ -239,16 +239,16 @@ export function ApprovalsExplorer() {
   return (
     <div className="flex flex-col gap-5">
       {/* Command-center hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground shadow-sm">
-        {/* subtle radial highlight */}
+      <div className="relative overflow-hidden rounded-2xl bg-hero text-hero-foreground shadow-sm">
+        {/* subtle radial highlight — brand green tie-in */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-sidebar-primary/15 blur-3xl"
+          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-primary/25 blur-3xl"
         />
         <div className="relative flex flex-col gap-8 p-6 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-sidebar-accent/60 px-3 py-1 text-xs font-medium text-sidebar-foreground/90 ring-1 ring-inset ring-sidebar-border/60">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-hero-accent px-3 py-1 text-xs font-medium text-hero-foreground/90 ring-1 ring-inset ring-hero-border/60">
                 <Clock className="size-3.5" />
                 Awaiting your action
               </span>
@@ -256,11 +256,11 @@ export function ApprovalsExplorer() {
                 <span className="text-6xl font-bold leading-none tracking-tight md:text-7xl">
                   {pendingCount}
                 </span>
-                <span className="mb-1 text-lg font-medium text-sidebar-foreground/70">
+                <span className="mb-1 text-lg font-medium text-hero-muted">
                   {pendingCount === 1 ? "approval" : "approvals"} pending
                 </span>
               </div>
-              <p className="mt-2 max-w-sm text-sm text-sidebar-foreground/60">
+              <p className="mt-2 max-w-sm text-sm text-hero-muted">
                 {pendingValue > 0
                   ? `${fmtEur(pendingValue)} in spend is waiting on your decision across ${uniqueRequesters} ${uniqueRequesters === 1 ? "requester" : "requesters"}.`
                   : "You're all caught up — new approval requests will appear here."}
@@ -268,16 +268,16 @@ export function ApprovalsExplorer() {
             </div>
 
             {actionedCount > 0 && (
-              <div className="flex items-center gap-2 rounded-xl bg-sidebar-accent/50 px-4 py-2.5 text-sm ring-1 ring-inset ring-sidebar-border/50">
-                <CheckCircle2 className="size-4" />
+              <div className="flex items-center gap-2 rounded-xl bg-hero-accent px-4 py-2.5 text-sm ring-1 ring-inset ring-hero-border/50">
+                <CheckCircle2 className="size-4 text-primary" />
                 <span className="font-semibold">{actionedCount}</span>
-                <span className="text-sidebar-foreground/70">actioned today</span>
+                <span className="text-hero-muted">actioned today</span>
               </div>
             )}
           </div>
 
           {/* Metric tiles */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-sidebar-border/40 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-hero-border/50 lg:grid-cols-4">
             <HeroStat
               icon={Wallet}
               label="Value at stake"

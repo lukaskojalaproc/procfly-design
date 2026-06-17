@@ -39,6 +39,11 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-border: var(--hero-border);
+  --color-hero-accent: var(--hero-accent);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -82,6 +87,12 @@
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(0.6 0.11 162);
   --sidebar-ring: oklch(0.99 0 0);
+  /* Neutral charcoal hero — pairs with the green sidebar without clashing */
+  --hero: oklch(0.24 0.025 250);
+  --hero-foreground: oklch(0.98 0.005 240);
+  --hero-muted: oklch(0.72 0.02 250);
+  --hero-border: oklch(0.4 0.02 250);
+  --hero-accent: oklch(0.32 0.025 250);
 }
 
 .dark {
