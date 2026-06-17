@@ -63,42 +63,49 @@ const categories: {
 ]
 
 const steps = [
-  { id: "category", label: "Category", icon: Check },
+  { id: "category", label: "Category", icon: Package },
   { id: "details", label: "Details", icon: FileText },
   { id: "review", label: "Review", icon: ClipboardCheck },
 ] as const
 
 function Stepper({ current }: { current: number }) {
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center">
       {steps.map((step, i) => {
         const Icon = step.icon
         const done = i < current
         const active = i === current
         return (
-          <div key={step.id} className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+          <div key={step.id} className="flex flex-1 items-center last:flex-none">
+            <div className="flex items-center gap-2.5">
               <span
                 className={cn(
-                  "flex size-7 items-center justify-center rounded-full transition-colors",
-                  done || active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground",
+                  "flex size-9 items-center justify-center rounded-full border-2 transition-all duration-300",
+                  done && "border-primary bg-primary text-primary-foreground",
+                  active && "border-primary bg-primary/10 text-primary",
+                  !done && !active && "border-border bg-background text-muted-foreground",
                 )}
               >
                 {done ? <Check className="size-4" /> : <Icon className="size-4" />}
               </span>
               <span
                 className={cn(
-                  "text-sm font-semibold",
-                  active ? "text-foreground" : "text-muted-foreground",
+                  "text-sm font-semibold transition-colors",
+                  active || done ? "text-foreground" : "text-muted-foreground",
                 )}
               >
                 {step.label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <ChevronRight className="size-4 text-muted-foreground" />
+              <div className="mx-3 h-0.5 flex-1 overflow-hidden rounded-full bg-border">
+                <div
+                  className={cn(
+                    "h-full rounded-full bg-primary transition-all duration-300",
+                    done ? "w-full" : "w-0",
+                  )}
+                />
+              </div>
             )}
           </div>
         )
@@ -153,20 +160,25 @@ export function NewRequestDialog() {
       </button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b border-border px-6 py-4">
-            <DialogTitle className="text-lg font-bold">
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="px-6 pb-5 pt-6">
+            <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
               {step === 1 && "Tell us the details"}
               {step === 2 && "Review your request"}
             </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {step === 0 && "Choose a category to get started. Three quick steps to send for approval."}
+              {step === 1 && "Add the key information approvers need to make a decision."}
+              {step === 2 && "Make sure everything looks right before submitting."}
+            </p>
           </DialogHeader>
 
-          <div className="px-6 py-5">
+          <div className="bg-muted/40 px-6 py-5">
             <Stepper current={step} />
           </div>
 
-          <div className="px-6 pb-2">
+          <div className="px-6 py-6">
             {step === 0 && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {categories.map((c) => {
@@ -177,29 +189,36 @@ export function NewRequestDialog() {
                       key={c.id}
                       onClick={() => setCategory(c.id)}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl border p-4 text-left transition-colors",
+                        "group relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200",
                         selected
-                          ? "border-primary bg-primary/5 ring-1 ring-primary"
-                          : "border-border hover:border-primary/40 hover:bg-muted/50",
+                          ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                          : "border-border hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm",
                       )}
                     >
                       <span
                         className={cn(
-                          "flex size-11 shrink-0 items-center justify-center rounded-lg",
+                          "flex size-11 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105",
                           c.iconClass,
                         )}
                       >
                         <Icon className="size-5" />
                       </span>
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 flex-1 pr-5">
                         <span className="block font-semibold text-foreground">{c.title}</span>
-                        <span className="block text-sm text-muted-foreground">{c.subtitle}</span>
-                      </span>
-                      {selected && (
-                        <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="size-3.5" />
+                        <span className="block text-sm leading-snug text-muted-foreground">
+                          {c.subtitle}
                         </span>
-                      )}
+                      </span>
+                      <span
+                        className={cn(
+                          "absolute right-3 top-3 flex size-5 items-center justify-center rounded-full transition-all duration-200",
+                          selected
+                            ? "scale-100 bg-primary text-primary-foreground opacity-100"
+                            : "scale-75 opacity-0",
+                        )}
+                      >
+                        <Check className="size-3.5" />
+                      </span>
                     </button>
                   )
                 })}
@@ -208,6 +227,27 @@ export function NewRequestDialog() {
 
             {step === 1 && (
               <div className="flex flex-col gap-4">
+                {selectedCategory && (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                    <span
+                      className={cn(
+                        "flex size-8 items-center justify-center rounded-md",
+                        selectedCategory.iconClass,
+                      )}
+                    >
+                      <selectedCategory.icon className="size-4" />
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
+                      {selectedCategory.title}
+                    </span>
+                    <button
+                      onClick={() => setStep(0)}
+                      className="ml-auto text-xs font-semibold text-primary hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="req-title">Request title</Label>
                   <input
@@ -255,35 +295,58 @@ export function NewRequestDialog() {
             )}
 
             {step === 2 && (
-              <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
-                <ReviewRow label="Category" value={selectedCategory?.title ?? "—"} />
-                <ReviewRow label="Title" value={title || "—"} />
-                <ReviewRow
-                  label="Estimated amount"
-                  value={amount ? `${Number(amount).toLocaleString("en-US")} EUR` : "No cost"}
-                />
-                <ReviewRow label="Department" value={department || "—"} />
-                <ReviewRow label="Description" value={description || "—"} />
+              <div className="overflow-hidden rounded-xl border border-border">
+                {selectedCategory && (
+                  <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3">
+                    <span
+                      className={cn(
+                        "flex size-9 items-center justify-center rounded-lg",
+                        selectedCategory.iconClass,
+                      )}
+                    >
+                      <selectedCategory.icon className="size-5" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">{selectedCategory.title}</p>
+                      <p className="text-xs text-muted-foreground">{selectedCategory.subtitle}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-col divide-y divide-border">
+                  <ReviewRow label="Title" value={title || "—"} />
+                  <ReviewRow
+                    label="Estimated amount"
+                    value={amount ? `${Number(amount).toLocaleString("en-US")} EUR` : "No cost"}
+                    emphasize={!!amount}
+                  />
+                  <ReviewRow label="Department" value={department || "—"} />
+                  <ReviewRow label="Description" value={description || "—"} />
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
             <button
               onClick={() => (step === 0 ? handleOpenChange(false) : setStep((s) => s - 1))}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               <ChevronLeft className="size-4" />
               {step === 0 ? "Cancel" : "Back"}
             </button>
-            <button
-              onClick={next}
-              disabled={!canContinue}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {step === 2 ? "Submit request" : "Next"}
-              {step !== 2 && <ChevronRight className="size-4" />}
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs font-medium text-muted-foreground sm:block">
+                Step {step + 1} of {steps.length}
+              </span>
+              <button
+                onClick={next}
+                disabled={!canContinue}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {step === 2 ? "Submit request" : "Next"}
+                {step !== 2 && <ChevronRight className="size-4" />}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -291,11 +354,26 @@ export function NewRequestDialog() {
   )
 }
 
-function ReviewRow({ label, value }: { label: string; value: string }) {
+function ReviewRow({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string
+  value: string
+  emphasize?: boolean
+}) {
   return (
-    <div className="flex items-start justify-between gap-4 text-sm">
+    <div className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-right font-medium text-foreground">{value}</span>
+      <span
+        className={cn(
+          "text-right font-medium text-foreground",
+          emphasize && "text-base font-bold text-primary",
+        )}
+      >
+        {value}
+      </span>
     </div>
   )
 }
