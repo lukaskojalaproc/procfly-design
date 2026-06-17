@@ -208,6 +208,14 @@ export function NewRequestDialog() {
 
   const selectedCategory = categories.find((c) => c.id === category)
 
+  const filledLines = lines.filter((l) => l.name.trim() !== "")
+  const lineItemsTotal = filledLines.reduce(
+    (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.price) || 0),
+    0,
+  )
+  const reviewTotal = Number(amount) || lineItemsTotal
+  const fmt = (n: number) => n.toLocaleString("en-US")
+
   function reset() {
     setStep(0)
     setCategory(null)
@@ -265,7 +273,7 @@ export function NewRequestDialog() {
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
               {step === 1 && "Create a purchase request"}
-              {step === 2 && "Review your request"}
+              {step === 2 && "Review Request"}
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               {step === 0 && "Choose a category to get started. Three quick steps to send for approval."}
@@ -539,63 +547,149 @@ export function NewRequestDialog() {
             )}
 
             {step === 2 && (
-              <div className="overflow-hidden rounded-xl border border-border">
-                {selectedCategory && (
-                  <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3">
-                    <span
-                      className={cn(
-                        "flex size-9 items-center justify-center rounded-lg",
-                        selectedCategory.iconClass,
+              <div className="flex flex-col gap-5">
+                {/* Summary card */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+                    <div className="flex items-center gap-3">
+                      {selectedCategory && (
+                        <span
+                          className={cn(
+                            "flex size-11 items-center justify-center rounded-lg",
+                            selectedCategory.iconClass,
+                          )}
+                        >
+                          <selectedCategory.icon className="size-5" />
+                        </span>
                       )}
-                    >
-                      <selectedCategory.icon className="size-5" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-foreground">{selectedCategory.title}</p>
-                      <p className="text-xs text-muted-foreground">{selectedCategory.subtitle}</p>
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {selectedCategory?.title ?? "Request"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {description || "No description"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Amount
+                      </p>
+                      <p className="text-xl font-bold text-foreground">
+                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                      </p>
                     </div>
                   </div>
-                )}
-                <div className="flex flex-col divide-y divide-border">
-                  <ReviewRow label="Description" value={description || "—"} />
-                  <ReviewRow label="Department" value={department || "—"} />
-                  <ReviewRow label="Cost center" value={costCenter || "—"} />
-                  <ReviewRow
-                    label="Total amount"
-                    value={amount ? `${Number(amount).toLocaleString("en-US")} ${currency}` : "No cost"}
-                    emphasize={!!amount}
-                  />
-                  <ReviewRow label="Supplier" value={supplier || "—"} />
-                  <ReviewRow label="Needed by" value={neededBy || "—"} />
-                  <ReviewRow label="Product" value={productName || "—"} />
-                  <ReviewRow label="Business priority" value={priority} />
-                  <ReviewRow
-                    label="Line items"
-                    value={`${lines.filter((l) => l.name.trim() !== "").length} item(s)`}
-                  />
+                  <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
+                    <MetaCell label="Department" value={department || "Not provided"} />
+                    <MetaCell label="Cost center" value={costCenter || "Not provided"} />
+                    <MetaCell label="Supplier" value={supplier || "Not provided"} />
+                    <MetaCell
+                      label="Needed by"
+                      value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
+                    />
+                  </div>
+                </div>
+
+                {/* Line items card */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Supplier, Budget &amp; Specifications</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <th className="px-5 py-3 text-left font-semibold">Product name</th>
+                          <th className="px-5 py-3 text-center font-semibold">Quantity</th>
+                          <th className="px-5 py-3 text-right font-semibold">Unit price</th>
+                          <th className="px-5 py-3 text-right font-semibold">Total price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filledLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">
+                              No line items added.
+                            </td>
+                          </tr>
+                        ) : (
+                          filledLines.map((l) => {
+                            const qty = Number(l.qty) || 0
+                            const price = Number(l.price) || 0
+                            return (
+                              <tr key={l.id}>
+                                <td className="px-5 py-3 font-medium text-foreground">{l.name}</td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{qty || "—"}</td>
+                                <td className="px-5 py-3 text-right text-muted-foreground">
+                                  {price ? `${fmt(price)} ${currency}` : "—"}
+                                </td>
+                                <td className="px-5 py-3 text-right font-semibold text-foreground">
+                                  {qty && price ? `${fmt(qty * price)} ${currency}` : "—"}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-muted/40">
+                          <td
+                            colSpan={3}
+                            className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                          >
+                            Amount
+                          </td>
+                          <td className="px-5 py-3 text-right text-base font-bold text-foreground">
+                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           <div className="flex shrink-0 items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
-            <button
-              onClick={() => (step === 0 ? handleOpenChange(false) : setStep((s) => s - 1))}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              <ChevronLeft className="size-4" />
-              {step === 0 ? "Cancel" : "Back"}
-            </button>
+            {step === 2 ? (
+              <button
+                onClick={() => handleOpenChange(false)}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <FileText className="size-4" />
+                Save draft
+              </button>
+            ) : (
+              <button
+                onClick={() => (step === 0 ? handleOpenChange(false) : setStep((s) => s - 1))}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <ChevronLeft className="size-4" />
+                {step === 0 ? "Cancel" : "Back"}
+              </button>
+            )}
             <div className="flex items-center gap-3">
-              <span className="hidden text-xs font-medium text-muted-foreground sm:block">
-                Step {step + 1} of {steps.length}
-              </span>
+              {step === 2 ? (
+                <button
+                  onClick={() => setStep((s) => s - 1)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <ChevronLeft className="size-4" />
+                  Back
+                </button>
+              ) : (
+                <span className="hidden text-xs font-medium text-muted-foreground sm:block">
+                  Step {step + 1} of {steps.length}
+                </span>
+              )}
               <button
                 onClick={next}
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 2 ? "Submit request" : "Next"}
+                {step === 2 ? "Create" : "Next"}
                 {step !== 2 && <ChevronRight className="size-4" />}
               </button>
             </div>
@@ -606,26 +700,13 @@ export function NewRequestDialog() {
   )
 }
 
-function ReviewRow({
-  label,
-  value,
-  emphasize,
-}: {
-  label: string
-  value: string
-  emphasize?: boolean
-}) {
+function MetaCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span
-        className={cn(
-          "text-right font-medium text-foreground",
-          emphasize && "text-base font-bold text-primary",
-        )}
-      >
-        {value}
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
       </span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   )
 }
