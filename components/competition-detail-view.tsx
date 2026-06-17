@@ -38,12 +38,19 @@ import {
   Truck,
   FileCheck,
   Gauge,
+  FileText,
+  FileSpreadsheet,
+  FileArchive,
+  Download,
+  Paperclip,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   bestBid,
+  bidAttachments,
   savingsAmount,
   savingsPct,
+  type BidAttachment,
   type Competition,
   type CompetitionStatus,
   type SupplierBid,
@@ -1173,7 +1180,70 @@ function ProposalsTab({
           </tbody>
         </table>
       </div>
+
+      {/* Submitted documents */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-1.5 border-b border-border p-5">
+          <Paperclip className="size-4 text-primary" />
+          <h3 className="font-semibold text-foreground">Submitted documents</h3>
+        </div>
+        <ul className="divide-y divide-border">
+          {sorted.map((bid) => {
+            const files = bidAttachments(competition, bid)
+            return (
+              <li key={bid.supplier} className="flex flex-col gap-3 p-5">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    {initials(bid.supplier)}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">{bid.supplier}</span>
+                  <span className="text-xs text-muted-foreground">· {files.length} files</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {files.map((file) => (
+                    <AttachmentChip key={file.name} file={file} />
+                  ))}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     </div>
+  )
+}
+
+// File-type icon + colour for an attachment chip.
+function attachmentMeta(kind: BidAttachment["kind"]) {
+  switch (kind) {
+    case "pdf":
+      return { Icon: FileText, tone: "text-destructive" }
+    case "xlsx":
+      return { Icon: FileSpreadsheet, tone: "text-primary" }
+    case "docx":
+      return { Icon: FileText, tone: "text-chart-3" }
+    case "zip":
+      return { Icon: FileArchive, tone: "text-chart-2" }
+  }
+}
+
+// A single downloadable attachment chip.
+function AttachmentChip({ file }: { file: BidAttachment }) {
+  const { Icon, tone } = attachmentMeta(file.kind)
+  return (
+    <button
+      type="button"
+      className="group inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/50"
+    >
+      <Icon className={cn("size-4 shrink-0", tone)} />
+      <span className="flex flex-col leading-tight">
+        <span className="text-xs font-medium text-foreground">{file.name}</span>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {file.kind} · {file.size}
+        </span>
+      </span>
+      <Download className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+    </button>
   )
 }
 

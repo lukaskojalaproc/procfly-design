@@ -8,6 +8,15 @@
 
 export type CompetitionStatus = "Draft" | "Ready" | "Active" | "Awarded" | "Closed"
 
+export type AttachmentKind = "pdf" | "xlsx" | "docx" | "zip"
+
+export interface BidAttachment {
+  name: string
+  kind: AttachmentKind
+  /** Human-readable file size, e.g. "1.2 MB". */
+  size: string
+}
+
 export interface SupplierBid {
   supplier: string
   /** Bid amount in the competition currency. */
@@ -16,6 +25,8 @@ export interface SupplierBid {
   submittedAgo: string
   /** Movement since the supplier's previous bid. */
   trend: "down" | "up" | "new"
+  /** Supporting documents the supplier attached to their proposal. */
+  attachments?: BidAttachment[]
 }
 
 export interface Competition {
@@ -217,6 +228,34 @@ export const competitions: Competition[] = [
 ]
 
 // --- Derived helpers --------------------------------------------------------
+
+/**
+ * Attachments a supplier submitted with their proposal. If the bid declares
+ * its own `attachments` we use them; otherwise we derive a realistic, stable
+ * set from the supplier name so every submitted proposal has documents.
+ */
+export function bidAttachments(c: Competition, bid: SupplierBid): BidAttachment[] {
+  if (bid.attachments && bid.attachments.length > 0) return bid.attachments
+
+  // Stable hash so the same supplier always gets the same files.
+  let h = 0
+  for (let i = 0; i < bid.supplier.length; i++) h = (h * 31 + bid.supplier.charCodeAt(i)) % 100000
+
+  const slug = bid.supplier.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+  const sizes = ["480 KB", "1.1 MB", "2.4 MB", "860 KB", "3.2 MB", "640 KB"]
+  const pick = (n: number) => sizes[(h + n) % sizes.length]
+
+  const files: BidAttachment[] = [
+    { name: `${slug}-proposal.pdf`, kind: "pdf", size: pick(0) },
+    { name: `${slug}-pricing.xlsx`, kind: "xlsx", size: pick(1) },
+  ]
+  // A third document, varied by supplier, for extra realism.
+  if (h % 3 === 0) files.push({ name: `${slug}-sla-terms.docx`, kind: "docx", size: pick(2) })
+  else if (h % 3 === 1) files.push({ name: `${slug}-references.pdf`, kind: "pdf", size: pick(3) })
+  else files.push({ name: `${slug}-certifications.zip`, kind: "zip", size: pick(4) })
+
+  return files
+}
 
 /** Lowest current bid for a competition, or null if no bids yet. */
 export function bestBid(c: Competition): SupplierBid | null {
