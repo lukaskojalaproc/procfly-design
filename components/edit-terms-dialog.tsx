@@ -1,12 +1,37 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { FileEdit, X, Tag, Wallet, FileText, Check, ListChecks, Scale, Receipt, Lock, ExternalLink } from "lucide-react"
+import * as XLSX from "xlsx"
+import {
+  FileEdit,
+  X,
+  Tag,
+  Wallet,
+  FileText,
+  Check,
+  ListChecks,
+  Scale,
+  Receipt,
+  Lock,
+  ExternalLink,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { Competition } from "@/lib/competitions-data"
 import { getRequestByRef } from "@/lib/dashboard-data"
+
+/** Split a stored multi-line string into editable line items (never empty). */
+function toLines(value?: string): string[] {
+  const lines = (value ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+  return lines.length > 0 ? lines : [""]
+}
 
 const CURRENCIES = ["EUR", "USD", "GBP"]
 
@@ -49,9 +74,10 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
   const [description, setDescription] = useState(competition.description)
   const [baseline, setBaseline] = useState(String(competition.baseline))
   const [currency, setCurrency] = useState(competition.currency)
-  const [requirements, setRequirements] = useState(competition.requirements ?? "")
-  const [evaluationCriteria, setEvaluationCriteria] = useState(competition.evaluationCriteria ?? "")
+  const [requirements, setRequirements] = useState<string[]>(toLines(competition.requirements))
+  const [evaluationCriteria, setEvaluationCriteria] = useState<string[]>(toLines(competition.evaluationCriteria))
   const [paymentTerms, setPaymentTerms] = useState(competition.paymentTerms ?? "")
+  const [importError, setImportError] = useState<string | null>(null)
 
   // The budget is locked once it has been approved via a procurement request.
   // Changing it requires re-routing the request back through PR approval.
@@ -74,8 +100,8 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
       // Budget is never changed here when it is locked by an approved PR.
       baseline: budgetLocked ? competition.baseline : Number(baseline) || competition.baseline,
       currency: budgetLocked ? competition.currency : currency,
-      requirements: requirements.trim(),
-      evaluationCriteria: evaluationCriteria.trim(),
+      requirements: requirements.map((l) => l.trim()).filter(Boolean).join("\n"),
+      evaluationCriteria: evaluationCriteria.map((l) => l.trim()).filter(Boolean).join("\n"),
       paymentTerms: paymentTerms.trim(),
     })
     onOpenChange(false)
@@ -87,6 +113,37 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
       router.push(`/requests/${sourceRequest.id}`)
     } else {
       router.push("/requests")
+    }
+  }
+
+  // Parse an uploaded .xlsx / .csv file into line items. Each non-empty cell in
+  // the first column (or the whole row joined) becomes one item.
+  async function importFromExcel(file: File, setItems: (lines: string[]) => void) {
+    setImportError(null)
+    try {
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer, { type: "array" })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, blankrows: false })
+      const lines = rows
+        .map((row) =>
+          (Array.isArray(row) ? row : [row])
+            .map((cell) => String(cell ?? "").trim())
+            .filter(Boolean)
+            .join(" — "),
+        )
+        .filter(Boolean)
+      if (lines.length === 0) {
+        setImportError("No rows found in that file.")
+        return
+      }
+      // Drop a likely header row (e.g. "Requirement", "Criteria").
+      const body = /^(requirement|criteria|criterion|item|description|name)/i.test(lines[0])
+        ? lines.slice(1)
+        : lines
+      setItems(body.length > 0 ? body : lines)
+    } catch {
+      setImportError("Could not read that file. Use .xlsx or .csv.")
     }
   }
 
@@ -208,27 +265,29 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
           )}
 
           {showRequirements && (
-            <Field icon={ListChecks} label="Requirements & deliverables">
-              <textarea
-                value={requirements}
-                onChange={(e) => setRequirements(e.target.value)}
-                rows={3}
-                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-                placeholder="Mandatory requirements suppliers must meet (certifications, SLAs, references…)"
-              />
-            </Field>
+            <LineItemsField
+              icon={ListChecks}
+              label="Requirements & deliverables"
+              items={requirements}
+              onChange={setRequirements}
+              onImport={(file) => importFromExcel(file, setRequirements)}
+              placeholder="e.g. ISO 27001 certified"
+              addLabel="Add requirement"
+              importError={importError}
+            />
           )}
 
           {showEvaluation && (
-            <Field icon={Scale} label="Evaluation criteria">
-              <textarea
-                value={evaluationCriteria}
-                onChange={(e) => setEvaluationCriteria(e.target.value)}
-                rows={2}
-                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-                placeholder="How bids are scored, e.g. Price 60% · Quality 30% · Delivery 10%"
-              />
-            </Field>
+            <LineItemsField
+              icon={Scale}
+              label="Evaluation criteria"
+              items={evaluationCriteria}
+              onChange={setEvaluationCriteria}
+              onImport={(file) => importFromExcel(file, setEvaluationCriteria)}
+              placeholder="e.g. Price — 60%"
+              addLabel="Add criterion"
+              importError={importError}
+            />
           )}
 
           {showPayment && (
@@ -283,6 +342,105 @@ function Field({
         {label}
       </label>
       {children}
+    </div>
+  )
+}
+
+function LineItemsField({
+  icon: Icon,
+  label,
+  items,
+  onChange,
+  onImport,
+  placeholder,
+  addLabel,
+  importError,
+}: {
+  icon: typeof Tag
+  label: string
+  items: string[]
+  onChange: (items: string[]) => void
+  onImport: (file: File) => void
+  placeholder: string
+  addLabel: string
+  importError: string | null
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function updateItem(index: number, value: string) {
+    onChange(items.map((item, i) => (i === index ? value : item)))
+  }
+  function removeItem(index: number) {
+    const next = items.filter((_, i) => i !== index)
+    onChange(next.length > 0 ? next : [""])
+  }
+  function addItem() {
+    onChange([...items, ""])
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <Icon className="size-4 text-muted-foreground" />
+          {label}
+        </label>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <Upload className="size-3.5" />
+          Import Excel
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) onImport(file)
+            e.target.value = ""
+          }}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
+              {i + 1}
+            </span>
+            <input
+              value={item}
+              onChange={(e) => updateItem(i, e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+              placeholder={placeholder}
+            />
+            <button
+              type="button"
+              onClick={() => removeItem(i)}
+              disabled={items.length === 1 && !items[0]}
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={`Remove item ${i + 1}`}
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {importError && <p className="text-xs font-medium text-destructive">{importError}</p>}
+
+      <button
+        type="button"
+        onClick={addItem}
+        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+      >
+        <Plus className="size-3.5" />
+        {addLabel}
+      </button>
     </div>
   )
 }
