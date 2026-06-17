@@ -25,7 +25,7 @@ const primaryNav = [
 ]
 
 const secondaryNav = [
-  { label: "Approvals", icon: CheckSquare, href: "/requests" },
+  { label: "Approvals", icon: CheckSquare, href: "/approvals" },
   { label: "Competitions", icon: Trophy, href: "/requests" },
   { label: "Orders", icon: ShoppingCart, href: "/requests" },
 ]
@@ -82,7 +82,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col gap-1">
           {secondaryNav.map((item) => (
-            <NavItem key={item.label} {...item} />
+            <NavItem key={item.label} {...item} active={pathname === item.href} />
           ))}
         </div>
         <div className="flex flex-col gap-1">
