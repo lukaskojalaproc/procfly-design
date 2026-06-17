@@ -26,6 +26,10 @@ import {
   Hourglass,
   BarChart3,
   Rocket,
+  FileEdit,
+  ListChecks,
+  ClipboardList,
+  ArrowRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -131,7 +135,6 @@ type TabKey = (typeof TABS)[number]["key"]
 // Main detail view
 // ===========================================================================
 export function CompetitionDetailView({ competition }: { competition: Competition }) {
-  const [tab, setTab] = useState<TabKey>("overview")
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
   const saving = savingsAmount(competition)
@@ -143,19 +146,38 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
       ? Math.round((submittedCount / competition.invitedSuppliers) * 100)
       : 0
 
+  const isDraft = competition.status === "Draft"
+  const isReady = competition.status === "Ready"
   const isActive = competition.status === "Active"
   const isAwarded = competition.status === "Awarded"
-  const canStart = competition.status === "Draft" || competition.status === "Ready"
-
-  const primaryAction = isAwarded
-    ? null
-    : canStart
-      ? { label: "Start competition", icon: Rocket }
-      : isActive
-        ? { label: "Award winner", icon: Trophy }
-        : null
-
+  const isClosed = competition.status === "Closed"
+  const isFinished = isAwarded || isClosed
+  const canStart = isDraft || isReady
+  const hasBids = competition.bids.length > 0
   const proposals = competition.bids.length
+
+  // Tabs depend on lifecycle stage. Draft/Ready have no proposals to show,
+  // finished/active competitions surface the full evaluation flow.
+  const visibleTabs = TABS.filter((t) => {
+    if (t.key === "overview" || t.key === "suppliers") return true
+    if (t.key === "proposals" || t.key === "evaluation") return hasBids
+    if (t.key === "award") return isActive || isFinished
+    return true
+  })
+
+  const [tab, setTab] = useState<TabKey>("overview")
+  // Guard against an active tab disappearing for a given status.
+  const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : "overview"
+
+  const primaryAction = isFinished
+    ? null
+    : isDraft
+      ? { label: "Continue setup", icon: Rocket }
+      : isReady
+        ? { label: "Launch competition", icon: Rocket }
+        : isActive
+          ? { label: "Award winner", icon: Trophy }
+          : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -245,10 +267,13 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
         </div>
       </div>
 
+      {/* ============ Lifecycle stepper ============ */}
+      <LifecycleStepper status={competition.status} />
+
       {/* ============ Tabs ============ */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((t) => {
-          const active = tab === t.key
+        {visibleTabs.map((t) => {
+          const active = activeTab === t.key
           const count =
             t.key === "suppliers"
               ? competition.invitedSuppliers
@@ -285,7 +310,7 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
       </div>
 
       {/* ============ Tab panels ============ */}
-      {tab === "overview" && (
+      {activeTab === "overview" && (
         <OverviewTab
           competition={competition}
           countdown={countdown}
@@ -293,12 +318,88 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
           saving={saving}
           pct={pct}
           roster={roster}
+          onGoToTab={setTab}
         />
       )}
-      {tab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
-      {tab === "proposals" && <ProposalsTab competition={competition} best={best} />}
-      {tab === "evaluation" && <EvaluationTab competition={competition} best={best} />}
-      {tab === "award" && <AwardTab competition={competition} best={best} saving={saving} pct={pct} />}
+      {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
+      {activeTab === "proposals" && <ProposalsTab competition={competition} best={best} />}
+      {activeTab === "evaluation" && <EvaluationTab competition={competition} best={best} />}
+      {activeTab === "award" && (
+        <AwardTab competition={competition} best={best} saving={saving} pct={pct} />
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle stepper — shows where this competition sits in its journey.
+// ---------------------------------------------------------------------------
+const LIFECYCLE: { key: CompetitionStatus; label: string; icon: typeof Trophy }[] = [
+  { key: "Draft", label: "Draft", icon: FileEdit },
+  { key: "Ready", label: "Ready", icon: Send },
+  { key: "Active", label: "Live bidding", icon: Zap },
+  { key: "Awarded", label: "Awarded", icon: Trophy },
+]
+
+function LifecycleStepper({ status }: { status: CompetitionStatus }) {
+  // Closed competitions never reached an award — show them as an off-track end.
+  const isClosed = status === "Closed"
+  const currentIndex = isClosed
+    ? 2
+    : LIFECYCLE.findIndex((s) => s.key === status)
+
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
+      {LIFECYCLE.map((step, i) => {
+        const done = i < currentIndex
+        const current = i === currentIndex && !isClosed
+        const reached = i <= currentIndex
+        return (
+          <div key={step.key} className="flex flex-1 items-center gap-2">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  done
+                    ? "border-chart-2 bg-chart-2 text-background"
+                    : current
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-muted text-muted-foreground",
+                )}
+              >
+                {done ? <CheckCircle2 className="size-4" /> : <step.icon className="size-4" />}
+              </span>
+              <div className="hidden sm:block">
+                <p
+                  className={cn(
+                    "text-sm font-semibold leading-none",
+                    reached ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {step.label}
+                </p>
+                <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {done ? "Done" : current ? "In progress" : "Upcoming"}
+                </p>
+              </div>
+            </div>
+            {i < LIFECYCLE.length - 1 && (
+              <span
+                className={cn(
+                  "h-0.5 flex-1 rounded-full",
+                  i < currentIndex ? "bg-chart-2" : "bg-border",
+                )}
+              />
+            )}
+          </div>
+        )
+      })}
+      {isClosed && (
+        <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
+          <XCircle className="size-3.5" />
+          Closed
+        </span>
+      )}
     </div>
   )
 }
@@ -343,6 +444,7 @@ function OverviewTab({
   saving,
   pct,
   roster,
+  onGoToTab,
 }: {
   competition: Competition
   countdown: ReturnType<typeof useCountdown>
@@ -350,11 +452,21 @@ function OverviewTab({
   saving: number
   pct: number
   roster: SupplierRow[]
+  onGoToTab: (key: TabKey) => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
     SupplierRow,
     { state: "submitted" }
   >[]
+
+  const isDraft = competition.status === "Draft"
+  const isReady = competition.status === "Ready"
+  const hasBids = competition.bids.length > 0
+
+  // Draft & Ready: this is a setup/launch experience, not a results one.
+  if (isDraft || isReady) {
+    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} />
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -500,6 +612,178 @@ function OverviewTab({
               total={competition.invitedSuppliers}
             />
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===========================================================================
+// Setup overview — shown for Draft & Ready competitions (pre-launch).
+// ===========================================================================
+function SetupOverview({
+  competition,
+  isReady,
+  onGoToTab,
+}: {
+  competition: Competition
+  isReady: boolean
+  onGoToTab: (key: TabKey) => void
+}) {
+  const hasSuppliers = competition.invitedSuppliers > 0
+  const checklist = [
+    {
+      label: "Define scope & budget",
+      done: true,
+      detail: `Baseline budget set to ${formatAmount(competition.baseline)} ${competition.currency}.`,
+    },
+    {
+      label: "Invite suppliers",
+      done: hasSuppliers,
+      detail: hasSuppliers
+        ? `${competition.invitedSuppliers} suppliers invited.`
+        : "No suppliers invited yet.",
+      action: () => onGoToTab("suppliers"),
+    },
+    {
+      label: "Launch competition",
+      done: false,
+      detail: isReady
+        ? "Everything is ready — launch to open bidding."
+        : "Complete setup before launching.",
+    },
+  ]
+  const completed = checklist.filter((c) => c.done).length
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        {/* Stage banner */}
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-4 rounded-2xl border p-6",
+            isReady ? "border-chart-3/40 bg-chart-3/10" : "border-border bg-muted/40",
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-12 items-center justify-center rounded-full",
+              isReady ? "bg-chart-3/20 text-chart-3" : "bg-muted text-muted-foreground",
+            )}
+          >
+            {isReady ? <Send className="size-6" /> : <FileEdit className="size-6" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">
+              {isReady ? "Ready to launch" : "Draft in progress"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {isReady
+                ? "Suppliers are lined up. Launching opens the bidding window and notifies everyone."
+                : "Finish setting up this competition before inviting suppliers to bid."}
+            </p>
+          </div>
+          <button
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90",
+              isReady
+                ? "bg-primary text-primary-foreground"
+                : "bg-foreground text-background",
+            )}
+          >
+            <Rocket className="size-4" />
+            {isReady ? "Launch competition" : "Continue setup"}
+          </button>
+        </div>
+
+        {/* Setup checklist */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <ListChecks className="size-4 text-primary" />
+              Setup checklist
+            </h3>
+            <span className="text-xs font-medium text-muted-foreground">
+              {completed}/{checklist.length} complete
+            </span>
+          </div>
+          <ol className="mt-4 flex flex-col gap-3">
+            {checklist.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-4"
+              >
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full",
+                    item.done
+                      ? "bg-chart-2 text-background"
+                      : "border-2 border-dashed border-muted-foreground/40 text-muted-foreground",
+                  )}
+                >
+                  {item.done ? <CheckCircle2 className="size-4" /> : <ClipboardList className="size-3.5" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.detail}</p>
+                </div>
+                {item.action && !item.done && (
+                  <button
+                    onClick={item.action}
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    Manage
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Empty proposals notice */}
+        <div className="rounded-2xl border border-dashed border-border bg-card p-6">
+          <EmptyState
+            icon={Gavel}
+            title="No proposals yet"
+            body={
+              isReady
+                ? "Launch the competition to start collecting supplier bids."
+                : "Proposals will appear here once the competition is launched."
+            }
+          />
+        </div>
+      </div>
+
+      {/* Right column */}
+      <div className="flex flex-col gap-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-semibold text-foreground">At a glance</h3>
+          <dl className="mt-4 flex flex-col gap-3 text-sm">
+            <GlanceRow label="Status" value={competition.status} />
+            <GlanceRow label="Owner" value={competition.owner} />
+            <GlanceRow label="Category" value={competition.category} />
+            <GlanceRow
+              label="Baseline"
+              value={`${formatAmount(competition.baseline)} ${competition.currency}`}
+            />
+            <GlanceRow label="Invited" value={`${competition.invitedSuppliers} suppliers`} />
+            <GlanceRow label="Created" value={competition.created} />
+          </dl>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-primary/5 p-6">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Sparkles className="size-4 text-primary" />
+            Savings potential
+          </h3>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Based on the baseline budget, a competitive process typically returns
+          </p>
+          <p className="mt-2 text-3xl font-bold tabular-nums text-primary">
+            {formatAmount(Math.round(competition.baseline * 0.15))} {competition.currency}
+          </p>
+          <p className="text-xs text-muted-foreground">~15% estimated saving once live</p>
         </div>
       </div>
     </div>
