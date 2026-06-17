@@ -19,6 +19,7 @@ import {
   FileEdit,
   Package,
 } from "lucide-react"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { formatAmount, initials } from "@/lib/dashboard-data"
 import {
@@ -27,6 +28,8 @@ import {
   type OrderStatus,
   type PurchaseOrder,
 } from "@/lib/orders-data"
+import { OrderPdfDialog } from "@/components/order-pdf-dialog"
+import { SendSupplierDialog } from "@/components/send-supplier-dialog"
 
 const VAT_RATE = 0.21
 
@@ -42,6 +45,8 @@ export function OrderDetailView({ po }: { po: PurchaseOrder }) {
   const vat = subtotal * VAT_RATE
   const total = subtotal + vat
   const s = statusStyles[po.status]
+  const [pdfOpen, setPdfOpen] = useState(false)
+  const [sendOpen, setSendOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,16 +85,25 @@ export function OrderDetailView({ po }: { po: PurchaseOrder }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
               <Printer className="size-4" />
               Print
             </button>
-            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+            <button
+              onClick={() => setPdfOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
               <Download className="size-4" />
               Export PDF
             </button>
             {po.status === "Draft" ? (
-              <button className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+              <button
+                onClick={() => setSendOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
                 <Send className="size-4" />
                 Send to supplier
               </button>
@@ -299,6 +313,9 @@ export function OrderDetailView({ po }: { po: PurchaseOrder }) {
           </div>
         </div>
       </div>
+
+      <OrderPdfDialog open={pdfOpen} onOpenChange={setPdfOpen} po={po} />
+      <SendSupplierDialog open={sendOpen} onOpenChange={setSendOpen} po={po} />
     </div>
   )
 }
