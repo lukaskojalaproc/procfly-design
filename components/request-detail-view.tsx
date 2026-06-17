@@ -11,6 +11,9 @@ import {
   X,
   Monitor,
   ShieldCheck,
+  Building2,
+  Landmark,
+  Receipt,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -190,6 +193,33 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                   <MetaItem label="Hosting region" value={detail.software.hostingRegion} />
                   <MetaItem label="DPA required" value={detail.software.dpaRequired} />
                   <MetaItem label="Internal owner" value={detail.software.owner} />
+                </div>
+              </SectionCard>
+            </>
+          ) : detail.supplierOnboarding ? (
+            <>
+              <SectionCard icon={Building2} iconClass="bg-chart-1/15 text-chart-1" title="Company details">
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="Legal name" value={detail.supplierOnboarding.legalName} />
+                  <MetaItem label="Country" value={detail.supplierOnboarding.country} />
+                  <MetaItem label="Registration no." value={detail.supplierOnboarding.registrationNumber} />
+                  <MetaItem label="VAT number" value={detail.supplierOnboarding.vatNumber} />
+                  <MetaItem label="Contact email" value={detail.supplierOnboarding.contactEmail} />
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Landmark} iconClass="bg-chart-2/15 text-chart-2" title="Bank & payment">
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="IBAN" value={detail.supplierOnboarding.iban} />
+                  <MetaItem label="Payment terms" value={detail.supplierOnboarding.paymentTerms} />
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Receipt} iconClass="bg-chart-4/15 text-chart-4" title="Tax & accounting">
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="VAT treatment" value={detail.supplierOnboarding.vatTreatment} />
+                  <MetaItem label="Supplier type" value={detail.supplierOnboarding.supplierType} />
+                  <MetaItem label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
                 </div>
               </SectionCard>
             </>

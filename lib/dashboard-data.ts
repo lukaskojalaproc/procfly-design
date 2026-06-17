@@ -141,6 +141,19 @@ export interface SoftwareDetail {
   owner: string
 }
 
+export interface SupplierDetail {
+  legalName: string
+  country: string
+  registrationNumber: string
+  vatNumber: string
+  contactEmail: string
+  iban: string
+  paymentTerms: string
+  vatTreatment: string
+  supplierType: string
+  invoicingEmail: string
+}
+
 export interface RequestDetail {
   supplier: string
   neededBy: string | null
@@ -149,6 +162,7 @@ export interface RequestDetail {
   customFields: CustomField[]
   approvals: ApprovalStep[]
   software?: SoftwareDetail
+  supplierOnboarding?: SupplierDetail
 }
 
 const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
@@ -191,6 +205,37 @@ export function getRequestDetail(request: ProcurementRequest): RequestDetail {
         hostingRegion: "EU / EEA",
         dpaRequired: "Not provided",
         owner: "Not provided",
+      },
+      approvals: defaultFlow(request.date, request.requester),
+    }
+  }
+
+  const isSupplierOnboarding =
+    request.kind === "Add New Supplier" || request.category === "Supplier Onboarding"
+
+  // Supplier onboarding requests surface company, banking, and tax/accounting
+  // detail required for compliant vendor setup — not physical line items.
+  if (isSupplierOnboarding) {
+    return {
+      supplier: request.title,
+      neededBy: null,
+      description: request.title,
+      lineItems: [],
+      customFields: [
+        { label: "Category", value: request.category },
+        { label: "Request type", value: request.kind },
+      ],
+      supplierOnboarding: {
+        legalName: "Not provided",
+        country: "Not provided",
+        registrationNumber: "Not provided",
+        vatNumber: "Not provided",
+        contactEmail: "Not provided",
+        iban: "Not provided",
+        paymentTerms: "Net 30",
+        vatTreatment: "Standard",
+        supplierType: "Goods",
+        invoicingEmail: "Not provided",
       },
       approvals: defaultFlow(request.date, request.requester),
     }
