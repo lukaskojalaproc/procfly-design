@@ -248,7 +248,7 @@ export function ApprovalsExplorer() {
         <div className="relative flex flex-col gap-8 p-6 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-chart-2/15 px-3 py-1 text-xs font-medium text-chart-2 ring-1 ring-inset ring-chart-2/30">
                 <Clock className="size-3.5" />
                 Awaiting your action
               </span>
@@ -305,29 +305,39 @@ export function ApprovalsExplorer() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {tabs.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                tab === key
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-foreground hover:bg-muted",
-              )}
-            >
-              <Icon className="size-4" />
-              {label}
-              <span
+          {tabs.map(({ key, label, icon: Icon }) => {
+            const isActive = tab === key
+            const isPending = key === "Pending"
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
                 className={cn(
-                  "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
-                  tab === key ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? isPending
+                      ? "border-chart-2 bg-chart-2/15 text-chart-2"
+                      : "border-primary bg-primary/10 text-primary"
+                    : "border-border text-foreground hover:bg-muted",
                 )}
               >
-                {counts[key]}
-              </span>
-            </button>
-          ))}
+                <Icon className="size-4" />
+                {label}
+                <span
+                  className={cn(
+                    "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
+                    isActive
+                      ? isPending
+                        ? "bg-chart-2/25 text-chart-2"
+                        : "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {counts[key]}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </Card>
 
