@@ -45,12 +45,6 @@ import {
   Paperclip,
   RotateCcw,
   Minus,
-  Link2,
-  Copy,
-  Check,
-  Trash2,
-  UploadCloud,
-  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -70,15 +64,8 @@ import { EditTermsDialog, type TermsFocus } from "@/components/edit-terms-dialog
 import { AiImportBanner } from "@/components/ai-import-banner"
 import type { ExtractedTerms } from "@/app/actions/extract-competition"
 import { useCountdown } from "@/components/use-countdown"
-import {
-  useSubmittedProposals,
-  inviteLink,
-  removeProposal,
-  addProposal,
-  type SubmittedProposal,
-} from "@/lib/proposal-store"
-import { extractProposalFromFile } from "@/app/actions/extract-proposal"
-import { fileKind, formatFileSize, fileToDataUrl, MAX_INLINE_BYTES } from "@/lib/file-utils"
+import { ProposalIntake } from "@/components/proposal-intake"
+import { useSubmittedProposals, type SubmittedProposal } from "@/lib/proposal-store"
 
 // ---------------------------------------------------------------------------
 // Status pill
@@ -1226,6 +1213,8 @@ function SuppliersTab({
         />
       </div>
 
+      <ProposalIntake competition={competition} />
+
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
           <div>
@@ -1358,12 +1347,15 @@ function ProposalsTab({
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card shadow-sm">
-        <EmptyState
-          icon={Gavel}
-          title="No proposals submitted"
-          body="Suppliers' competitive bids will be ranked here as they arrive."
-        />
+      <div className="flex flex-col gap-6">
+        <ProposalIntake competition={competition} />
+        <div className="rounded-2xl border border-border bg-card shadow-sm">
+          <EmptyState
+            icon={Gavel}
+            title="No proposals submitted"
+            body="Invite suppliers with the link above, or upload a proposal — bids will be ranked here as they arrive."
+          />
+        </div>
       </div>
     )
   }
@@ -1374,6 +1366,7 @@ function ProposalsTab({
 
   return (
     <div className="flex flex-col gap-6">
+      <ProposalIntake competition={competition} />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <ScoreCard
           icon={Medal}
@@ -1526,13 +1519,31 @@ function attachmentMeta(kind: BidAttachment["kind"]) {
   }
 }
 
-// A single downloadable attachment chip.
+// A single downloadable attachment chip. Real uploaded files (with a data URL)
+// download on click; seed demo files are shown but not downloadable.
 function AttachmentChip({ file }: { file: BidAttachment }) {
   const { Icon, tone } = attachmentMeta(file.kind)
+  const downloadable = Boolean(file.dataUrl)
+
+  function handleDownload() {
+    if (!file.dataUrl) return
+    const a = document.createElement("a")
+    a.href = file.dataUrl
+    a.download = file.name
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
   return (
     <button
       type="button"
-      className="group inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/50"
+      onClick={downloadable ? handleDownload : undefined}
+      title={downloadable ? `Download ${file.name}` : "Demo file (not downloadable)"}
+      className={cn(
+        "group inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors",
+        downloadable ? "hover:border-primary/40 hover:bg-muted/50" : "cursor-default opacity-90",
+      )}
     >
       <Icon className={cn("size-4 shrink-0", tone)} />
       <span className="flex flex-col leading-tight">
@@ -1541,7 +1552,9 @@ function AttachmentChip({ file }: { file: BidAttachment }) {
           {file.kind} · {file.size}
         </span>
       </span>
-      <Download className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+      {downloadable && (
+        <Download className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+      )}
     </button>
   )
 }
