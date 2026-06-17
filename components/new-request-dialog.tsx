@@ -27,6 +27,7 @@ import {
   UploadCloud,
   FileCheck2,
   ShieldCheck,
+  Receipt,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -284,6 +285,11 @@ export function NewRequestDialog() {
   const [iban, setIban] = useState("")
   const [bic, setBic] = useState("")
   const [paymentTerms, setPaymentTerms] = useState("Net 30")
+  // Tax & accounting
+  const [vatTreatment, setVatTreatment] = useState("Standard")
+  const [supplierType, setSupplierType] = useState("Goods")
+  const [taxRate, setTaxRate] = useState("21%")
+  const [invoicingEmail, setInvoicingEmail] = useState("")
 
   // Line items
   const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
@@ -336,6 +342,10 @@ export function NewRequestDialog() {
     setIban("")
     setBic("")
     setPaymentTerms("Net 30")
+    setVatTreatment("Standard")
+    setSupplierType("Goods")
+    setTaxRate("21%")
+    setInvoicingEmail("")
     setLines([{ id: 1, name: "", qty: "", price: "" }])
     setDocs({})
     setExtraDocs([])
@@ -722,6 +732,72 @@ export function NewRequestDialog() {
                   </Section>
                 )}
 
+                {isSupplier && (
+                  <Section
+                    icon={Receipt}
+                    iconClass="bg-chart-4/15 text-chart-4"
+                    title="Tax & accounting"
+                    subtitle="Helps accounting post invoices and report VAT correctly."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field label="VAT treatment" hint="Determines how VAT is reported">
+                        <select
+                          value={vatTreatment}
+                          onChange={(e) => setVatTreatment(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {[
+                            "Standard",
+                            "Reverse charge (intra-EU)",
+                            "Exempt",
+                            "Non-EU / Import",
+                          ].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Supplier type" hint="Affects place-of-supply rules">
+                        <select
+                          value={supplierType}
+                          onChange={(e) => setSupplierType(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {["Goods", "Services", "Goods & Services"].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Default tax rate">
+                        <select
+                          value={taxRate}
+                          onChange={(e) => setTaxRate(e.target.value)}
+                          disabled={vatTreatment !== "Standard"}
+                          className={cn(fieldClass, vatTreatment !== "Standard" && "opacity-50")}
+                        >
+                          {["21%", "9%", "5%", "0%", "No VAT"].map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Invoicing email" hint="Where invoices are sent (if different)">
+                        <input
+                          type="email"
+                          value={invoicingEmail}
+                          onChange={(e) => setInvoicingEmail(e.target.value)}
+                          placeholder="invoices@supplier.com"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+                )}
+
                 {!isSupplier && (
                   <Section
                     icon={Settings2}
@@ -1068,6 +1144,13 @@ export function NewRequestDialog() {
                       <MetaCell label="Payment terms" value={paymentTerms} />
                       <MetaCell label="IBAN" value={iban || "Not provided"} />
                       <MetaCell label="BIC / SWIFT" value={bic || "Not provided"} />
+                      <MetaCell label="VAT treatment" value={vatTreatment} />
+                      <MetaCell label="Supplier type" value={supplierType} />
+                      <MetaCell
+                        label="Tax rate"
+                        value={vatTreatment === "Standard" ? taxRate : "—"}
+                      />
+                      <MetaCell label="Invoicing email" value={invoicingEmail || contactEmail || "Not provided"} />
                     </div>
                   </div>
                 ) : (
