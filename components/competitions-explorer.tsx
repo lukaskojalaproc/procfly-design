@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   Network,
   Search,
-  RefreshCw,
   Clock,
   TrendingDown,
   ArrowDownRight,
@@ -20,8 +19,17 @@ import {
   ChevronRight,
   FileText,
   CheckCircle2,
+  Rocket,
+  Tag,
+  CalendarDays,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   competitions,
   competitionStats,
@@ -217,7 +225,13 @@ function CountdownDigit({ value, unit }: { value: number; unit: string }) {
   )
 }
 
-function Spotlight({ competition }: { competition: Competition }) {
+function Spotlight({
+  competition,
+  onView,
+}: {
+  competition: Competition
+  onView: (c: Competition) => void
+}) {
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
   const saving = savingsAmount(competition)
@@ -364,7 +378,10 @@ function Spotlight({ competition }: { competition: Competition }) {
             })}
           </ol>
 
-          <button className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90">
+          <button
+            onClick={() => onView(competition)}
+            className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+          >
             View competition
             <ChevronRight className="size-4" />
           </button>
@@ -377,11 +394,20 @@ function Spotlight({ competition }: { competition: Competition }) {
 // ===========================================================================
 // Competition card (pipeline)
 // ===========================================================================
-function CompetitionCard({ competition }: { competition: Competition }) {
+function CompetitionCard({
+  competition,
+  onOpen,
+  onLaunch,
+}: {
+  competition: Competition
+  onOpen: (c: Competition) => void
+  onLaunch: (c: Competition) => void
+}) {
   const best = bestBid(competition)
   const pct = savingsPct(competition)
   const isActive = competition.status === "Active"
   const isAwarded = competition.status === "Awarded"
+  const canLaunch = competition.status === "Draft" || competition.status === "Ready"
   const progress =
     competition.invitedSuppliers > 0
       ? Math.round((competition.bids.length / competition.invitedSuppliers) * 100)
@@ -400,8 +426,17 @@ function CompetitionCard({ competition }: { competition: Competition }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(competition)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onOpen(competition)
+        }
+      }}
       className={cn(
-        "group flex flex-col gap-4 rounded-xl border border-l-4 border-border bg-card p-5 shadow-sm transition-all hover:shadow-md",
+        "group flex cursor-pointer flex-col gap-4 rounded-xl border border-l-4 border-border bg-card p-5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         accent,
       )}
     >
@@ -474,6 +509,22 @@ function CompetitionCard({ competition }: { competition: Competition }) {
             <Trophy className="size-3.5" />
             {competition.awardedTo}
           </span>
+        ) : canLaunch ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onLaunch(competition)
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
+              competition.status === "Ready"
+                ? "bg-primary text-primary-foreground hover:opacity-90"
+                : "bg-muted text-foreground hover:bg-accent",
+            )}
+          >
+            <Rocket className="size-3.5" />
+            {competition.status === "Ready" ? "Launch" : "Continue"}
+          </button>
         ) : (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Users className="size-3.5" />
@@ -519,34 +570,201 @@ function Section({
 }
 
 // ===========================================================================
-// Stat cards
+// Stat cards (clickable filters)
 // ===========================================================================
-const statItems = [
-  { label: "Active", value: competitionStats.active, icon: Zap, cls: "bg-primary/10 text-primary" },
-  { label: "Ready to start", value: competitionStats.ready, icon: Send, cls: "bg-chart-3/10 text-chart-3" },
-  { label: "Awarded", value: competitionStats.awarded, icon: ShieldCheck, cls: "bg-chart-2/15 text-chart-2" },
-  { label: "Total", value: competitionStats.total, icon: Network, cls: "bg-muted text-muted-foreground" },
+type FilterKey = "all" | "Active" | "Ready" | "Awarded"
+
+const statItems: { label: string; key: FilterKey; value: number; icon: typeof Zap; cls: string; ring: string }[] = [
+  { label: "Active", key: "Active", value: competitionStats.active, icon: Zap, cls: "bg-primary/10 text-primary", ring: "ring-primary" },
+  { label: "Ready to start", key: "Ready", value: competitionStats.ready, icon: Send, cls: "bg-chart-3/10 text-chart-3", ring: "ring-chart-3" },
+  { label: "Awarded", key: "Awarded", value: competitionStats.awarded, icon: ShieldCheck, cls: "bg-chart-2/15 text-chart-2", ring: "ring-chart-2" },
+  { label: "Total", key: "all", value: competitionStats.total, icon: Network, cls: "bg-muted text-muted-foreground", ring: "ring-foreground" },
 ]
 
-function StatRow() {
+function StatRow({ filter, onFilter }: { filter: FilterKey; onFilter: (k: FilterKey) => void }) {
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-      {statItems.map((s) => (
-        <div
-          key={s.label}
-          className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", s.cls)}>
-            <s.icon className="size-5" />
+      {statItems.map((s) => {
+        const activeFilter = filter === s.key
+        return (
+          <button
+            key={s.label}
+            onClick={() => onFilter(activeFilter && s.key !== "all" ? "all" : s.key)}
+            className={cn(
+              "flex items-center gap-4 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:shadow-md",
+              activeFilter ? cn("border-transparent ring-2", s.ring) : "border-border",
+            )}
+          >
+            <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", s.cls)}>
+              <s.icon className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm text-muted-foreground">{s.label}</p>
+              <p className="text-2xl font-bold leading-tight tabular-nums text-foreground">
+                {s.value}
+              </p>
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Detail dialog — full competition view
+// ===========================================================================
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-semibold text-foreground">{value}</span>
+    </div>
+  )
+}
+
+function CompetitionDetail({ competition }: { competition: Competition }) {
+  const best = bestBid(competition)
+  const saving = savingsAmount(competition)
+  const pct = savingsPct(competition)
+  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
+  const progress =
+    competition.invitedSuppliers > 0
+      ? Math.round((competition.bids.length / competition.invitedSuppliers) * 100)
+      : 0
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-muted-foreground">{competition.ref}</span>
+          <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <Tag className="size-3" />
+            {competition.category}
           </span>
-          <div>
-            <p className="text-sm text-muted-foreground">{s.label}</p>
-            <p className="text-2xl font-bold leading-tight tabular-nums text-foreground">
-              {s.value}
-            </p>
+          <StatusPill status={competition.status} live={competition.status === "Active"} />
+        </div>
+        <DialogTitle className="text-balance text-xl font-bold tracking-tight text-foreground">
+          {competition.title}
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground">{competition.description}</p>
+      </div>
+
+      {/* Meta grid */}
+      <div className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:grid-cols-4">
+        <DetailRow label="Baseline" value={`${formatAmount(competition.baseline)} ${competition.currency}`} />
+        <DetailRow
+          label={competition.status === "Awarded" ? "Awarded at" : "Best bid"}
+          value={best ? `${formatAmount(best.amount)} ${competition.currency}` : "No bids yet"}
+        />
+        <DetailRow label="Owner" value={competition.owner} />
+        <DetailRow label="Created" value={competition.created} />
+      </div>
+
+      {/* Savings */}
+      {best && (
+        <div className="rounded-xl bg-primary/5 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Savings vs. baseline</span>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+              <TrendingDown className="size-4" />
+              {Math.round(pct * 100)}% lower
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums text-foreground">
+              {formatAmount(saving)} {competition.currency}
+            </span>
+            <span className="text-sm text-muted-foreground">potential saving</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(pct * 100)}%` }} />
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Bids */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h4 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Gavel className="size-4 text-primary" />
+            {competition.status === "Awarded" ? "Final bids" : "Bid leaderboard"}
+          </h4>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Send className="size-3" />
+            {competition.bids.length}/{competition.invitedSuppliers} submitted · {progress}%
+          </span>
+        </div>
+
+        {sorted.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+            No bids submitted yet.
+          </div>
+        ) : (
+          <ol className="flex flex-col gap-2">
+            {sorted.map((bid, i) => {
+              const leading = i === 0
+              const won = competition.status === "Awarded" && competition.awardedTo === bid.supplier
+              return (
+                <li
+                  key={bid.supplier}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3",
+                    won
+                      ? "border-chart-2/50 bg-chart-2/10"
+                      : leading
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-border bg-card",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                      won
+                        ? "bg-chart-2 text-background"
+                        : leading
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{bid.supplier}</p>
+                    <p className="text-xs text-muted-foreground">{bid.submittedAgo}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold tabular-nums text-foreground">
+                      {formatAmount(bid.amount)}
+                    </p>
+                    {won ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-chart-2">
+                        <Trophy className="size-3" />
+                        Awarded
+                      </span>
+                    ) : leading ? (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        Leading
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+      </div>
+
+      {competition.status === "Awarded" && competition.awardedOn && (
+        <div className="flex items-center gap-2 rounded-xl bg-chart-2/10 px-4 py-3 text-sm text-chart-2">
+          <CalendarDays className="size-4" />
+          Awarded to <span className="font-semibold">{competition.awardedTo}</span> on{" "}
+          {competition.awardedOn}
+        </div>
+      )}
     </div>
   )
 }
@@ -556,33 +774,53 @@ function StatRow() {
 // ===========================================================================
 export function CompetitionsExplorer() {
   const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState<FilterKey>("all")
+  const [openComp, setOpenComp] = useState<Competition | null>(null)
+  const [launching, setLaunching] = useState<string | null>(null)
 
   const featured = competitions.find((c) => c.featured)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return competitions
-    return competitions.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        c.ref.toLowerCase().includes(q) ||
-        c.category.toLowerCase().includes(q) ||
-        c.owner.toLowerCase().includes(q),
-    )
-  }, [query])
+    let list = competitions
+    if (q) {
+      list = list.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          c.ref.toLowerCase().includes(q) ||
+          c.category.toLowerCase().includes(q) ||
+          c.owner.toLowerCase().includes(q),
+      )
+    }
+    if (filter !== "all") {
+      list = list.filter((c) =>
+        filter === "Awarded"
+          ? c.status === "Awarded" || c.status === "Closed"
+          : c.status === filter,
+      )
+    }
+    return list
+  }, [query, filter])
 
   const active = filtered.filter((c) => c.status === "Active" && !c.featured)
   const ready = filtered.filter((c) => c.status === "Ready")
   const drafts = filtered.filter((c) => c.status === "Draft")
   const finished = filtered.filter((c) => c.status === "Awarded" || c.status === "Closed")
 
+  function handleLaunch(c: Competition) {
+    setLaunching(c.title)
+    setTimeout(() => setLaunching(null), 3000)
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Hero />
 
-      {featured && !query && <Spotlight competition={featured} />}
+      {featured && !query && filter === "all" && (
+        <Spotlight competition={featured} onView={setOpenComp} />
+      )}
 
-      <StatRow />
+      <StatRow filter={filter} onFilter={setFilter} />
 
       {/* Search */}
       <div className="flex items-center gap-3">
@@ -596,17 +834,25 @@ export function CompetitionsExplorer() {
             className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
-        <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
-          <RefreshCw className="size-4" />
-          Refresh
-        </button>
+        {(filter !== "all" || query) && (
+          <button
+            onClick={() => {
+              setFilter("all")
+              setQuery("")
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            <X className="size-4" />
+            Clear
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card py-16 text-center">
           <Search className="size-6 text-muted-foreground" />
           <p className="font-semibold text-foreground">No competitions found</p>
-          <p className="text-sm text-muted-foreground">Try a different search term.</p>
+          <p className="text-sm text-muted-foreground">Try a different search or filter.</p>
         </div>
       ) : (
         <>
@@ -617,7 +863,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-primary/10 text-primary"
           >
             {active.map((c) => (
-              <CompetitionCard key={c.id} competition={c} />
+              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -628,7 +874,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-3/10 text-chart-3"
           >
             {ready.map((c) => (
-              <CompetitionCard key={c.id} competition={c} />
+              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -639,7 +885,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-muted text-muted-foreground"
           >
             {drafts.map((c) => (
-              <CompetitionCard key={c.id} competition={c} />
+              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -650,10 +896,25 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-2/15 text-chart-2"
           >
             {finished.map((c) => (
-              <CompetitionCard key={c.id} competition={c} />
+              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
             ))}
           </Section>
         </>
+      )}
+
+      {/* Detail dialog */}
+      <Dialog open={openComp != null} onOpenChange={(o) => !o && setOpenComp(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          {openComp && <CompetitionDetail competition={openComp} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Launch toast */}
+      {launching && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-medium text-background shadow-lg">
+          <Rocket className="size-4" />
+          Invitations sent — “{launching}” is now live.
+        </div>
       )}
     </div>
   )
