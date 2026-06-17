@@ -154,6 +154,12 @@ export interface SupplierDetail {
   invoicingEmail: string
 }
 
+export interface RequestDocument {
+  label: string
+  fileName: string
+  required: boolean
+}
+
 export interface RequestDetail {
   supplier: string
   neededBy: string | null
@@ -163,6 +169,7 @@ export interface RequestDetail {
   approvals: ApprovalStep[]
   software?: SoftwareDetail
   supplierOnboarding?: SupplierDetail
+  documents: RequestDocument[]
 }
 
 const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
@@ -206,6 +213,11 @@ export function getRequestDetail(request: ProcurementRequest): RequestDetail {
         dpaRequired: "Not provided",
         owner: "Not provided",
       },
+      documents: [
+        { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true },
+        { label: "Specification / scope", fileName: "Awaiting upload", required: false },
+        { label: "Data Processing Agreement (DPA)", fileName: "Awaiting upload", required: false },
+      ],
       approvals: defaultFlow(request.date, request.requester),
     }
   }
@@ -237,6 +249,11 @@ export function getRequestDetail(request: ProcurementRequest): RequestDetail {
         supplierType: "Goods",
         invoicingEmail: "Not provided",
       },
+      documents: [
+        { label: "Bank confirmation letter", fileName: "Awaiting upload", required: true },
+        { label: "Insurance certificate", fileName: "Awaiting upload", required: false },
+        { label: "Signed Code of Conduct / NDA", fileName: "Awaiting upload", required: false },
+      ],
       approvals: defaultFlow(request.date, request.requester),
     }
   }
@@ -252,6 +269,11 @@ export function getRequestDetail(request: ProcurementRequest): RequestDetail {
     customFields: [
       { label: "category", value: request.category },
       { label: "request type", value: request.kind },
+    ],
+    documents: [
+      { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true },
+      { label: "Specification / scope", fileName: "Awaiting upload", required: false },
+      { label: "Pre-approval / budget proof", fileName: "Awaiting upload", required: false },
     ],
     approvals: defaultFlow(request.date, request.requester),
   }

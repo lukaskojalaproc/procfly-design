@@ -251,6 +251,47 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               ))}
             </div>
           </SectionCard>
+
+          <SectionCard icon={FileText} iconClass="bg-chart-4/15 text-chart-4" title="Documents">
+            {detail.documents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No documents attached.</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border">
+                {detail.documents.map((doc, i) => {
+                  const attached = doc.fileName !== "Awaiting upload"
+                  return (
+                    <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                          <FileText className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {doc.label}
+                            {doc.required && <span className="ml-1 text-destructive">*</span>}
+                          </p>
+                          <p
+                            className={`truncate text-xs ${attached ? "text-muted-foreground" : "text-destructive"}`}
+                          >
+                            {doc.fileName}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          attached
+                            ? "bg-primary/10 text-primary"
+                            : "bg-destructive/10 text-destructive"
+                        }`}
+                      >
+                        {attached ? "Attached" : "Missing"}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </SectionCard>
         </div>
 
         {/* Right column — approval flow */}
