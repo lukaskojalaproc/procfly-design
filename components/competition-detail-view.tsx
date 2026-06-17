@@ -30,6 +30,14 @@ import {
   ListChecks,
   ClipboardList,
   ArrowRight,
+  Scale,
+  Percent,
+  Timer,
+  Medal,
+  TrendingUp,
+  Truck,
+  FileCheck,
+  Gauge,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -100,6 +108,51 @@ function buildRoster(c: Competition): SupplierRow[] {
     rank: null,
   }))
   return [...submitted, ...pending]
+}
+
+// ---------------------------------------------------------------------------
+// Deterministic evaluation scoring.
+//
+// We derive non-price criteria (quality & delivery) from a stable hash of the
+// supplier name so the UI is rich and consistent across renders without
+// needing extra data in the model. Price score is the real, computed value.
+// ---------------------------------------------------------------------------
+const WEIGHTS = { price: 0.5, quality: 0.3, delivery: 0.2 } as const
+
+function hashScore(seed: string, min: number, max: number) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 100000
+  return min + (h % (max - min + 1))
+}
+
+interface ScoredBid {
+  bid: SupplierBid
+  priceScore: number
+  qualityScore: number
+  deliveryScore: number
+  total: number
+}
+
+function scoreBids(c: Competition): ScoredBid[] {
+  const bids = c.bids
+  if (bids.length === 0) return []
+  const amounts = bids.map((b) => b.amount)
+  const min = Math.min(...amounts)
+  const max = Math.max(...amounts)
+  const range = Math.max(1, max - min)
+
+  const scored = bids.map((bid) => {
+    // Cheapest bid scores 100, most expensive scales down to 70.
+    const priceScore = Math.round(100 - ((bid.amount - min) / range) * 30)
+    const qualityScore = hashScore(bid.supplier + "q", 72, 98)
+    const deliveryScore = hashScore(bid.supplier + "d", 70, 99)
+    const total =
+      priceScore * WEIGHTS.price +
+      qualityScore * WEIGHTS.quality +
+      deliveryScore * WEIGHTS.delivery
+    return { bid, priceScore, qualityScore, deliveryScore, total: Math.round(total) }
+  })
+  return scored.sort((a, b) => b.total - a.total)
 }
 
 // ---------------------------------------------------------------------------
@@ -344,6 +397,8 @@ const LIFECYCLE: { key: CompetitionStatus; label: string; icon: typeof Trophy }[
 function LifecycleStepper({ status }: { status: CompetitionStatus }) {
   // Closed competitions never reached an award — show them as an off-track end.
   const isClosed = status === "Closed"
+  // Awarded is terminal: every step (including the final award) is complete.
+  const isAwarded = status === "Awarded"
   const currentIndex = isClosed
     ? 2
     : LIFECYCLE.findIndex((s) => s.key === status)
@@ -351,8 +406,8 @@ function LifecycleStepper({ status }: { status: CompetitionStatus }) {
   return (
     <div className="flex items-center gap-2 overflow-x-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
       {LIFECYCLE.map((step, i) => {
-        const done = i < currentIndex
-        const current = i === currentIndex && !isClosed
+        const done = i < currentIndex || (isAwarded && i === currentIndex)
+        const current = i === currentIndex && !isClosed && !isAwarded
         const reached = i <= currentIndex
         return (
           <div key={step.key} className="flex flex-1 items-center gap-2">
@@ -842,66 +897,144 @@ function SuppliersTab({
   competition: Competition
   roster: SupplierRow[]
 }) {
+  const submitted = roster.filter((r) => r.state === "submitted").length
+  const pending = roster.length - submitted
+  const responseRate =
+    competition.invitedSuppliers > 0
+      ? Math.round((competition.bids.length / competition.invitedSuppliers) * 100)
+      : 0
+  const best = bestBid(competition)
+
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
-        <div>
-          <h3 className="flex items-center gap-1.5 font-semibold text-foreground">
-            <Users className="size-4 text-primary" />
-            Supplier roster
-          </h3>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {competition.bids.length} of {competition.invitedSuppliers} invited suppliers submitted.
-          </p>
-        </div>
-        <button className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-          <Plus className="size-4" />
-          Invite supplier
-        </button>
+    <div className="flex flex-col gap-6">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <ScoreCard icon={CheckCircle2} label="Submitted" value={`${submitted}`} sub="proposals in" />
+        <ScoreCard icon={Hourglass} label="Pending" value={`${pending}`} sub="awaiting response" />
+        <ScoreCard icon={Percent} label="Response rate" value={`${responseRate}%`} sub="of invited" />
+        <ScoreCard
+          icon={CircleDollarSign}
+          label="Lowest bid"
+          value={best ? `${formatAmount(best.amount)}` : "—"}
+          sub={best ? competition.currency : "no bids yet"}
+        />
       </div>
 
-      {roster.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No suppliers invited"
-          body="Invite suppliers to start collecting competitive proposals."
-        />
-      ) : (
-        <ul className="divide-y divide-border">
-          {roster.map((r) => (
-            <li key={r.name} className="flex items-center gap-4 p-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                {r.state === "submitted" ? initials(r.name) : <Mail className="size-4" />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-foreground">
-                  {r.state === "submitted" ? r.name : "Awaiting response"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {r.state === "submitted" ? `Submitted ${r.bid.submittedAgo}` : "Invitation sent"}
-                </p>
-              </div>
-              {r.state === "submitted" ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold tabular-nums text-foreground">
-                    {formatAmount(r.bid.amount)} {competition.currency}
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
+          <div>
+            <h3 className="flex items-center gap-1.5 font-semibold text-foreground">
+              <Users className="size-4 text-primary" />
+              Supplier roster
+            </h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {competition.bids.length} of {competition.invitedSuppliers} invited suppliers submitted.
+            </p>
+          </div>
+          <button className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+            <Plus className="size-4" />
+            Invite supplier
+          </button>
+        </div>
+
+        {roster.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No suppliers invited"
+            body="Invite suppliers to start collecting competitive proposals."
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {roster.map((r) => {
+              const won =
+                r.state === "submitted" &&
+                competition.status === "Awarded" &&
+                competition.awardedTo === r.name
+              const leading = r.state === "submitted" && r.rank === 1
+              return (
+                <li key={r.name} className="flex items-center gap-4 p-4">
+                  <span
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                      won
+                        ? "bg-chart-2 text-background"
+                        : leading
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {r.state === "submitted" ? initials(r.name) : <Mail className="size-4" />}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-1 text-xs font-medium text-chart-2">
-                    <CheckCircle2 className="size-3.5" />
-                    Submitted
-                  </span>
-                </div>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-chart-3/10 px-2 py-1 text-xs font-medium text-chart-3">
-                  <Hourglass className="size-3.5" />
-                  Pending
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-medium text-foreground">
+                        {r.state === "submitted" ? r.name : "Awaiting response"}
+                      </p>
+                      {leading && !won && (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                          <Crown className="size-3" />
+                          Leading
+                        </span>
+                      )}
+                      {won && (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-chart-2/15 px-1.5 py-0.5 text-[10px] font-semibold text-chart-2">
+                          <Trophy className="size-3" />
+                          Awarded
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {r.state === "submitted"
+                        ? `Rank #${r.rank} · submitted ${r.bid.submittedAgo}`
+                        : "Invitation sent"}
+                    </p>
+                  </div>
+                  {r.state === "submitted" ? (
+                    <div className="flex items-center gap-3">
+                      <TrendChip trend={r.bid.trend} />
+                      <span className="text-sm font-bold tabular-nums text-foreground">
+                        {formatAmount(r.bid.amount)} {competition.currency}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-chart-3/10 px-2 py-1 text-xs font-medium text-chart-3">
+                      <Hourglass className="size-3.5" />
+                      Pending
+                    </span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
     </div>
+  )
+}
+
+// Small trend indicator for a bid's movement.
+function TrendChip({ trend }: { trend: SupplierBid["trend"] }) {
+  if (trend === "new") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-chart-3/10 px-2 py-1 text-xs font-medium text-chart-3">
+        <Sparkles className="size-3.5" />
+        New
+      </span>
+    )
+  }
+  if (trend === "down") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-1 text-xs font-medium text-chart-2">
+        <TrendingDown className="size-3.5" />
+        Lower
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
+      <TrendingUp className="size-3.5" />
+      Higher
+    </span>
   )
 }
 
@@ -929,66 +1062,117 @@ function ProposalsTab({
     )
   }
 
+  const cheapest = sorted[0].amount
+  const priciest = sorted[sorted.length - 1].amount
+  const avg = Math.round(sorted.reduce((s, b) => s + b.amount, 0) / sorted.length)
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="px-5 py-3 font-medium">Rank</th>
-            <th className="px-5 py-3 font-medium">Supplier</th>
-            <th className="px-5 py-3 text-right font-medium">Bid</th>
-            <th className="px-5 py-3 text-right font-medium">vs. baseline</th>
-            <th className="px-5 py-3 text-right font-medium">Submitted</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {sorted.map((bid, i) => {
-            const leading = i === 0
-            const diff = competition.baseline - bid.amount
-            const diffPct = competition.baseline > 0 ? diff / competition.baseline : 0
-            return (
-              <tr key={bid.supplier} className={cn(leading && "bg-primary/5")}>
-                <td className="px-5 py-4">
-                  <span
-                    className={cn(
-                      "flex size-7 items-center justify-center rounded-full text-xs font-bold",
-                      leading ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {i + 1}
-                  </span>
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">{bid.supplier}</span>
-                    {leading && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                        <Crown className="size-3" />
-                        Leading
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-5 py-4 text-right font-bold tabular-nums text-foreground">
-                  {formatAmount(bid.amount)} {competition.currency}
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-xs font-semibold",
-                      diff >= 0 ? "text-primary" : "text-destructive",
-                    )}
-                  >
-                    <TrendingDown className="size-3.5" />
-                    {Math.round(diffPct * 100)}%
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-right text-muted-foreground">{bid.submittedAgo}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <ScoreCard
+          icon={Medal}
+          label="Best bid"
+          value={`${formatAmount(cheapest)}`}
+          sub={competition.currency}
+        />
+        <ScoreCard
+          icon={Gauge}
+          label="Average bid"
+          value={`${formatAmount(avg)}`}
+          sub={competition.currency}
+        />
+        <ScoreCard
+          icon={Scale}
+          label="Spread"
+          value={`${formatAmount(priciest - cheapest)}`}
+          sub="lowest to highest"
+        />
+        <ScoreCard
+          icon={Percent}
+          label="Best vs. baseline"
+          value={`${Math.round(((competition.baseline - cheapest) / Math.max(1, competition.baseline)) * 100)}%`}
+          sub="saving"
+        />
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <th className="px-5 py-3 font-medium">Rank</th>
+              <th className="px-5 py-3 font-medium">Supplier</th>
+              <th className="px-5 py-3 text-right font-medium">Bid</th>
+              <th className="px-5 py-3 text-right font-medium">Saving</th>
+              <th className="px-5 py-3 text-right font-medium">vs. baseline</th>
+              <th className="px-5 py-3 text-center font-medium">Trend</th>
+              <th className="px-5 py-3 text-right font-medium">Submitted</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sorted.map((bid, i) => {
+              const leading = i === 0
+              const diff = competition.baseline - bid.amount
+              const diffPct = competition.baseline > 0 ? diff / competition.baseline : 0
+              const won = competition.status === "Awarded" && competition.awardedTo === bid.supplier
+              return (
+                <tr key={bid.supplier} className={cn(leading && "bg-primary/5")}>
+                  <td className="px-5 py-4">
+                    <span
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-full text-xs font-bold",
+                        leading ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {i + 1}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{bid.supplier}</span>
+                      {won ? (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-chart-2/15 px-1.5 py-0.5 text-[10px] font-semibold text-chart-2">
+                          <Trophy className="size-3" />
+                          Awarded
+                        </span>
+                      ) : (
+                        leading && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            <Crown className="size-3" />
+                            Leading
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-right font-bold tabular-nums text-foreground">
+                    {formatAmount(bid.amount)} {competition.currency}
+                  </td>
+                  <td className="px-5 py-4 text-right tabular-nums text-muted-foreground">
+                    {diff >= 0 ? `${formatAmount(diff)} ${competition.currency}` : "—"}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs font-semibold",
+                        diff >= 0 ? "text-primary" : "text-destructive",
+                      )}
+                    >
+                      <TrendingDown className="size-3.5" />
+                      {Math.round(diffPct * 100)}%
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-center">
+                      <TrendChip trend={bid.trend} />
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-right text-muted-foreground">{bid.submittedAgo}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -1003,82 +1187,138 @@ function EvaluationTab({
   competition: Competition
   best: SupplierBid | null
 }) {
-  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
+  const scored = scoreBids(competition)
 
-  if (sorted.length === 0) {
+  if (scored.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <EmptyState
           icon={Star}
           title="Nothing to evaluate yet"
-          body="Scores and price comparison appear once proposals are in."
+          body="Weighted scores and price comparison appear once proposals are in."
         />
       </div>
     )
   }
 
-  const cheapest = sorted[0].amount
-  const priciest = sorted[sorted.length - 1].amount
-  const range = Math.max(1, priciest - cheapest)
+  const winner = scored[0]
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-          <BarChart3 className="size-4 text-primary" />
-          Price comparison
-        </h3>
-        <div className="mt-5 flex flex-col gap-4">
-          {sorted.map((bid, i) => {
-            const leading = i === 0
-            const rel = 1 - (bid.amount - cheapest) / range
-            return (
-              <div key={bid.supplier} className="flex items-center gap-3">
-                <span className="w-40 shrink-0 truncate text-sm font-medium text-foreground">
-                  {bid.supplier}
-                </span>
-                <div className="h-6 flex-1 overflow-hidden rounded-md bg-muted">
-                  <div
-                    className={cn(
-                      "flex h-full items-center justify-end rounded-md pr-2 transition-all",
-                      leading ? "bg-primary" : "bg-chart-3/70",
-                    )}
-                    style={{ width: `${30 + rel * 70}%` }}
-                  >
-                    <span className="text-[10px] font-bold text-primary-foreground tabular-nums">
-                      {formatAmount(bid.amount)}
-                    </span>
-                  </div>
-                </div>
-                {leading && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase text-primary">
-                    <Crown className="size-3" /> Best
-                  </span>
-                )}
-              </div>
-            )
-          })}
+      {/* Recommended winner banner */}
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-primary/30 bg-primary/5 p-6">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Medal className="size-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            Highest weighted score
+          </p>
+          <p className="truncate text-lg font-bold text-foreground">{winner.bid.supplier}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-bold tabular-nums text-primary">{winner.total}</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">out of 100</p>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <ScoreCard
-          icon={CircleDollarSign}
-          label="Lowest bid"
-          value={`${formatAmount(cheapest)} ${competition.currency}`}
-        />
-        <ScoreCard
-          icon={BarChart3}
-          label="Spread"
-          value={`${formatAmount(priciest - cheapest)} ${competition.currency}`}
-          sub="lowest to highest"
-        />
-        <ScoreCard
-          icon={Users}
-          label="Bidders"
-          value={`${sorted.length}`}
-          sub={`of ${competition.invitedSuppliers} invited`}
-        />
+      {/* Weighting legend */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border bg-card px-6 py-4 text-sm shadow-sm">
+        <span className="flex items-center gap-1.5 font-semibold text-foreground">
+          <Scale className="size-4 text-primary" />
+          Scoring weights
+        </span>
+        <WeightLegend icon={CircleDollarSign} label="Price" pct={WEIGHTS.price} color="bg-primary" />
+        <WeightLegend icon={Star} label="Quality" pct={WEIGHTS.quality} color="bg-chart-3" />
+        <WeightLegend icon={Truck} label="Delivery" pct={WEIGHTS.delivery} color="bg-chart-2" />
+      </div>
+
+      {/* Scoring matrix */}
+      <div className="flex flex-col gap-4">
+        {scored.map((s, i) => {
+          const leading = i === 0
+          return (
+            <div
+              key={s.bid.supplier}
+              className={cn(
+                "rounded-2xl border bg-card p-5 shadow-sm",
+                leading ? "border-primary/40" : "border-border",
+              )}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                      leading ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-foreground">{s.bid.supplier}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatAmount(s.bid.amount)} {competition.currency}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="text-2xl font-bold tabular-nums text-foreground">{s.total}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">score</p>
+                  </div>
+                  {leading && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
+                      <Crown className="size-3" />
+                      Best
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <ScoreBar label="Price" score={s.priceScore} color="bg-primary" />
+                <ScoreBar label="Quality" score={s.qualityScore} color="bg-chart-3" />
+                <ScoreBar label="Delivery" score={s.deliveryScore} color="bg-chart-2" />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function WeightLegend({
+  icon: Icon,
+  label,
+  pct,
+  color,
+}: {
+  icon: typeof Trophy
+  label: string
+  pct: number
+  color: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      <span className={cn("size-2.5 rounded-full", color)} />
+      <Icon className="size-3.5" />
+      {label}
+      <span className="font-semibold text-foreground">{Math.round(pct * 100)}%</span>
+    </span>
+  )
+}
+
+function ScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold tabular-nums text-foreground">{score}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${score}%` }} />
       </div>
     </div>
   )
@@ -1123,42 +1363,105 @@ function AwardTab({
 }) {
   const isAwarded = competition.status === "Awarded"
   const isClosed = competition.status === "Closed"
+  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
+  const runnerUp = sorted.length > 1 ? sorted[1] : null
 
   if (isAwarded) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-chart-2/40 bg-chart-2/5 shadow-sm">
-        <div className="flex flex-col items-center gap-4 p-8 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
-            <Trophy className="size-8" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Awarded to</p>
-            <h3 className="mt-1 text-2xl font-bold text-foreground">{competition.awardedTo}</h3>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-xl border border-border bg-card px-6 py-4">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Final price</p>
-              <p className="text-lg font-bold tabular-nums text-foreground">
-                {best ? `${formatAmount(best.amount)} ${competition.currency}` : "—"}
+      <div className="flex flex-col gap-6">
+        <div className="overflow-hidden rounded-2xl border border-chart-2/40 bg-chart-2/5 shadow-sm">
+          <div className="flex flex-col items-center gap-4 p-8 text-center">
+            <span className="flex size-16 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
+              <Trophy className="size-8" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Awarded to</p>
+              <h3 className="mt-1 text-2xl font-bold text-foreground">{competition.awardedTo}</h3>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-xl border border-border bg-card px-6 py-4">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Final price</p>
+                <p className="text-lg font-bold tabular-nums text-foreground">
+                  {best ? `${formatAmount(best.amount)} ${competition.currency}` : "—"}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Saved</p>
+                <p className="text-lg font-bold tabular-nums text-primary">
+                  {formatAmount(saving)} {competition.currency}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">vs. baseline</p>
+                <p className="text-lg font-bold tabular-nums text-primary">{Math.round(pct * 100)}%</p>
+              </div>
+            </div>
+            {competition.awardedOn && (
+              <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarDays className="size-4" />
+                Awarded on {competition.awardedOn}
               </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Saved</p>
-              <p className="text-lg font-bold tabular-nums text-primary">
-                {formatAmount(saving)} {competition.currency}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">vs. baseline</p>
-              <p className="text-lg font-bold tabular-nums text-primary">{Math.round(pct * 100)}%</p>
-            </div>
+            )}
           </div>
-          {competition.awardedOn && (
-            <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarDays className="size-4" />
-              Awarded on {competition.awardedOn}
+        </div>
+
+        {/* Decision rationale: winner vs runner-up */}
+        {runnerUp && best && (
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Scale className="size-4 text-primary" />
+              Award rationale
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {competition.awardedTo} beat the runner-up by{" "}
+              <span className="font-semibold text-foreground">
+                {formatAmount(runnerUp.amount - best.amount)} {competition.currency}
+              </span>
+              .
             </p>
-          )}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-chart-2/40 bg-chart-2/5 p-4">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-chart-2">
+                  <Trophy className="size-3.5" />
+                  Winner
+                </span>
+                <p className="mt-1 font-semibold text-foreground">{best.supplier}</p>
+                <p className="text-sm tabular-nums text-muted-foreground">
+                  {formatAmount(best.amount)} {competition.currency}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                  <Medal className="size-3.5" />
+                  Runner-up
+                </span>
+                <p className="mt-1 font-semibold text-foreground">{runnerUp.supplier}</p>
+                <p className="text-sm tabular-nums text-muted-foreground">
+                  {formatAmount(runnerUp.amount)} {competition.currency}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Next steps */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <FileCheck className="size-4 text-primary" />
+            Next steps
+          </h3>
+          <ul className="mt-4 flex flex-col gap-3 text-sm">
+            <NextStep done label="Winner notified" detail="Award decision sent to all bidders." />
+            <NextStep
+              done
+              label="Purchase order issued"
+              detail={`PO raised for ${competition.awardedTo}.`}
+            />
+            <NextStep
+              label="Contract signature"
+              detail="Awaiting countersignature from the supplier."
+            />
+          </ul>
         </div>
       </div>
     )
@@ -1217,6 +1520,28 @@ function AwardTab({
         />
       )}
     </div>
+  )
+}
+
+// Single next-step row for an awarded competition.
+function NextStep({ label, detail, done }: { label: string; detail: string; done?: boolean }) {
+  return (
+    <li className="flex items-center gap-3">
+      <span
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-full",
+          done
+            ? "bg-chart-2 text-background"
+            : "border-2 border-dashed border-muted-foreground/40 text-muted-foreground",
+        )}
+      >
+        {done ? <CheckCircle2 className="size-4" /> : <Hourglass className="size-3.5" />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </li>
   )
 }
 
