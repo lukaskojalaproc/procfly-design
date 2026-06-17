@@ -285,7 +285,6 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     baseline: number
     currency: string
   }) {
-    console.log("[v0] handleSaveTerms", terms)
     setCompetition((c) => ({ ...c, ...terms }))
   }
 
