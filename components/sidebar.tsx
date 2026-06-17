@@ -26,7 +26,7 @@ const primaryNav = [
 
 const secondaryNav = [
   { label: "Approvals", icon: CheckSquare, href: "/approvals" },
-  { label: "Competitions", icon: Trophy, href: "/requests" },
+  { label: "Competitions", icon: Trophy, href: "/competitions" },
   { label: "Orders", icon: ShoppingCart, href: "/requests" },
 ]
 
