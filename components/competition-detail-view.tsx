@@ -59,6 +59,7 @@ import {
 } from "@/lib/competitions-data"
 import { formatAmount, initials } from "@/lib/dashboard-data"
 import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
+import { LaunchCompetitionDialog } from "@/components/launch-competition-dialog"
 import { useCountdown } from "@/components/use-countdown"
 
 // ---------------------------------------------------------------------------
@@ -222,7 +223,11 @@ type TabKey = (typeof TABS)[number]["key"]
 // ===========================================================================
 // Main detail view
 // ===========================================================================
-export function CompetitionDetailView({ competition }: { competition: Competition }) {
+export function CompetitionDetailView({ competition: initialCompetition }: { competition: Competition }) {
+  // Hold the competition in local state so launching it updates the whole
+  // page in place (Ready → Active) without a server round-trip.
+  const [competition, setCompetition] = useState(initialCompetition)
+  const [launchOpen, setLaunchOpen] = useState(false)
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
   const saving = savingsAmount(competition)
@@ -258,8 +263,21 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : "overview"
   const [celebrate, setCelebrate] = useState(false)
 
-  // Only the "Award winner" hero action triggers the celebration.
-  const onPrimaryAction = isActive && hasBids ? () => setCelebrate(true) : undefined
+  // Launch: flip Ready/Draft → Active, open the bidding window, and update the
+  // page in place so the live countdown and bidding UI appear immediately.
+  function handleLaunch(settings: { deadlineInHours: number; invitedSuppliers: number }) {
+    setCompetition((c) => ({
+      ...c,
+      status: "Active",
+      deadlineInHours: settings.deadlineInHours,
+      invitedSuppliers: Math.max(c.invitedSuppliers, settings.invitedSuppliers),
+    }))
+    setTab("overview")
+  }
+
+  // Hero primary action: launch (pre-live) or award the winner (live).
+  const onPrimaryAction =
+    isActive && hasBids ? () => setCelebrate(true) : canStart ? () => setLaunchOpen(true) : undefined
 
   const primaryAction = isFinished
     ? null
@@ -414,6 +432,7 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
           pct={pct}
           roster={roster}
           onGoToTab={setTab}
+          onLaunch={() => setLaunchOpen(true)}
         />
       )}
       {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
@@ -422,6 +441,13 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
       {activeTab === "award" && (
         <AwardTab competition={competition} best={best} saving={saving} pct={pct} />
       )}
+
+      <LaunchCompetitionDialog
+        open={launchOpen}
+        onOpenChange={setLaunchOpen}
+        competition={competition}
+        onLaunch={handleLaunch}
+      />
 
       {best && (
         <AwardCelebrationDialog
@@ -554,6 +580,7 @@ function OverviewTab({
   pct,
   roster,
   onGoToTab,
+  onLaunch,
 }: {
   competition: Competition
   countdown: ReturnType<typeof useCountdown>
@@ -562,6 +589,7 @@ function OverviewTab({
   pct: number
   roster: SupplierRow[]
   onGoToTab: (key: TabKey) => void
+  onLaunch: () => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
     SupplierRow,
@@ -574,7 +602,7 @@ function OverviewTab({
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
   if (isDraft || isReady) {
-    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} />
+    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} onLaunch={onLaunch} />
   }
 
   return (
@@ -734,10 +762,12 @@ function SetupOverview({
   competition,
   isReady,
   onGoToTab,
+  onLaunch,
 }: {
   competition: Competition
   isReady: boolean
   onGoToTab: (key: TabKey) => void
+  onLaunch: () => void
 }) {
   const hasSuppliers = competition.invitedSuppliers > 0
   const checklist = [
@@ -760,6 +790,7 @@ function SetupOverview({
       detail: isReady
         ? "Everything is ready — launch to open bidding."
         : "Complete setup before launching.",
+      action: isReady ? onLaunch : undefined,
     },
   ]
   const completed = checklist.filter((c) => c.done).length
@@ -793,6 +824,7 @@ function SetupOverview({
             </p>
           </div>
           <button
+            onClick={isReady ? onLaunch : () => onGoToTab("suppliers")}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90",
               isReady
