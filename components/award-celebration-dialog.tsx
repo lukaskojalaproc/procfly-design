@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Trophy, PartyPopper, TrendingDown, FileCheck, X } from "lucide-react"
+import { Trophy, PartyPopper, TrendingDown, FileCheck, X, FileText, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AwardCelebrationDialogProps {
@@ -12,6 +13,8 @@ interface AwardCelebrationDialogProps {
   amount: string
   saving: string
   pct: number
+  /** When set, enables one-click conversion to an auto-filled purchase order. */
+  competitionId?: string
 }
 
 // A small piece of falling confetti with randomized position, delay and color.
@@ -31,7 +34,9 @@ export function AwardCelebrationDialog({
   amount,
   saving,
   pct,
+  competitionId,
 }: AwardCelebrationDialogProps) {
+  const router = useRouter()
   // Re-generate confetti each time the dialog opens so it always animates.
   const [burst, setBurst] = useState(0)
   useEffect(() => {
@@ -134,16 +139,37 @@ export function AwardCelebrationDialog({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className={cn(
-              "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3",
-              "text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90",
+          <div className="flex w-full flex-col gap-2">
+            {competitionId && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenChange(false)
+                  router.push(`/orders/from/${competitionId}`)
+                }}
+                className={cn(
+                  "group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3",
+                  "text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90",
+                )}
+              >
+                <FileText className="size-4" />
+                Convert to purchase order
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
             )}
-          >
-            Done
-          </button>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className={cn(
+                "inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors",
+                competitionId
+                  ? "border border-border text-foreground hover:bg-muted"
+                  : "bg-primary text-primary-foreground hover:opacity-90",
+              )}
+            >
+              {competitionId ? "Maybe later" : "Done"}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -431,6 +431,7 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
           amount={`${formatAmount(best.amount)} ${competition.currency}`}
           saving={`${formatAmount(saving)} ${competition.currency}`}
           pct={Math.round(pct * 100)}
+          competitionId={competition.id}
         />
       )}
     </div>
@@ -1817,6 +1818,7 @@ function AwardTab({
             amount={`${formatAmount(best.amount)} ${competition.currency}`}
             saving={`${formatAmount(saving)} ${competition.currency}`}
             pct={Math.round(pct * 100)}
+            competitionId={competition.id}
           />
         </>
       ) : (

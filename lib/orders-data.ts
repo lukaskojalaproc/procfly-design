@@ -144,6 +144,95 @@ export const purchaseOrders: PurchaseOrder[] = [
   },
 ]
 
+// --- Convert an awarded competition into a purchase order -------------------
+//
+// Deterministic so a converted PO always rebuilds identically from static
+// competition data (no persistence needed). Supplier contact details are
+// derived from the winning supplier's name.
+
+import { bestBid, type Competition } from "./competitions-data"
+
+function hash(seed: string) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 100000
+  return h
+}
+
+/** Build plausible, stable contact details for a supplier name. */
+function deriveSupplier(name: string, category: string): OrderSupplier {
+  const h = hash(name)
+  const firstNames = ["Mantas", "Rasa", "Erik", "Greta", "Tomas", "Laura", "Andrius", "Inga"]
+  const lastNames = ["Adomaitis", "Petraitytė", "Lindqvist", "Jonaitytė", "Kazlauskas", "Berg", "Nielsen", "Vasiliauskas"]
+  const cities = [
+    { city: "Vilnius", street: "Gedimino pr.", zip: "LT-01103", country: "Lithuania", code: "+370 5" },
+    { city: "Kaunas", street: "Savanorių pr.", zip: "LT-44150", country: "Lithuania", code: "+370 37" },
+    { city: "Stockholm", street: "Sveavägen", zip: "111 34", country: "Sweden", code: "+46 8" },
+    { city: "Riga", street: "Brīvības iela", zip: "LV-1010", country: "Latvia", code: "+371 6" },
+  ]
+  const c = cities[h % cities.length]
+  const contact = `${firstNames[h % firstNames.length]} ${lastNames[(h >> 2) % lastNames.length]}`
+  const domain = name.toLowerCase().replace(/[^a-z0-9]+/g, "")
+  return {
+    name,
+    contact,
+    email: `procurement@${domain || "supplier"}.com`,
+    phone: `${c.code} ${200 + (h % 700)} ${1000 + (h % 9000)}`,
+    address: `${c.street} ${10 + (h % 180)}, ${c.city}, ${c.zip}, ${c.country}`,
+  }
+}
+
+/** Stable PO id/number for a converted competition. */
+export function convertedOrderId(competitionId: string) {
+  return `from-${competitionId}`
+}
+
+/**
+ * Auto-fill a draft purchase order from an awarded (or live) competition.
+ * The winning bid becomes the order subtotal and the order references the
+ * originating competition for traceability.
+ */
+export function competitionToPurchaseOrder(c: Competition): PurchaseOrder {
+  const winner = c.awardedTo
+    ? c.bids.find((b) => b.supplier === c.awardedTo) ?? bestBid(c)
+    : bestBid(c)
+  const supplierName = winner?.supplier ?? "Awarded supplier"
+  const amount = winner?.amount ?? c.baseline
+  const seq = (hash(c.id) % 900) + 100
+  const created = c.awardedOn ?? new Date().toISOString().slice(0, 16).replace("T", " ")
+
+  return {
+    id: convertedOrderId(c.id),
+    number: `PRC-2026-000${seq}`,
+    created,
+    status: "Draft",
+    currency: c.currency,
+    sourceRef: c.ref,
+    category: c.category,
+    owner: c.owner,
+    supplier: deriveSupplier(supplierName, c.category),
+    lines: [
+      {
+        name: c.title,
+        description: `Awarded scope sourced via competition ${c.ref}`,
+        qty: 1,
+        unit: "lot",
+        unitPrice: amount,
+      },
+    ],
+    paymentTerms: "Net 30",
+    deliveryDate: "To be confirmed with supplier",
+    deliveryAddress: "ProcFly HQ — Receiving Dock, Vilnius",
+    notes: `Generated automatically from awarded competition ${c.ref}. Review line items and delivery details before sending to the supplier.`,
+    timeline: [
+      { label: "Converted from competition", date: created, done: true },
+      { label: "Order drafted", date: created, done: true },
+      { label: "Sent to supplier", date: "Pending", done: false },
+      { label: "Acknowledged", date: "Pending", done: false },
+      { label: "Delivered", date: "Pending", done: false },
+    ],
+  }
+}
+
 // --- Derived helpers --------------------------------------------------------
 
 export function orderLineTotal(line: OrderLine) {
