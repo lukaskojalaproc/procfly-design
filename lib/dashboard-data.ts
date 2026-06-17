@@ -129,6 +129,18 @@ export interface ApprovalStep {
   date: string
 }
 
+export interface SoftwareDetail {
+  licenseType: string
+  users: string
+  billingCycle: string
+  renewalType: string
+  renewalDate: string
+  dataProcessing: string
+  hostingRegion: string
+  dpaRequired: string
+  owner: string
+}
+
 export interface RequestDetail {
   supplier: string
   neededBy: string | null
@@ -136,6 +148,7 @@ export interface RequestDetail {
   lineItems: LineItem[]
   customFields: CustomField[]
   approvals: ApprovalStep[]
+  software?: SoftwareDetail
 }
 
 const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
@@ -153,6 +166,35 @@ const requestDetails: Record<string, RequestDetail> = {}
 export function getRequestDetail(request: ProcurementRequest): RequestDetail {
   const explicit = requestDetails[request.id]
   if (explicit) return explicit
+
+  const isSoftware = ["Software", "Cloud", "IT & Software"].includes(request.category)
+
+  // Software / subscription requests don't carry physical line items — surface
+  // license, renewal, and GDPR detail instead.
+  if (isSoftware) {
+    return {
+      supplier: "To be selected",
+      neededBy: null,
+      description: request.title,
+      lineItems: [],
+      customFields: [
+        { label: "Category", value: request.category },
+        { label: "Request type", value: request.kind },
+      ],
+      software: {
+        licenseType: "SaaS subscription",
+        users: "Not provided",
+        billingCycle: "Annual",
+        renewalType: "Auto-renew",
+        renewalDate: "Not set",
+        dataProcessing: "Not provided",
+        hostingRegion: "EU / EEA",
+        dpaRequired: "Not provided",
+        owner: "Not provided",
+      },
+      approvals: defaultFlow(request.date, request.requester),
+    }
+  }
 
   // Generate a sensible default for requests without bespoke detail.
   const fallbackItems: LineItem[] =

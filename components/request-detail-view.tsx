@@ -9,6 +9,8 @@ import {
   Clock,
   Check,
   X,
+  Monitor,
+  ShieldCheck,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -166,20 +168,47 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             </div>
           </SectionCard>
 
-          <SectionCard icon={Box} iconClass="bg-chart-3/15 text-chart-3" title="Specifications">
-            {detail.lineItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No line items.</p>
-            ) : (
-              <div className="flex flex-col divide-y divide-border">
-                {detail.lineItems.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <span className="font-medium text-foreground">{item.name}</span>
-                    <span className="text-sm text-muted-foreground">Qty {item.qty}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
+          {detail.software ? (
+            <>
+              <SectionCard icon={Monitor} iconClass="bg-chart-2/15 text-chart-2" title="License & renewal">
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="License type" value={detail.software.licenseType} />
+                  <MetaItem label="Billing cycle" value={detail.software.billingCycle} />
+                  <MetaItem label="Renewal" value={detail.software.renewalType} />
+                  <MetaItem label="Renewal date" value={detail.software.renewalDate} />
+                  <MetaItem label="Users / seats" value={detail.software.users} />
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                icon={ShieldCheck}
+                iconClass="bg-destructive/12 text-destructive"
+                title="Data protection (GDPR)"
+              >
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="Personal data" value={detail.software.dataProcessing} />
+                  <MetaItem label="Hosting region" value={detail.software.hostingRegion} />
+                  <MetaItem label="DPA required" value={detail.software.dpaRequired} />
+                  <MetaItem label="Internal owner" value={detail.software.owner} />
+                </div>
+              </SectionCard>
+            </>
+          ) : (
+            <SectionCard icon={Box} iconClass="bg-chart-3/15 text-chart-3" title="Specifications">
+              {detail.lineItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No line items.</p>
+              ) : (
+                <div className="flex flex-col divide-y divide-border">
+                  {detail.lineItems.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                      <span className="font-medium text-foreground">{item.name}</span>
+                      <span className="text-sm text-muted-foreground">Qty {item.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
 
           <SectionCard
             icon={ClipboardList}
