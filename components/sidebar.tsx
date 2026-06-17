@@ -27,7 +27,7 @@ const primaryNav = [
 const secondaryNav = [
   { label: "Approvals", icon: CheckSquare, href: "/approvals" },
   { label: "Competitions", icon: Trophy, href: "/competitions" },
-  { label: "Orders", icon: ShoppingCart, href: "/requests" },
+  { label: "Orders", icon: ShoppingCart, href: "/orders" },
 ]
 
 const tertiaryNav = [
@@ -65,6 +65,8 @@ function NavItem({
 
 export function Sidebar() {
   const pathname = usePathname()
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
       <div className="flex items-center justify-between px-5 py-5">
@@ -77,12 +79,12 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
         <div className="flex flex-col gap-1">
           {primaryNav.map((item) => (
-            <NavItem key={item.label} {...item} active={pathname === item.href} />
+            <NavItem key={item.label} {...item} active={isActive(item.href)} />
           ))}
         </div>
         <div className="flex flex-col gap-1">
           {secondaryNav.map((item) => (
-            <NavItem key={item.label} {...item} active={pathname === item.href} />
+            <NavItem key={item.label} {...item} active={isActive(item.href)} />
           ))}
         </div>
         <div className="flex flex-col gap-1">
