@@ -8,6 +8,19 @@ import type { Competition } from "@/lib/competitions-data"
 
 const CURRENCIES = ["EUR", "USD", "GBP"]
 
+export type TermsFocus = "all" | "scope" | "requirements" | "evaluation" | "payment"
+
+const FOCUS_META: Record<TermsFocus, { title: string; subtitle: (ref: string) => string }> = {
+  all: { title: "Edit competition terms", subtitle: (ref) => `Define the scope and budget for ${ref}.` },
+  scope: { title: "Define scope & budget", subtitle: (ref) => `Set the budget and scope for ${ref}.` },
+  requirements: {
+    title: "Requirements & deliverables",
+    subtitle: (ref) => `Specify what suppliers must deliver for ${ref}.`,
+  },
+  evaluation: { title: "Evaluation criteria", subtitle: (ref) => `Define how bids are scored for ${ref}.` },
+  payment: { title: "Payment & contract terms", subtitle: (ref) => `Set payment and contract terms for ${ref}.` },
+}
+
 export interface CompetitionTermsEdit {
   title: string
   category: string

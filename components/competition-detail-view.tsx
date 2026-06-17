@@ -60,7 +60,7 @@ import {
 import { formatAmount, initials } from "@/lib/dashboard-data"
 import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
 import { LaunchCompetitionDialog } from "@/components/launch-competition-dialog"
-import { EditTermsDialog } from "@/components/edit-terms-dialog"
+import { EditTermsDialog, type TermsFocus } from "@/components/edit-terms-dialog"
 import { useCountdown } from "@/components/use-countdown"
 
 // ---------------------------------------------------------------------------
@@ -230,6 +230,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
   const [competition, setCompetition] = useState(initialCompetition)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [editTermsOpen, setEditTermsOpen] = useState(false)
+  const [editTermsFocus, setEditTermsFocus] = useState<TermsFocus>("all")
   const countdown = useCountdown(competition.deadlineInHours)
   const best = bestBid(competition)
   const saving = savingsAmount(competition)
@@ -290,6 +291,13 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     paymentTerms: string
   }) {
     setCompetition((c) => ({ ...c, ...terms }))
+  }
+
+  // Open the terms dialog focused on a specific section (driven by which
+  // checklist item the user clicked).
+  function openEditTerms(focus: TermsFocus = "all") {
+    setEditTermsFocus(focus)
+    setEditTermsOpen(true)
   }
 
   // Draft → Ready: setup is complete, move the competition to the Ready stage
@@ -457,7 +465,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
           roster={roster}
           onGoToTab={setTab}
           onLaunch={() => setLaunchOpen(true)}
-          onEditTerms={() => setEditTermsOpen(true)}
+          onEditTerms={openEditTerms}
           onMoveToReady={handleMoveToReady}
         />
       )}
@@ -480,6 +488,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
         onOpenChange={setEditTermsOpen}
         competition={competition}
         onSave={handleSaveTerms}
+        focus={editTermsFocus}
       />
 
       {best && (
@@ -625,7 +634,7 @@ function OverviewTab({
   roster: SupplierRow[]
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
-  onEditTerms: () => void
+  onEditTerms: (focus?: TermsFocus) => void
   onMoveToReady: () => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
@@ -816,7 +825,7 @@ function SetupOverview({
   isReady: boolean
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
-  onEditTerms: () => void
+  onEditTerms: (focus?: TermsFocus) => void
   onMoveToReady: () => void
 }) {
   const hasSuppliers = competition.invitedSuppliers > 0
@@ -833,7 +842,7 @@ function SetupOverview({
       detail: hasScope
         ? `Baseline ${formatAmount(competition.baseline)} ${competition.currency} · scope described.`
         : `Baseline set — add a scope description to complete this step.`,
-      action: onEditTerms,
+      action: () => onEditTerms("scope"),
     },
     {
       label: "Set requirements & deliverables",
@@ -841,7 +850,7 @@ function SetupOverview({
       detail: hasRequirements
         ? "Requirements documented for bidders."
         : "Specify what suppliers must deliver to qualify.",
-      action: onEditTerms,
+      action: () => onEditTerms("requirements"),
     },
     {
       label: "Add evaluation criteria",
@@ -849,7 +858,7 @@ function SetupOverview({
       detail: hasEvaluation
         ? "Scoring model defined for proposals."
         : "Define how bids will be scored (price, quality…).",
-      action: onEditTerms,
+      action: () => onEditTerms("evaluation"),
     },
     {
       label: "Set payment & contract terms",
@@ -857,7 +866,7 @@ function SetupOverview({
       detail: hasPaymentTerms
         ? "Payment & contract terms communicated."
         : "Add payment terms and contract length for bidders.",
-      action: onEditTerms,
+      action: () => onEditTerms("payment"),
     },
     {
       label: "Invite suppliers",
@@ -933,7 +942,7 @@ function SetupOverview({
             </p>
           </div>
           <button
-            onClick={isReady ? onLaunch : draftCtaReady ? onMoveToReady : onEditTerms}
+            onClick={isReady ? onLaunch : draftCtaReady ? onMoveToReady : () => onEditTerms("all")}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90",
               isReady || draftCtaReady
