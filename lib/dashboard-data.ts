@@ -103,3 +103,73 @@ export function initials(name: string) {
     .join("")
     .toUpperCase()
 }
+
+// ---------------------------------------------------------------------------
+// Request detail data — line items, custom fields, and the approval flow.
+// ---------------------------------------------------------------------------
+
+export interface LineItem {
+  name: string
+  qty: number
+  unitPrice: number
+}
+
+export interface CustomField {
+  label: string
+  value: string
+}
+
+export type ApprovalState = "approved" | "pending" | "rejected"
+
+export interface ApprovalStep {
+  name: string
+  role: string
+  state: ApprovalState
+  comment?: string
+  date: string
+}
+
+export interface RequestDetail {
+  supplier: string
+  neededBy: string | null
+  description: string
+  lineItems: LineItem[]
+  customFields: CustomField[]
+  approvals: ApprovalStep[]
+}
+
+const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
+  { name: requester, role: "Step 1 · Creator", state: "approved", comment: "Request created", date: created },
+  { name: "Dragan Stojchevski", role: "Step 2 · Manager", state: "pending", date: created },
+  { name: "Dragan Stojchevski", role: "Step 3 · Category Manager", state: "pending", date: created },
+  { name: "Dragan Stojchevski", role: "Step 4 · Finance", state: "pending", date: created },
+  { name: "Dragan Stojchevski", role: "Step 5 · Procurement", state: "pending", date: created },
+]
+
+// Per-request detail, keyed by request id. Falls back to a generated detail
+// for any request that does not have an explicit entry.
+const requestDetails: Record<string, RequestDetail> = {}
+
+export function getRequestDetail(request: ProcurementRequest): RequestDetail {
+  const explicit = requestDetails[request.id]
+  if (explicit) return explicit
+
+  // Generate a sensible default for requests without bespoke detail.
+  const fallbackItems: LineItem[] =
+    request.amount > 0 ? [{ name: request.title, qty: 1, unitPrice: request.amount }] : []
+  return {
+    supplier: request.kind === "Add New Supplier" ? "Pending onboarding" : "To be selected",
+    neededBy: null,
+    description: request.title,
+    lineItems: fallbackItems,
+    customFields: [
+      { label: "category", value: request.category },
+      { label: "request type", value: request.kind },
+    ],
+    approvals: defaultFlow(request.date, request.requester),
+  }
+}
+
+export function getRequestById(id: string) {
+  return requests.find((r) => r.id === id)
+}

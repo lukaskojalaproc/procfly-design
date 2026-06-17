@@ -1,5 +1,7 @@
 import { Search, Globe, LogOut, MoreVertical, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { NewRequestDialog } from "@/components/new-request-dialog"
+import { cn } from "@/lib/utils"
 
 export function TopBar() {
   return (
@@ -28,19 +30,37 @@ export function TopBar() {
 
 export function PageHeader({
   crumb = "Overview",
+  crumbs,
   title = "Overview",
   description = "Manage procurement requests, approvals, and suppliers in one place.",
 }: {
   crumb?: string
+  crumbs?: { label: string; href?: string }[]
   title?: string
   description?: string
 }) {
+  const trail = crumbs ?? [{ label: crumb }]
   return (
     <div className="flex flex-col gap-4">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <span>Home</span>
-        <ChevronRight className="size-3.5" />
-        <span className="font-medium text-foreground">{crumb}</span>
+        <Link href="/" className="transition-colors hover:text-foreground">
+          Home
+        </Link>
+        {trail.map((item, i) => {
+          const isLast = i === trail.length - 1
+          return (
+            <span key={i} className="flex items-center gap-1.5">
+              <ChevronRight className="size-3.5" />
+              {item.href && !isLast ? (
+                <Link href={item.href} className="transition-colors hover:text-foreground">
+                  {item.label}
+                </Link>
+              ) : (
+                <span className={cn(isLast && "font-medium text-foreground")}>{item.label}</span>
+              )}
+            </span>
+          )
+        })}
       </nav>
 
       <div className="flex flex-wrap items-end justify-between gap-4">

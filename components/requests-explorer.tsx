@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Search, SlidersHorizontal, Network as NetworkIcon, ShieldCheck } from "lucide-react"
 import { Package, Briefcase, UserPlus, Clock, MoreVertical, Users, ChevronRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -41,7 +42,8 @@ const sortOptions: SortKey[] = ["Newest", "Highest amount", "Lowest amount"]
 function FullRequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
   return (
-    <Card className="group flex flex-row items-center gap-4 p-4 transition-colors hover:border-primary/40 hover:bg-muted/40">
+    <Link href={`/requests/${request.id}`} className="block">
+      <Card className="group flex flex-row items-center gap-4 p-4 transition-colors hover:border-primary/40 hover:bg-muted/40">
       <span className={cn("h-12 w-1 shrink-0 rounded-full", accentByStatus[request.status])} />
       <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
         <Icon className="size-5" />
@@ -95,12 +97,17 @@ function FullRequestRow({ request }: { request: ProcurementRequest }) {
       </div>
 
       <button
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+        }}
         className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
         aria-label="More options"
       >
         <MoreVertical className="size-4" />
       </button>
-    </Card>
+      </Card>
+    </Link>
   )
 }
 
