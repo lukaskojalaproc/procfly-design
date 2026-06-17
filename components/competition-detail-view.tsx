@@ -61,6 +61,8 @@ import { formatAmount, initials } from "@/lib/dashboard-data"
 import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
 import { LaunchCompetitionDialog } from "@/components/launch-competition-dialog"
 import { EditTermsDialog, type TermsFocus } from "@/components/edit-terms-dialog"
+import { AiImportBanner } from "@/components/ai-import-banner"
+import type { ExtractedTerms } from "@/app/actions/extract-competition"
 import { useCountdown } from "@/components/use-countdown"
 
 // ---------------------------------------------------------------------------
@@ -300,6 +302,24 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     setEditTermsOpen(true)
   }
 
+  // AI import: merge fields extracted from an uploaded document. Arrays are
+  // joined into the newline-delimited strings the rest of the app expects, and
+  // the approved baseline budget is never overwritten.
+  function handleAiFill(terms: ExtractedTerms) {
+    setCompetition((c) => ({
+      ...c,
+      title: terms.title?.trim() || c.title,
+      category: terms.category?.trim() || c.category,
+      description: terms.description?.trim() || c.description,
+      baseline: c.sourceRequestRef ? c.baseline : terms.baseline ?? c.baseline,
+      currency: terms.currency?.trim() || c.currency,
+      requirements: terms.requirements.length > 0 ? terms.requirements.join("\n") : c.requirements,
+      evaluationCriteria:
+        terms.evaluationCriteria.length > 0 ? terms.evaluationCriteria.join("\n") : c.evaluationCriteria,
+      paymentTerms: terms.paymentTerms?.trim() || c.paymentTerms,
+    }))
+  }
+
   // Draft → Ready: setup is complete, move the competition to the Ready stage
   // so it can be launched.
   function handleMoveToReady() {
@@ -467,6 +487,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
           onLaunch={() => setLaunchOpen(true)}
           onEditTerms={openEditTerms}
           onMoveToReady={handleMoveToReady}
+          onAiFill={handleAiFill}
         />
       )}
       {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
@@ -625,6 +646,7 @@ function OverviewTab({
   onLaunch,
   onEditTerms,
   onMoveToReady,
+  onAiFill,
 }: {
   competition: Competition
   countdown: ReturnType<typeof useCountdown>
@@ -636,6 +658,7 @@ function OverviewTab({
   onLaunch: () => void
   onEditTerms: (focus?: TermsFocus) => void
   onMoveToReady: () => void
+  onAiFill: (terms: ExtractedTerms) => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
     SupplierRow,
@@ -656,6 +679,7 @@ function OverviewTab({
         onLaunch={onLaunch}
         onEditTerms={onEditTerms}
         onMoveToReady={onMoveToReady}
+        onAiFill={onAiFill}
       />
     )
   }
@@ -813,6 +837,14 @@ function OverviewTab({
 // ===========================================================================
 // Setup overview — shown for Draft & Ready competitions (pre-launch).
 // ===========================================================================
+type ChecklistItem = {
+  label: string
+  done: boolean
+  detail: string
+  action?: () => void
+  highlight?: boolean
+}
+
 function SetupOverview({
   competition,
   isReady,
@@ -820,6 +852,7 @@ function SetupOverview({
   onLaunch,
   onEditTerms,
   onMoveToReady,
+  onAiFill,
 }: {
   competition: Competition
   isReady: boolean
@@ -827,6 +860,7 @@ function SetupOverview({
   onLaunch: () => void
   onEditTerms: (focus?: TermsFocus) => void
   onMoveToReady: () => void
+  onAiFill: (terms: ExtractedTerms) => void
 }) {
   const hasSuppliers = competition.invitedSuppliers > 0
   const hasScope = (competition.description?.trim().length ?? 0) > 0
