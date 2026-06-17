@@ -99,20 +99,49 @@ interface DocSlot {
   required: boolean
 }
 
-// Document checklist per category. Supplier onboarding needs compliance docs,
-// purchase requests need commercial docs.
+// Document checklist per category. Most supplier data (registration no., VAT,
+// bank details) is entered as fields and verified automatically, so we only
+// ask to upload what can't be validated digitally.
 const supplierDocs: DocSlot[] = [
-  { id: "registration", label: "Business registration certificate", hint: "Proof of legal entity (e.g. company registry extract)", required: true },
-  { id: "tax", label: "Tax / VAT certificate", hint: "W-9, W-8BEN or local VAT registration", required: true },
-  { id: "bank", label: "Bank details confirmation", hint: "Signed letter or bank statement confirming IBAN", required: true },
-  { id: "insurance", label: "Insurance certificate", hint: "Liability or professional indemnity (if applicable)", required: false },
-  { id: "compliance", label: "Code of Conduct / NDA", hint: "Signed anti-bribery or confidentiality agreement", required: false },
+  { id: "bank", label: "Bank confirmation letter", hint: "Bank-issued letter or statement confirming the IBAN holder (anti-fraud)", required: true },
+  { id: "insurance", label: "Insurance certificate", hint: "Liability or professional indemnity, if applicable", required: false },
+  { id: "compliance", label: "Signed Code of Conduct / NDA", hint: "Anti-bribery or confidentiality agreement", required: false },
 ]
 
 const purchaseDocs: DocSlot[] = [
   { id: "quote", label: "Supplier quote / proforma", hint: "Itemized quote or proforma invoice", required: true },
   { id: "spec", label: "Specification / scope", hint: "Product spec sheet or statement of work", required: false },
   { id: "approval", label: "Pre-approval / budget proof", hint: "Email or document approving the spend", required: false },
+]
+
+const euCountries = [
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "HR", name: "Croatia" },
+  { code: "CY", name: "Cyprus" },
+  { code: "CZ", name: "Czechia" },
+  { code: "DK", name: "Denmark" },
+  { code: "EE", name: "Estonia" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "GR", name: "Greece" },
+  { code: "HU", name: "Hungary" },
+  { code: "IE", name: "Ireland" },
+  { code: "IT", name: "Italy" },
+  { code: "LV", name: "Latvia" },
+  { code: "LT", name: "Lithuania" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "MT", name: "Malta" },
+  { code: "NL", name: "Netherlands" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "RO", name: "Romania" },
+  { code: "SK", name: "Slovakia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" },
 ]
 
 function Stepper({ current }: { current: number }) {
@@ -193,10 +222,12 @@ function Section({
 function Field({
   label,
   required,
+  hint,
   children,
 }: {
   label: string
   required?: boolean
+  hint?: string
   children: React.ReactNode
 }) {
   return (
@@ -206,6 +237,7 @@ function Field({
         {required && <span className="text-destructive"> *</span>}
       </Label>
       {children}
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -244,8 +276,14 @@ export function NewRequestDialog() {
   // Specific — supplier onboarding
   const [supplierName, setSupplierName] = useState("")
   const [country, setCountry] = useState("")
+  const [registrationNumber, setRegistrationNumber] = useState("")
   const [vatNumber, setVatNumber] = useState("")
   const [contactEmail, setContactEmail] = useState("")
+  // Bank & payment
+  const [accountHolder, setAccountHolder] = useState("")
+  const [iban, setIban] = useState("")
+  const [bic, setBic] = useState("")
+  const [paymentTerms, setPaymentTerms] = useState("Net 30")
 
   // Line items
   const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
@@ -293,6 +331,11 @@ export function NewRequestDialog() {
     setCountry("")
     setVatNumber("")
     setContactEmail("")
+    setRegistrationNumber("")
+    setAccountHolder("")
+    setIban("")
+    setBic("")
+    setPaymentTerms("Net 30")
     setLines([{ id: 1, name: "", qty: "", price: "" }])
     setDocs({})
     setExtraDocs([])
@@ -512,31 +555,45 @@ export function NewRequestDialog() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     {isSupplier ? (
                       <>
-                        <Field label="Supplier name" required>
+                        <Field label="Legal entity name" required>
                           <input
                             value={supplierName}
                             onChange={(e) => setSupplierName(e.target.value)}
-                            placeholder="Bashirian and Sons"
+                            placeholder="Bashirian and Sons UAB"
                             className={fieldClass}
                           />
                         </Field>
                         <Field label="Country">
-                          <input
+                          <select
                             value={country}
                             onChange={(e) => setCountry(e.target.value)}
-                            placeholder="DE"
+                            className={fieldClass}
+                          >
+                            <option value="">Choose country...</option>
+                            {euCountries.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Company registration no.">
+                          <input
+                            value={registrationNumber}
+                            onChange={(e) => setRegistrationNumber(e.target.value)}
+                            placeholder="e.g. 302536500"
                             className={fieldClass}
                           />
                         </Field>
-                        <Field label="VAT number">
+                        <Field label="VAT number" hint="Verified automatically via VIES">
                           <input
                             value={vatNumber}
                             onChange={(e) => setVatNumber(e.target.value)}
-                            placeholder="DE123456789"
+                            placeholder="LT100012345678"
                             className={fieldClass}
                           />
                         </Field>
-                        <Field label="Contact email">
+                        <Field label="Contact email" required>
                           <input
                             type="email"
                             value={contactEmail}
@@ -544,6 +601,19 @@ export function NewRequestDialog() {
                             placeholder="supplier@example.com"
                             className={fieldClass}
                           />
+                        </Field>
+                        <Field label="Payment terms">
+                          <select
+                            value={paymentTerms}
+                            onChange={(e) => setPaymentTerms(e.target.value)}
+                            className={fieldClass}
+                          >
+                            {["Net 14", "Net 30", "Net 45", "Net 60", "Net 90"].map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </select>
                         </Field>
                       </>
                     ) : (
@@ -615,6 +685,42 @@ export function NewRequestDialog() {
                     )}
                   </div>
                 </Section>
+
+                {isSupplier && (
+                  <Section
+                    icon={ShieldCheck}
+                    iconClass="bg-chart-2/15 text-chart-2"
+                    title="Bank details"
+                    subtitle="Used for payments. Changes are verified to prevent fraud."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <Field label="Account holder">
+                        <input
+                          value={accountHolder}
+                          onChange={(e) => setAccountHolder(e.target.value)}
+                          placeholder="Must match the legal entity name"
+                          className={fieldClass}
+                        />
+                      </Field>
+                      <Field label="IBAN">
+                        <input
+                          value={iban}
+                          onChange={(e) => setIban(e.target.value.toUpperCase())}
+                          placeholder="LT12 1000 0111 0100 1000"
+                          className={fieldClass}
+                        />
+                      </Field>
+                      <Field label="BIC / SWIFT">
+                        <input
+                          value={bic}
+                          onChange={(e) => setBic(e.target.value.toUpperCase())}
+                          placeholder="CBVILT2X"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+                )}
 
                 {!isSupplier && (
                   <Section
@@ -951,10 +1057,17 @@ export function NewRequestDialog() {
                       <h3 className="font-semibold text-foreground">Supplier Onboarding Details</h3>
                     </div>
                     <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
-                      <MetaCell label="Supplier name" value={supplierName || "Not provided"} />
-                      <MetaCell label="Country" value={country || "Not provided"} />
+                      <MetaCell label="Legal entity" value={supplierName || "Not provided"} />
+                      <MetaCell
+                        label="Country"
+                        value={euCountries.find((c) => c.code === country)?.name || "Not provided"}
+                      />
+                      <MetaCell label="Registration no." value={registrationNumber || "Not provided"} />
                       <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
                       <MetaCell label="Contact email" value={contactEmail || "Not provided"} />
+                      <MetaCell label="Payment terms" value={paymentTerms} />
+                      <MetaCell label="IBAN" value={iban || "Not provided"} />
+                      <MetaCell label="BIC / SWIFT" value={bic || "Not provided"} />
                     </div>
                   </div>
                 ) : (
