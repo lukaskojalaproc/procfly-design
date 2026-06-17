@@ -56,6 +56,13 @@ export interface Competition {
   featured?: boolean
   /** Set when this competition was converted from an approved request. */
   sourceRequestRef?: string
+  // --- Procurement terms (filled in during Draft setup) ------------------
+  /** Mandatory requirements / deliverables suppliers must meet. */
+  requirements?: string
+  /** How proposals will be scored (e.g. price 60% / quality 40%). */
+  evaluationCriteria?: string
+  /** Payment & contract terms communicated to bidders. */
+  paymentTerms?: string
 }
 
 export const competitions: Competition[] = [

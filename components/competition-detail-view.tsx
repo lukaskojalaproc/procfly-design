@@ -277,15 +277,26 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     setTab("overview")
   }
 
-  // Save edited terms (scope, budget, category) back into the page state.
+  // Save edited terms (scope, budget, category, procurement terms) back into
+  // the page state.
   function handleSaveTerms(terms: {
     title: string
     category: string
     description: string
     baseline: number
     currency: string
+    requirements: string
+    evaluationCriteria: string
+    paymentTerms: string
   }) {
     setCompetition((c) => ({ ...c, ...terms }))
+  }
+
+  // Draft → Ready: setup is complete, move the competition to the Ready stage
+  // so it can be launched.
+  function handleMoveToReady() {
+    setCompetition((c) => ({ ...c, status: "Ready" }))
+    setTab("overview")
   }
 
   // Hero primary action: launch (pre-live) or award the winner (live).
@@ -447,6 +458,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
           onGoToTab={setTab}
           onLaunch={() => setLaunchOpen(true)}
           onEditTerms={() => setEditTermsOpen(true)}
+          onMoveToReady={handleMoveToReady}
         />
       )}
       {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
@@ -603,6 +615,7 @@ function OverviewTab({
   onGoToTab,
   onLaunch,
   onEditTerms,
+  onMoveToReady,
 }: {
   competition: Competition
   countdown: ReturnType<typeof useCountdown>
@@ -613,6 +626,7 @@ function OverviewTab({
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
   onEditTerms: () => void
+  onMoveToReady: () => void
 }) {
   const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
     SupplierRow,
@@ -625,7 +639,16 @@ function OverviewTab({
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
   if (isDraft || isReady) {
-    return <SetupOverview competition={competition} isReady={isReady} onGoToTab={onGoToTab} onLaunch={onLaunch} onEditTerms={onEditTerms} />
+    return (
+      <SetupOverview
+        competition={competition}
+        isReady={isReady}
+        onGoToTab={onGoToTab}
+        onLaunch={onLaunch}
+        onEditTerms={onEditTerms}
+        onMoveToReady={onMoveToReady}
+      />
+    )
   }
 
   return (
@@ -787,19 +810,53 @@ function SetupOverview({
   onGoToTab,
   onLaunch,
   onEditTerms,
+  onMoveToReady,
 }: {
   competition: Competition
   isReady: boolean
   onGoToTab: (key: TabKey) => void
   onLaunch: () => void
   onEditTerms: () => void
+  onMoveToReady: () => void
 }) {
   const hasSuppliers = competition.invitedSuppliers > 0
-  const checklist = [
+  const hasScope = (competition.description?.trim().length ?? 0) > 0
+  const hasRequirements = (competition.requirements?.trim().length ?? 0) > 0
+  const hasEvaluation = (competition.evaluationCriteria?.trim().length ?? 0) > 0
+  const hasPaymentTerms = (competition.paymentTerms?.trim().length ?? 0) > 0
+
+  // Setup steps that must be completed before a draft can move to Ready.
+  const setupItems = [
     {
       label: "Define scope & budget",
-      done: true,
-      detail: `Baseline budget set to ${formatAmount(competition.baseline)} ${competition.currency}.`,
+      done: hasScope,
+      detail: hasScope
+        ? `Baseline ${formatAmount(competition.baseline)} ${competition.currency} · scope described.`
+        : `Baseline set — add a scope description to complete this step.`,
+      action: onEditTerms,
+    },
+    {
+      label: "Set requirements & deliverables",
+      done: hasRequirements,
+      detail: hasRequirements
+        ? "Requirements documented for bidders."
+        : "Specify what suppliers must deliver to qualify.",
+      action: onEditTerms,
+    },
+    {
+      label: "Add evaluation criteria",
+      done: hasEvaluation,
+      detail: hasEvaluation
+        ? "Scoring model defined for proposals."
+        : "Define how bids will be scored (price, quality…).",
+      action: onEditTerms,
+    },
+    {
+      label: "Set payment & contract terms",
+      done: hasPaymentTerms,
+      detail: hasPaymentTerms
+        ? "Payment & contract terms communicated."
+        : "Add payment terms and contract length for bidders.",
       action: onEditTerms,
     },
     {
@@ -810,16 +867,34 @@ function SetupOverview({
         : "No suppliers invited yet.",
       action: () => onGoToTab("suppliers"),
     },
-    {
-      label: "Launch competition",
-      done: false,
-      detail: isReady
-        ? "Everything is ready — launch to open bidding."
-        : "Complete setup before launching.",
-      action: isReady ? onLaunch : undefined,
-    },
   ]
+
+  const setupComplete = setupItems.every((c) => c.done)
+
+  // The final checklist step changes with lifecycle stage:
+  //  - Draft: move to Ready once everything above is done.
+  //  - Ready: launch the competition to open bidding.
+  const finalItem = isReady
+    ? {
+        label: "Launch competition",
+        done: false,
+        detail: "Everything is ready — launch to open bidding.",
+        action: onLaunch,
+      }
+    : {
+        label: "Move to Ready",
+        done: false,
+        detail: setupComplete
+          ? "Setup complete — mark this competition ready to launch."
+          : "Complete the steps above to mark this competition ready.",
+        action: setupComplete ? onMoveToReady : undefined,
+      }
+
+  const checklist = [...setupItems, finalItem]
   const completed = checklist.filter((c) => c.done).length
+
+  // Draft banner CTA: move to Ready when setup is done, otherwise nudge setup.
+  const draftCtaReady = !isReady && setupComplete
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -828,38 +903,46 @@ function SetupOverview({
         <div
           className={cn(
             "flex flex-wrap items-center gap-4 rounded-2xl border p-6",
-            isReady ? "border-chart-3/40 bg-chart-3/10" : "border-border bg-muted/40",
+            isReady || draftCtaReady
+              ? "border-chart-3/40 bg-chart-3/10"
+              : "border-border bg-muted/40",
           )}
         >
           <span
             className={cn(
               "flex size-12 items-center justify-center rounded-full",
-              isReady ? "bg-chart-3/20 text-chart-3" : "bg-muted text-muted-foreground",
+              isReady || draftCtaReady ? "bg-chart-3/20 text-chart-3" : "bg-muted text-muted-foreground",
             )}
           >
             {isReady ? <Send className="size-6" /> : <FileEdit className="size-6" />}
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-foreground">
-              {isReady ? "Ready to launch" : "Draft in progress"}
+              {isReady
+                ? "Ready to launch"
+                : draftCtaReady
+                  ? "Setup complete"
+                  : "Draft in progress"}
             </p>
             <p className="text-sm text-muted-foreground">
               {isReady
                 ? "Suppliers are lined up. Launching opens the bidding window and notifies everyone."
-                : "Finish setting up this competition before inviting suppliers to bid."}
+                : draftCtaReady
+                  ? "All terms are defined and suppliers are invited. Mark this competition ready to launch."
+                  : "Finish setting up the competition terms before this competition can go live."}
             </p>
           </div>
           <button
-            onClick={isReady ? onLaunch : () => onGoToTab("suppliers")}
+            onClick={isReady ? onLaunch : draftCtaReady ? onMoveToReady : onEditTerms}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90",
-              isReady
+              isReady || draftCtaReady
                 ? "bg-primary text-primary-foreground"
                 : "bg-foreground text-background",
             )}
           >
-            <Rocket className="size-4" />
-            {isReady ? "Launch competition" : "Continue setup"}
+            {isReady ? <Rocket className="size-4" /> : draftCtaReady ? <Send className="size-4" /> : <FileEdit className="size-4" />}
+            {isReady ? "Launch competition" : draftCtaReady ? "Move to Ready" : "Continue setup"}
           </button>
         </div>
 

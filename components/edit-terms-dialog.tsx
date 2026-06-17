@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileEdit, X, Tag, Wallet, FileText, Check } from "lucide-react"
+import { FileEdit, X, Tag, Wallet, FileText, Check, ListChecks, Scale, Receipt } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { Competition } from "@/lib/competitions-data"
@@ -14,6 +14,9 @@ export interface CompetitionTermsEdit {
   description: string
   baseline: number
   currency: string
+  requirements: string
+  evaluationCriteria: string
+  paymentTerms: string
 }
 
 interface EditTermsDialogProps {
@@ -29,6 +32,9 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
   const [description, setDescription] = useState(competition.description)
   const [baseline, setBaseline] = useState(String(competition.baseline))
   const [currency, setCurrency] = useState(competition.currency)
+  const [requirements, setRequirements] = useState(competition.requirements ?? "")
+  const [evaluationCriteria, setEvaluationCriteria] = useState(competition.evaluationCriteria ?? "")
+  const [paymentTerms, setPaymentTerms] = useState(competition.paymentTerms ?? "")
 
   function handleSave() {
     onSave({
@@ -37,6 +43,9 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
       description: description.trim(),
       baseline: Number(baseline) || competition.baseline,
       currency,
+      requirements: requirements.trim(),
+      evaluationCriteria: evaluationCriteria.trim(),
+      paymentTerms: paymentTerms.trim(),
     })
     onOpenChange(false)
   }
@@ -126,6 +135,36 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
               rows={4}
               className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
               placeholder="Describe what suppliers are bidding on, requirements, deliverables…"
+            />
+          </Field>
+
+          <Field icon={ListChecks} label="Requirements & deliverables">
+            <textarea
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+              placeholder="Mandatory requirements suppliers must meet (certifications, SLAs, references…)"
+            />
+          </Field>
+
+          <Field icon={Scale} label="Evaluation criteria">
+            <textarea
+              value={evaluationCriteria}
+              onChange={(e) => setEvaluationCriteria(e.target.value)}
+              rows={2}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+              placeholder="How bids are scored, e.g. Price 60% · Quality 30% · Delivery 10%"
+            />
+          </Field>
+
+          <Field icon={Receipt} label="Payment & contract terms">
+            <textarea
+              value={paymentTerms}
+              onChange={(e) => setPaymentTerms(e.target.value)}
+              rows={2}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+              placeholder="e.g. Net 30 · 12-month term · Termination for convenience"
             />
           </Field>
         </div>
