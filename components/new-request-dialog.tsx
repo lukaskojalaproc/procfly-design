@@ -1382,7 +1382,7 @@ export function NewRequestDialog() {
                       <MetaCell label="Invoicing email" value={invoicingEmail || contactEmail || "Not provided"} />
                     </ReviewGroup>
                   </div>
-                ) : (
+                ) : isSoftware ? null : (
                   <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="border-b border-border p-5">
                     <h3 className="font-semibold text-foreground">Supplier, Budget &amp; Specifications</h3>
@@ -1447,6 +1447,23 @@ export function NewRequestDialog() {
                     <div className="border-b border-border p-5">
                       <h3 className="font-semibold text-foreground">License &amp; Compliance</h3>
                     </div>
+
+                    <ReviewGroup title="Subscription & cost">
+                      <MetaCell label="Software" value={softwareName || "Not provided"} />
+                      <MetaCell label="Users / seats" value={numberOfUsers || "Not provided"} />
+                      <MetaCell
+                        label="Start date"
+                        value={
+                          subscriptionStart
+                            ? new Date(subscriptionStart).toLocaleDateString("en-GB")
+                            : "Not set"
+                        }
+                      />
+                      <MetaCell
+                        label={`Contract value (${billingCycle.toLowerCase()})`}
+                        value={reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                      />
+                    </ReviewGroup>
 
                     <ReviewGroup title="License & renewal">
                       <MetaCell label="License type" value={licenseType} />
