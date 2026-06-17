@@ -214,11 +214,18 @@ export function NewRequestDialog() {
   const [region, setRegion] = useState("")
   const [businessOwner, setBusinessOwner] = useState("")
 
+  // Specific — supplier onboarding
+  const [supplierName, setSupplierName] = useState("")
+  const [country, setCountry] = useState("")
+  const [vatNumber, setVatNumber] = useState("")
+  const [contactEmail, setContactEmail] = useState("")
+
   // Line items
   const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
 
   const selectedCategory = categories.find((c) => c.id === category)
   const isService = category === "service"
+  const isSupplier = category === "supplier"
 
   const filledLines = lines.filter((l) => l.name.trim() !== "")
   const lineItemsTotal = filledLines.reduce(
@@ -247,6 +254,10 @@ export function NewRequestDialog() {
     setRequestName("")
     setRegion("")
     setBusinessOwner("")
+    setSupplierName("")
+    setCountry("")
+    setVatNumber("")
+    setContactEmail("")
     setLines([{ id: 1, name: "", qty: "", price: "" }])
   }
 
@@ -267,7 +278,9 @@ export function NewRequestDialog() {
 
   const canContinue =
     (step === 0 && category !== null) ||
-    (step === 1 && department.trim() !== "" && description.trim() !== "") ||
+    (step === 1 &&
+      department.trim() !== "" &&
+      (isSupplier ? supplierName.trim() !== "" : description.trim() !== "")) ||
     step === 2
 
   function next() {
@@ -374,20 +387,22 @@ export function NewRequestDialog() {
                         ))}
                       </select>
                     </Field>
-                    <Field label="Cost center" required>
-                      <select
-                        value={costCenter}
-                        onChange={(e) => setCostCenter(e.target.value)}
-                        className={fieldClass}
-                      >
-                        <option value="">Choose cost center...</option>
-                        {costCenters.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
+                    {!isSupplier && (
+                      <Field label="Cost center" required>
+                        <select
+                          value={costCenter}
+                          onChange={(e) => setCostCenter(e.target.value)}
+                          className={fieldClass}
+                        >
+                          <option value="">Choose cost center...</option>
+                          {costCenters.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    )}
                     <Field label="Category">
                       <input
                         readOnly
@@ -403,33 +418,37 @@ export function NewRequestDialog() {
                         className={fieldClass}
                       />
                     </Field>
-                    <Field label="Total amount">
-                      <div className="relative">
-                        <input
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          inputMode="numeric"
-                          placeholder="20.000"
-                          className={cn(fieldClass, "pr-12")}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
-                          {currency}
-                        </span>
-                      </div>
-                    </Field>
-                    <Field label="Currency">
-                      <select
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
-                        className={fieldClass}
-                      >
-                        {["EUR", "USD", "GBP", "PLN"].map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
+                    {!isSupplier && (
+                      <>
+                        <Field label="Total amount">
+                          <div className="relative">
+                            <input
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              inputMode="numeric"
+                              placeholder="20.000"
+                              className={cn(fieldClass, "pr-12")}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                              {currency}
+                            </span>
+                          </div>
+                        </Field>
+                        <Field label="Currency">
+                          <select
+                            value={currency}
+                            onChange={(e) => setCurrency(e.target.value)}
+                            className={fieldClass}
+                          >
+                            {["EUR", "USD", "GBP", "PLN"].map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </>
+                    )}
                   </div>
                 </Section>
 
@@ -440,78 +459,119 @@ export function NewRequestDialog() {
                   subtitle="Details specific to this request category."
                 >
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Field label="Supplier" required>
-                      <select
-                        value={supplier}
-                        onChange={(e) => setSupplier(e.target.value)}
-                        className={fieldClass}
-                      >
-                        <option value="">Choose supplier...</option>
-                        {suppliers.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    {isService ? (
+                    {isSupplier ? (
                       <>
-                        <Field label="Start date">
+                        <Field label="Supplier name" required>
                           <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            value={supplierName}
+                            onChange={(e) => setSupplierName(e.target.value)}
+                            placeholder="Bashirian and Sons"
                             className={fieldClass}
                           />
                         </Field>
-                        <Field label="End date">
+                        <Field label="Country">
                           <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            value={country}
+                            onChange={(e) => setCountry(e.target.value)}
+                            placeholder="DE"
                             className={fieldClass}
                           />
                         </Field>
-                        <Field label="Contract required">
-                          <select
-                            value={contractRequired}
-                            onChange={(e) => setContractRequired(e.target.value)}
+                        <Field label="VAT number">
+                          <input
+                            value={vatNumber}
+                            onChange={(e) => setVatNumber(e.target.value)}
+                            placeholder="DE123456789"
                             className={fieldClass}
-                          >
-                            <option value="No">No</option>
-                            <option value="Yes">Yes</option>
-                          </select>
+                          />
+                        </Field>
+                        <Field label="Contact email">
+                          <input
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="supplier@example.com"
+                            className={fieldClass}
+                          />
                         </Field>
                       </>
                     ) : (
                       <>
-                        <Field label="Needed by">
-                          <input
-                            type="date"
-                            value={neededBy}
-                            onChange={(e) => setNeededBy(e.target.value)}
+                        <Field label="Supplier" required>
+                          <select
+                            value={supplier}
+                            onChange={(e) => setSupplier(e.target.value)}
                             className={fieldClass}
-                          />
+                          >
+                            <option value="">Choose supplier...</option>
+                            {suppliers.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
                         </Field>
-                        <Field label="Delivery address">
-                          <input
-                            value={deliveryAddress}
-                            onChange={(e) => setDeliveryAddress(e.target.value)}
-                            placeholder="42077 Main Road, New Braunfels 66853-8101"
-                            className={fieldClass}
-                          />
-                        </Field>
+                        {isService ? (
+                          <>
+                            <Field label="Start date">
+                              <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className={fieldClass}
+                              />
+                            </Field>
+                            <Field label="End date">
+                              <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className={fieldClass}
+                              />
+                            </Field>
+                            <Field label="Contract required">
+                              <select
+                                value={contractRequired}
+                                onChange={(e) => setContractRequired(e.target.value)}
+                                className={fieldClass}
+                              >
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                              </select>
+                            </Field>
+                          </>
+                        ) : (
+                          <>
+                            <Field label="Needed by">
+                              <input
+                                type="date"
+                                value={neededBy}
+                                onChange={(e) => setNeededBy(e.target.value)}
+                                className={fieldClass}
+                              />
+                            </Field>
+                            <Field label="Delivery address">
+                              <input
+                                value={deliveryAddress}
+                                onChange={(e) => setDeliveryAddress(e.target.value)}
+                                placeholder="42077 Main Road, New Braunfels 66853-8101"
+                                className={fieldClass}
+                              />
+                            </Field>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
                 </Section>
 
-                <Section
-                  icon={Settings2}
-                  iconClass="bg-chart-3/12 text-chart-3"
-                  title="Custom Fields"
-                  subtitle="Additional information required for this request type."
-                >
+                {!isSupplier && (
+                  <Section
+                    icon={Settings2}
+                    iconClass="bg-chart-3/12 text-chart-3"
+                    title="Custom Fields"
+                    subtitle="Additional information required for this request type."
+                  >
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     {isService ? (
                       <>
@@ -572,14 +632,16 @@ export function NewRequestDialog() {
                       </>
                     )}
                   </div>
-                </Section>
+                  </Section>
+                )}
 
-                <Section
-                  icon={ListChecks}
-                  iconClass="bg-primary/12 text-primary"
-                  title="Line-items"
-                  subtitle="Add one line for each item. Filled line items will be sent to the backend."
-                >
+                {!isSupplier && (
+                  <Section
+                    icon={ListChecks}
+                    iconClass="bg-primary/12 text-primary"
+                    title="Line-items"
+                    subtitle="Add one line for each item. Filled line items will be sent to the backend."
+                  >
                   <div className="flex flex-col gap-3">
                     <div className="hidden grid-cols-[1fr_90px_120px_40px] gap-3 px-1 text-xs font-medium text-muted-foreground sm:grid">
                       <span>Item</span>
@@ -630,7 +692,8 @@ export function NewRequestDialog() {
                       Add Line
                     </button>
                   </div>
-                </Section>
+                  </Section>
+                )}
               </div>
             )}
 
@@ -655,7 +718,7 @@ export function NewRequestDialog() {
                           {selectedCategory?.title ?? "Request"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {description || "No description"}
+                          {(isSupplier ? supplierName : description) || "No description"}
                         </p>
                       </div>
                     </div>
@@ -664,30 +727,58 @@ export function NewRequestDialog() {
                         Amount
                       </p>
                       <p className="text-xl font-bold text-foreground">
-                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                        {isSupplier
+                          ? "—"
+                          : reviewTotal
+                            ? `${fmt(reviewTotal)} ${currency}`
+                            : "No cost"}
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
-                    <MetaCell label="Department" value={department || "Not provided"} />
-                    <MetaCell label="Cost center" value={costCenter || "Not provided"} />
-                    <MetaCell label="Supplier" value={supplier || "Not provided"} />
-                    {isService ? (
-                      <MetaCell
-                        label="Start date"
-                        value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
-                      />
+                    {isSupplier ? (
+                      <>
+                        <MetaCell label="Department" value={department || "Not provided"} />
+                        <MetaCell label="Supplier name" value={supplierName || "Not provided"} />
+                        <MetaCell label="Country" value={country || "Not provided"} />
+                        <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
+                      </>
                     ) : (
-                      <MetaCell
-                        label="Needed by"
-                        value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
-                      />
+                      <>
+                        <MetaCell label="Department" value={department || "Not provided"} />
+                        <MetaCell label="Cost center" value={costCenter || "Not provided"} />
+                        <MetaCell label="Supplier" value={supplier || "Not provided"} />
+                        {isService ? (
+                          <MetaCell
+                            label="Start date"
+                            value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
+                          />
+                        ) : (
+                          <MetaCell
+                            label="Needed by"
+                            value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
 
                 {/* Line items card */}
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                {isSupplier ? (
+                  <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="border-b border-border p-5">
+                      <h3 className="font-semibold text-foreground">Supplier Onboarding Details</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
+                      <MetaCell label="Supplier name" value={supplierName || "Not provided"} />
+                      <MetaCell label="Country" value={country || "Not provided"} />
+                      <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
+                      <MetaCell label="Contact email" value={contactEmail || "Not provided"} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="border-b border-border p-5">
                     <h3 className="font-semibold text-foreground">Supplier, Budget &amp; Specifications</h3>
                   </div>
@@ -743,6 +834,7 @@ export function NewRequestDialog() {
                     </table>
                   </div>
                 </div>
+                )}
               </div>
             )}
           </div>
