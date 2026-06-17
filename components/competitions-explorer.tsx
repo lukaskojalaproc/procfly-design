@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Trophy,
   Zap,
@@ -20,16 +21,10 @@ import {
   FileText,
   CheckCircle2,
   Rocket,
-  Tag,
-  CalendarDays,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useCountdown } from "@/components/use-countdown"
 import {
   competitions,
   competitionStats,
@@ -44,30 +39,6 @@ import {
   type CompetitionStatus,
 } from "@/lib/competitions-data"
 import { formatAmount, initials } from "@/lib/dashboard-data"
-
-// ---------------------------------------------------------------------------
-// Live countdown — resolves a real deadline once at mount, then ticks every
-// second so the spotlight always feels alive.
-// ---------------------------------------------------------------------------
-function useCountdown(hoursFromNow: number | null) {
-  const deadline = useRef<number | null>(
-    hoursFromNow == null ? null : Date.now() + hoursFromNow * 3_600_000,
-  )
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (deadline.current == null) return
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  if (deadline.current == null) return null
-  const diff = Math.max(0, deadline.current - now)
-  const h = Math.floor(diff / 3_600_000)
-  const m = Math.floor((diff % 3_600_000) / 60_000)
-  const s = Math.floor((diff % 60_000) / 1000)
-  return { h, m, s, expired: diff === 0, urgent: diff < 12 * 3_600_000 }
-}
 
 function fmtEur(n: number) {
   if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 2)}M`
@@ -612,171 +583,15 @@ function StatRow({ filter, onFilter }: { filter: FilterKey; onFilter: (k: Filter
 }
 
 // ===========================================================================
-// Detail dialog — full competition view
-// ===========================================================================
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="font-semibold text-foreground">{value}</span>
-    </div>
-  )
-}
-
-function CompetitionDetail({ competition }: { competition: Competition }) {
-  const best = bestBid(competition)
-  const saving = savingsAmount(competition)
-  const pct = savingsPct(competition)
-  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
-  const progress =
-    competition.invitedSuppliers > 0
-      ? Math.round((competition.bids.length / competition.invitedSuppliers) * 100)
-      : 0
-
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-muted-foreground">{competition.ref}</span>
-          <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            <Tag className="size-3" />
-            {competition.category}
-          </span>
-          <StatusPill status={competition.status} live={competition.status === "Active"} />
-        </div>
-        <DialogTitle className="text-balance text-xl font-bold tracking-tight text-foreground">
-          {competition.title}
-        </DialogTitle>
-        <p className="text-sm text-muted-foreground">{competition.description}</p>
-      </div>
-
-      {/* Meta grid */}
-      <div className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:grid-cols-4">
-        <DetailRow label="Baseline" value={`${formatAmount(competition.baseline)} ${competition.currency}`} />
-        <DetailRow
-          label={competition.status === "Awarded" ? "Awarded at" : "Best bid"}
-          value={best ? `${formatAmount(best.amount)} ${competition.currency}` : "No bids yet"}
-        />
-        <DetailRow label="Owner" value={competition.owner} />
-        <DetailRow label="Created" value={competition.created} />
-      </div>
-
-      {/* Savings */}
-      {best && (
-        <div className="rounded-xl bg-primary/5 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Savings vs. baseline</span>
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
-              <TrendingDown className="size-4" />
-              {Math.round(pct * 100)}% lower
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tabular-nums text-foreground">
-              {formatAmount(saving)} {competition.currency}
-            </span>
-            <span className="text-sm text-muted-foreground">potential saving</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(pct * 100)}%` }} />
-          </div>
-        </div>
-      )}
-
-      {/* Bids */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h4 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Gavel className="size-4 text-primary" />
-            {competition.status === "Awarded" ? "Final bids" : "Bid leaderboard"}
-          </h4>
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Send className="size-3" />
-            {competition.bids.length}/{competition.invitedSuppliers} submitted · {progress}%
-          </span>
-        </div>
-
-        {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-            No bids submitted yet.
-          </div>
-        ) : (
-          <ol className="flex flex-col gap-2">
-            {sorted.map((bid, i) => {
-              const leading = i === 0
-              const won = competition.status === "Awarded" && competition.awardedTo === bid.supplier
-              return (
-                <li
-                  key={bid.supplier}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3",
-                    won
-                      ? "border-chart-2/50 bg-chart-2/10"
-                      : leading
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border bg-card",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                      won
-                        ? "bg-chart-2 text-background"
-                        : leading
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{bid.supplier}</p>
-                    <p className="text-xs text-muted-foreground">{bid.submittedAgo}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold tabular-nums text-foreground">
-                      {formatAmount(bid.amount)}
-                    </p>
-                    {won ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-chart-2">
-                        <Trophy className="size-3" />
-                        Awarded
-                      </span>
-                    ) : leading ? (
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
-                        Leading
-                      </span>
-                    ) : null}
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
-        )}
-      </div>
-
-      {competition.status === "Awarded" && competition.awardedOn && (
-        <div className="flex items-center gap-2 rounded-xl bg-chart-2/10 px-4 py-3 text-sm text-chart-2">
-          <CalendarDays className="size-4" />
-          Awarded to <span className="font-semibold">{competition.awardedTo}</span> on{" "}
-          {competition.awardedOn}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ===========================================================================
 // Main explorer
 // ===========================================================================
 export function CompetitionsExplorer() {
+  const router = useRouter()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<FilterKey>("all")
-  const [openComp, setOpenComp] = useState<Competition | null>(null)
   const [launching, setLaunching] = useState<string | null>(null)
+
+  const openCompetition = (c: Competition) => router.push(`/competitions/${c.id}`)
 
   const featured = competitions.find((c) => c.featured)
 
@@ -817,7 +632,7 @@ export function CompetitionsExplorer() {
       <Hero />
 
       {featured && !query && filter === "all" && (
-        <Spotlight competition={featured} onView={setOpenComp} />
+        <Spotlight competition={featured} onView={openCompetition} />
       )}
 
       <StatRow filter={filter} onFilter={setFilter} />
@@ -863,7 +678,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-primary/10 text-primary"
           >
             {active.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -874,7 +689,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-3/10 text-chart-3"
           >
             {ready.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -885,7 +700,7 @@ export function CompetitionsExplorer() {
             iconClass="bg-muted text-muted-foreground"
           >
             {drafts.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
             ))}
           </Section>
 
@@ -896,18 +711,11 @@ export function CompetitionsExplorer() {
             iconClass="bg-chart-2/15 text-chart-2"
           >
             {finished.map((c) => (
-              <CompetitionCard key={c.id} competition={c} onOpen={setOpenComp} onLaunch={handleLaunch} />
+              <CompetitionCard key={c.id} competition={c} onOpen={openCompetition} onLaunch={handleLaunch} />
             ))}
           </Section>
         </>
       )}
-
-      {/* Detail dialog */}
-      <Dialog open={openComp != null} onOpenChange={(o) => !o && setOpenComp(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          {openComp && <CompetitionDetail competition={openComp} />}
-        </DialogContent>
-      </Dialog>
 
       {/* Launch toast */}
       {launching && (

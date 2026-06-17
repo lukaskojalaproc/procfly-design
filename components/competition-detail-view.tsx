@@ -1,0 +1,1021 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import {
+  Trophy,
+  Zap,
+  Send,
+  TrendingDown,
+  Clock,
+  Gavel,
+  Users,
+  CheckCircle2,
+  Tag,
+  CalendarDays,
+  ChevronLeft,
+  Sparkles,
+  Plus,
+  Mail,
+  CircleDollarSign,
+  ArrowDownRight,
+  Crown,
+  Star,
+  ShieldCheck,
+  XCircle,
+  Hourglass,
+  BarChart3,
+  Rocket,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+  bestBid,
+  savingsAmount,
+  savingsPct,
+  type Competition,
+  type CompetitionStatus,
+  type SupplierBid,
+} from "@/lib/competitions-data"
+import { formatAmount, initials } from "@/lib/dashboard-data"
+import { useCountdown } from "@/components/use-countdown"
+
+// ---------------------------------------------------------------------------
+// Status pill
+// ---------------------------------------------------------------------------
+const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
+  Draft: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
+  Ready: { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
+  Active: { dot: "bg-primary", text: "text-primary", bg: "bg-primary/10" },
+  Awarded: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
+  Closed: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+}
+
+function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolean }) {
+  const s = statusStyles[status]
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+        s.bg,
+        s.text,
+      )}
+    >
+      <span className="relative flex size-1.5">
+        {live && (
+          <span
+            className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-75", s.dot)}
+          />
+        )}
+        <span className={cn("relative inline-flex size-1.5 rounded-full", s.dot)} />
+      </span>
+      {status}
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Derived supplier roster — combine bidders (submitted) with invited seats.
+// ---------------------------------------------------------------------------
+type SupplierRow =
+  | { name: string; state: "submitted"; bid: SupplierBid; rank: number }
+  | { name: string; state: "invited"; bid: null; rank: null }
+
+function buildRoster(c: Competition): SupplierRow[] {
+  const sorted = [...c.bids].sort((a, b) => a.amount - b.amount)
+  const submitted: SupplierRow[] = sorted.map((bid, i) => ({
+    name: bid.supplier,
+    state: "submitted",
+    bid,
+    rank: i + 1,
+  }))
+  const remaining = Math.max(0, c.invitedSuppliers - submitted.length)
+  const pending: SupplierRow[] = Array.from({ length: remaining }, (_, i) => ({
+    name: `Invited supplier ${submitted.length + i + 1}`,
+    state: "invited",
+    bid: null,
+    rank: null,
+  }))
+  return [...submitted, ...pending]
+}
+
+// ---------------------------------------------------------------------------
+// Countdown digit
+// ---------------------------------------------------------------------------
+function CountdownDigit({ value, unit }: { value: number; unit: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="min-w-[3rem] rounded-lg bg-background px-2.5 py-2 text-center text-3xl font-bold tabular-nums text-foreground shadow-sm">
+        {String(value).padStart(2, "0")}
+      </span>
+      <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {unit}
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tabs config
+// ---------------------------------------------------------------------------
+const TABS = [
+  { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "suppliers", label: "Suppliers", icon: Users },
+  { key: "proposals", label: "Proposals", icon: Gavel },
+  { key: "evaluation", label: "Evaluation", icon: Star },
+  { key: "award", label: "Award", icon: Trophy },
+] as const
+
+type TabKey = (typeof TABS)[number]["key"]
+
+// ===========================================================================
+// Main detail view
+// ===========================================================================
+export function CompetitionDetailView({ competition }: { competition: Competition }) {
+  const [tab, setTab] = useState<TabKey>("overview")
+  const countdown = useCountdown(competition.deadlineInHours)
+  const best = bestBid(competition)
+  const saving = savingsAmount(competition)
+  const pct = savingsPct(competition)
+  const roster = buildRoster(competition)
+  const submittedCount = competition.bids.length
+  const progress =
+    competition.invitedSuppliers > 0
+      ? Math.round((submittedCount / competition.invitedSuppliers) * 100)
+      : 0
+
+  const isActive = competition.status === "Active"
+  const isAwarded = competition.status === "Awarded"
+  const canStart = competition.status === "Draft" || competition.status === "Ready"
+
+  const primaryAction = isAwarded
+    ? null
+    : canStart
+      ? { label: "Start competition", icon: Rocket }
+      : isActive
+        ? { label: "Award winner", icon: Trophy }
+        : null
+
+  const proposals = competition.bids.length
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Back link */}
+      <Link
+        href="/competitions"
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" />
+        Back to competitions
+      </Link>
+
+      {/* ============ Hero header ============ */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-24 size-80 rounded-full bg-primary/15 blur-3xl"
+        />
+        <div className="relative flex flex-col gap-6 p-6 md:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs text-muted-foreground">{competition.ref}</span>
+                <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <Tag className="size-3" />
+                  {competition.category}
+                </span>
+                <StatusPill status={competition.status} live={isActive} />
+              </div>
+              <h2 className="mt-3 text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                {competition.title}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{competition.description}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground">
+                    {initials(competition.owner)}
+                  </span>
+                  {competition.owner}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="size-4" />
+                  Created {competition.created}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="size-4" />
+                  {competition.invitedSuppliers} invited
+                </span>
+              </div>
+            </div>
+
+            {primaryAction && (
+              <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
+                <primaryAction.icon className="size-4" />
+                {primaryAction.label}
+              </button>
+            )}
+          </div>
+
+          {/* Key metric strip */}
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border lg:grid-cols-4">
+            <MetricCell
+              icon={CircleDollarSign}
+              label="Baseline budget"
+              value={`${formatAmount(competition.baseline)} ${competition.currency}`}
+            />
+            <MetricCell
+              icon={ArrowDownRight}
+              label={isAwarded ? "Awarded at" : "Best bid"}
+              value={best ? `${formatAmount(best.amount)} ${competition.currency}` : "—"}
+              accent={best ? "text-primary" : undefined}
+            />
+            <MetricCell
+              icon={TrendingDown}
+              label="Potential saving"
+              value={best ? `${formatAmount(saving)} ${competition.currency}` : "—"}
+              sub={best ? `${Math.round(pct * 100)}% vs baseline` : undefined}
+              accent={best ? "text-primary" : undefined}
+            />
+            <MetricCell
+              icon={Send}
+              label="Proposals"
+              value={`${submittedCount}/${competition.invitedSuppliers}`}
+              sub={`${progress}% responded`}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ============ Tabs ============ */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-border">
+        {TABS.map((t) => {
+          const active = tab === t.key
+          const count =
+            t.key === "suppliers"
+              ? competition.invitedSuppliers
+              : t.key === "proposals"
+                ? proposals
+                : null
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "relative inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors",
+                active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <t.icon className="size-4" />
+              {t.label}
+              {count != null && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                    active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+              {active && (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ============ Tab panels ============ */}
+      {tab === "overview" && (
+        <OverviewTab
+          competition={competition}
+          countdown={countdown}
+          best={best}
+          saving={saving}
+          pct={pct}
+          roster={roster}
+        />
+      )}
+      {tab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
+      {tab === "proposals" && <ProposalsTab competition={competition} best={best} />}
+      {tab === "evaluation" && <EvaluationTab competition={competition} best={best} />}
+      {tab === "award" && <AwardTab competition={competition} best={best} saving={saving} pct={pct} />}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Metric cell
+// ---------------------------------------------------------------------------
+function MetricCell({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  icon: typeof Trophy
+  label: string
+  value: string
+  sub?: string
+  accent?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 bg-card p-4">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5" />
+        {label}
+      </span>
+      <span className={cn("text-xl font-bold leading-none tracking-tight tabular-nums text-foreground", accent)}>
+        {value}
+      </span>
+      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Overview tab
+// ===========================================================================
+function OverviewTab({
+  competition,
+  countdown,
+  best,
+  saving,
+  pct,
+  roster,
+}: {
+  competition: Competition
+  countdown: ReturnType<typeof useCountdown>
+  best: SupplierBid | null
+  saving: number
+  pct: number
+  roster: SupplierRow[]
+}) {
+  const topThree = roster.filter((r) => r.state === "submitted").slice(0, 3) as Extract<
+    SupplierRow,
+    { state: "submitted" }
+  >[]
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Left column */}
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        {/* Countdown / status banner */}
+        {countdown ? (
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-5 rounded-2xl border p-5",
+              countdown.urgent ? "border-chart-2/40 bg-chart-2/10" : "border-border bg-muted/40",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Clock className={cn("size-5", countdown.urgent ? "text-chart-2" : "text-muted-foreground")} />
+              <span className="text-sm font-semibold text-foreground">Time remaining</span>
+            </div>
+            <div className="flex items-end gap-2">
+              <CountdownDigit value={countdown.h} unit="hrs" />
+              <span className="pb-5 text-2xl font-bold text-muted-foreground">:</span>
+              <CountdownDigit value={countdown.m} unit="min" />
+              <span className="pb-5 text-2xl font-bold text-muted-foreground">:</span>
+              <CountdownDigit value={countdown.s} unit="sec" />
+            </div>
+            <span
+              className={cn(
+                "ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                countdown.urgent ? "bg-chart-2/15 text-chart-2" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {countdown.urgent ? <Zap className="size-3.5" /> : <Hourglass className="size-3.5" />}
+              {countdown.urgent ? "Closing soon" : "Bidding open"}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-5">
+            <Hourglass className="size-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {competition.status === "Awarded"
+                  ? "Competition closed and awarded"
+                  : competition.status === "Closed"
+                    ? "Competition closed"
+                    : competition.status === "Ready"
+                      ? "Ready to launch"
+                      : "Draft — not yet launched"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {competition.status === "Awarded" && competition.awardedOn
+                  ? `Awarded to ${competition.awardedTo} on ${competition.awardedOn}`
+                  : "No active bidding window."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Savings visualization */}
+        {best && (
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <Sparkles className="size-4 text-primary" />
+                Savings vs. baseline
+              </h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                <TrendingDown className="size-3.5" />
+                {Math.round(pct * 100)}% lower
+              </span>
+            </div>
+            <div className="mt-4 flex items-baseline gap-3">
+              <span className="text-4xl font-bold tabular-nums text-foreground">
+                {formatAmount(best.amount)}
+              </span>
+              <span className="text-base font-medium text-muted-foreground line-through">
+                {formatAmount(competition.baseline)} {competition.currency}
+              </span>
+            </div>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
+              <div
+                className="flex h-full items-center justify-end rounded-full bg-primary pr-2 transition-all"
+                style={{ width: `${Math.max(8, Math.round(pct * 100))}%` }}
+              >
+                <span className="text-[10px] font-bold text-primary-foreground">
+                  −{formatAmount(saving)}
+                </span>
+              </div>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Awarding the leading bid now would save{" "}
+              <span className="font-semibold text-foreground">
+                {formatAmount(saving)} {competition.currency}
+              </span>{" "}
+              against the original budget.
+            </p>
+          </div>
+        )}
+
+        {/* Podium / leaderboard preview */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Gavel className="size-4 text-primary" />
+            Leading proposals
+          </h3>
+          {topThree.length === 0 ? (
+            <EmptyState
+              icon={Send}
+              title="No proposals yet"
+              body="Once invited suppliers submit, the leaderboard appears here."
+            />
+          ) : (
+            <ol className="mt-4 flex flex-col gap-2">
+              {topThree.map((r, i) => (
+                <RankRow key={r.name} row={r} index={i} competition={competition} />
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+
+      {/* Right column — at a glance */}
+      <div className="flex flex-col gap-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-semibold text-foreground">At a glance</h3>
+          <dl className="mt-4 flex flex-col gap-3 text-sm">
+            <GlanceRow label="Status" value={competition.status} />
+            <GlanceRow label="Owner" value={competition.owner} />
+            <GlanceRow label="Category" value={competition.category} />
+            <GlanceRow
+              label="Baseline"
+              value={`${formatAmount(competition.baseline)} ${competition.currency}`}
+            />
+            <GlanceRow label="Invited" value={`${competition.invitedSuppliers} suppliers`} />
+            <GlanceRow label="Proposals" value={`${competition.bids.length} received`} />
+            {competition.awardedTo && <GlanceRow label="Awarded to" value={competition.awardedTo} />}
+          </dl>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-semibold text-foreground">Response rate</h3>
+          <div className="mt-4 flex items-center justify-center">
+            <ResponseGauge
+              submitted={competition.bids.length}
+              total={competition.invitedSuppliers}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GlanceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
+    </div>
+  )
+}
+
+function ResponseGauge({ submitted, total }: { submitted: number; total: number }) {
+  const pct = total > 0 ? submitted / total : 0
+  const r = 52
+  const circ = 2 * Math.PI * r
+  const offset = circ * (1 - pct)
+  return (
+    <div className="relative size-36">
+      <svg viewBox="0 0 120 120" className="size-full -rotate-90">
+        <circle cx="60" cy="60" r={r} fill="none" strokeWidth="12" className="stroke-muted" />
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          className="stroke-primary transition-all"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold tabular-nums text-foreground">
+          {Math.round(pct * 100)}%
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {submitted}/{total} bid
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ===========================================================================
+// Suppliers tab
+// ===========================================================================
+function SuppliersTab({
+  competition,
+  roster,
+}: {
+  competition: Competition
+  roster: SupplierRow[]
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
+        <div>
+          <h3 className="flex items-center gap-1.5 font-semibold text-foreground">
+            <Users className="size-4 text-primary" />
+            Supplier roster
+          </h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {competition.bids.length} of {competition.invitedSuppliers} invited suppliers submitted.
+          </p>
+        </div>
+        <button className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+          <Plus className="size-4" />
+          Invite supplier
+        </button>
+      </div>
+
+      {roster.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No suppliers invited"
+          body="Invite suppliers to start collecting competitive proposals."
+        />
+      ) : (
+        <ul className="divide-y divide-border">
+          {roster.map((r) => (
+            <li key={r.name} className="flex items-center gap-4 p-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+                {r.state === "submitted" ? initials(r.name) : <Mail className="size-4" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-foreground">
+                  {r.state === "submitted" ? r.name : "Awaiting response"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {r.state === "submitted" ? `Submitted ${r.bid.submittedAgo}` : "Invitation sent"}
+                </p>
+              </div>
+              {r.state === "submitted" ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold tabular-nums text-foreground">
+                    {formatAmount(r.bid.amount)} {competition.currency}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-1 text-xs font-medium text-chart-2">
+                    <CheckCircle2 className="size-3.5" />
+                    Submitted
+                  </span>
+                </div>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-chart-3/10 px-2 py-1 text-xs font-medium text-chart-3">
+                  <Hourglass className="size-3.5" />
+                  Pending
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Proposals tab
+// ===========================================================================
+function ProposalsTab({
+  competition,
+  best,
+}: {
+  competition: Competition
+  best: SupplierBid | null
+}) {
+  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
+
+  if (sorted.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <EmptyState
+          icon={Gavel}
+          title="No proposals submitted"
+          body="Suppliers' competitive bids will be ranked here as they arrive."
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <th className="px-5 py-3 font-medium">Rank</th>
+            <th className="px-5 py-3 font-medium">Supplier</th>
+            <th className="px-5 py-3 text-right font-medium">Bid</th>
+            <th className="px-5 py-3 text-right font-medium">vs. baseline</th>
+            <th className="px-5 py-3 text-right font-medium">Submitted</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {sorted.map((bid, i) => {
+            const leading = i === 0
+            const diff = competition.baseline - bid.amount
+            const diffPct = competition.baseline > 0 ? diff / competition.baseline : 0
+            return (
+              <tr key={bid.supplier} className={cn(leading && "bg-primary/5")}>
+                <td className="px-5 py-4">
+                  <span
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-full text-xs font-bold",
+                      leading ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">{bid.supplier}</span>
+                    {leading && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <Crown className="size-3" />
+                        Leading
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-right font-bold tabular-nums text-foreground">
+                  {formatAmount(bid.amount)} {competition.currency}
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-xs font-semibold",
+                      diff >= 0 ? "text-primary" : "text-destructive",
+                    )}
+                  >
+                    <TrendingDown className="size-3.5" />
+                    {Math.round(diffPct * 100)}%
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-right text-muted-foreground">{bid.submittedAgo}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ===========================================================================
+// Evaluation tab
+// ===========================================================================
+function EvaluationTab({
+  competition,
+  best,
+}: {
+  competition: Competition
+  best: SupplierBid | null
+}) {
+  const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
+
+  if (sorted.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <EmptyState
+          icon={Star}
+          title="Nothing to evaluate yet"
+          body="Scores and price comparison appear once proposals are in."
+        />
+      </div>
+    )
+  }
+
+  const cheapest = sorted[0].amount
+  const priciest = sorted[sorted.length - 1].amount
+  const range = Math.max(1, priciest - cheapest)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <BarChart3 className="size-4 text-primary" />
+          Price comparison
+        </h3>
+        <div className="mt-5 flex flex-col gap-4">
+          {sorted.map((bid, i) => {
+            const leading = i === 0
+            const rel = 1 - (bid.amount - cheapest) / range
+            return (
+              <div key={bid.supplier} className="flex items-center gap-3">
+                <span className="w-40 shrink-0 truncate text-sm font-medium text-foreground">
+                  {bid.supplier}
+                </span>
+                <div className="h-6 flex-1 overflow-hidden rounded-md bg-muted">
+                  <div
+                    className={cn(
+                      "flex h-full items-center justify-end rounded-md pr-2 transition-all",
+                      leading ? "bg-primary" : "bg-chart-3/70",
+                    )}
+                    style={{ width: `${30 + rel * 70}%` }}
+                  >
+                    <span className="text-[10px] font-bold text-primary-foreground tabular-nums">
+                      {formatAmount(bid.amount)}
+                    </span>
+                  </div>
+                </div>
+                {leading && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase text-primary">
+                    <Crown className="size-3" /> Best
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ScoreCard
+          icon={CircleDollarSign}
+          label="Lowest bid"
+          value={`${formatAmount(cheapest)} ${competition.currency}`}
+        />
+        <ScoreCard
+          icon={BarChart3}
+          label="Spread"
+          value={`${formatAmount(priciest - cheapest)} ${competition.currency}`}
+          sub="lowest to highest"
+        />
+        <ScoreCard
+          icon={Users}
+          label="Bidders"
+          value={`${sorted.length}`}
+          sub={`of ${competition.invitedSuppliers} invited`}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ScoreCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: typeof Trophy
+  label: string
+  value: string
+  sub?: string
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5" />
+        {label}
+      </span>
+      <p className="mt-2 text-xl font-bold tabular-nums text-foreground">{value}</p>
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Award tab
+// ===========================================================================
+function AwardTab({
+  competition,
+  best,
+  saving,
+  pct,
+}: {
+  competition: Competition
+  best: SupplierBid | null
+  saving: number
+  pct: number
+}) {
+  const isAwarded = competition.status === "Awarded"
+  const isClosed = competition.status === "Closed"
+
+  if (isAwarded) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-chart-2/40 bg-chart-2/5 shadow-sm">
+        <div className="flex flex-col items-center gap-4 p-8 text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
+            <Trophy className="size-8" />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Awarded to</p>
+            <h3 className="mt-1 text-2xl font-bold text-foreground">{competition.awardedTo}</h3>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-xl border border-border bg-card px-6 py-4">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Final price</p>
+              <p className="text-lg font-bold tabular-nums text-foreground">
+                {best ? `${formatAmount(best.amount)} ${competition.currency}` : "—"}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Saved</p>
+              <p className="text-lg font-bold tabular-nums text-primary">
+                {formatAmount(saving)} {competition.currency}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">vs. baseline</p>
+              <p className="text-lg font-bold tabular-nums text-primary">{Math.round(pct * 100)}%</p>
+            </div>
+          </div>
+          {competition.awardedOn && (
+            <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+              <CalendarDays className="size-4" />
+              Awarded on {competition.awardedOn}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (isClosed) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <EmptyState
+          icon={XCircle}
+          title="Closed without award"
+          body="This competition was closed before a supplier was awarded."
+        />
+      </div>
+    )
+  }
+
+  // Active / ready / draft — show award candidate
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <ShieldCheck className="size-4 text-primary" />
+        Recommended award
+      </h3>
+      {best ? (
+        <>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <Crown className="size-6" />
+              </span>
+              <div>
+                <p className="font-semibold text-foreground">{best.supplier}</p>
+                <p className="text-sm text-muted-foreground">
+                  Leading bid · saves {formatAmount(saving)} {competition.currency} ({Math.round(pct * 100)}%)
+                </p>
+              </div>
+            </div>
+            <p className="text-2xl font-bold tabular-nums text-foreground">
+              {formatAmount(best.amount)} {competition.currency}
+            </p>
+          </div>
+          <button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto">
+            <Trophy className="size-4" />
+            Award to {best.supplier}
+          </button>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Awarding closes the competition and notifies all invited suppliers.
+          </p>
+        </>
+      ) : (
+        <EmptyState
+          icon={Trophy}
+          title="No bids to award yet"
+          body="Once suppliers submit, the recommended award will appear here."
+        />
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Shared rank row (overview podium)
+// ---------------------------------------------------------------------------
+function RankRow({
+  row,
+  index,
+  competition,
+}: {
+  row: Extract<SupplierRow, { state: "submitted" }>
+  index: number
+  competition: Competition
+}) {
+  const leading = index === 0
+  const won = competition.status === "Awarded" && competition.awardedTo === row.name
+  return (
+    <li
+      className={cn(
+        "flex items-center gap-3 rounded-xl border p-3",
+        won
+          ? "border-chart-2/50 bg-chart-2/10"
+          : leading
+            ? "border-primary/40 bg-primary/5"
+            : "border-border bg-card",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+          won
+            ? "bg-chart-2 text-background"
+            : leading
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground",
+        )}
+      >
+        {index + 1}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
+        <p className="text-xs text-muted-foreground">Submitted {row.bid.submittedAgo}</p>
+      </div>
+      <div className="text-right">
+        <p className="text-sm font-bold tabular-nums text-foreground">
+          {formatAmount(row.bid.amount)} {competition.currency}
+        </p>
+        {leading && !won && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Leading
+          </span>
+        )}
+        {won && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-chart-2">
+            <Trophy className="size-3" />
+            Awarded
+          </span>
+        )}
+      </div>
+    </li>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+function EmptyState({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: typeof Trophy
+  title: string
+  body: string
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+      <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon className="size-5" />
+      </span>
+      <p className="font-semibold text-foreground">{title}</p>
+      <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
+    </div>
+  )
+}
