@@ -198,3 +198,9 @@ export function downloadPurchaseOrderPdf(po: PurchaseOrder, opts: PdfOptions) {
   const doc = buildPurchaseOrderPdf(po, opts)
   doc.save(`${po.number}.pdf`)
 }
+
+/** Return an object URL for the rendered PDF, for use in an <iframe> preview. */
+export function purchaseOrderPdfUrl(po: PurchaseOrder, opts: PdfOptions): string {
+  const doc = buildPurchaseOrderPdf(po, opts)
+  return doc.output("bloburl") as unknown as string
+}
