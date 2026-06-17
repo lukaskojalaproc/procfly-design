@@ -322,25 +322,49 @@ export function convertedCompetitionId(requestId: string) {
   return `from-${requestId}`
 }
 
+/** Terms a user can set when converting a request into a competition. */
+export interface CompetitionTerms {
+  title?: string
+  category?: string
+  description?: string
+  /** Savings baseline / approved budget. */
+  baseline?: number
+  currency?: string
+  /** Hours until the bidding deadline. */
+  deadlineInHours?: number | null
+  /** Number of suppliers to invite. */
+  invitedSuppliers?: number
+  /** Free-form submission requirements shown to suppliers. */
+  requirements?: string
+}
+
 /**
  * Build a Draft competition auto-filled from an approved request. The new
  * sourcing event starts with no bids — suppliers are invited and bid live.
+ * Optional `terms` override the auto-filled defaults so the buyer can define
+ * the competition's scope, budget, deadline, and requirements up front.
  */
-export function requestToCompetition(r: ProcurementRequest): Competition {
+export function requestToCompetition(r: ProcurementRequest, terms: CompetitionTerms = {}): Competition {
   // Reuse the request's REQ number to keep traceability obvious.
   const refNumber = r.ref.replace(/[^0-9]/g, "") || "0000"
+  const baseDescription = `Sourcing competition created from approved request ${r.ref}. Invite suppliers and collect competitive bids against the approved budget.`
+  const description = terms.requirements
+    ? `${terms.description ?? baseDescription}\n\nSubmission requirements:\n${terms.requirements}`
+    : terms.description ?? baseDescription
+  const deadline = terms.deadlineInHours ?? null
+  const invited = terms.invitedSuppliers ?? 0
   return {
     id: convertedCompetitionId(r.id),
     ref: `CMP-${refNumber}`,
-    title: r.title,
-    description: `Sourcing competition created from approved request ${r.ref}. Invite suppliers and collect competitive bids against the approved budget.`,
-    category: r.category,
-    status: "Ready",
+    title: terms.title ?? r.title,
+    description,
+    category: terms.category ?? r.category,
+    status: invited > 0 || deadline != null ? "Active" : "Ready",
     created: new Date().toISOString().slice(0, 16).replace("T", " "),
-    deadlineInHours: null,
-    baseline: r.amount,
-    currency: r.currency,
-    invitedSuppliers: 0,
+    deadlineInHours: deadline,
+    baseline: terms.baseline ?? r.amount,
+    currency: terms.currency ?? r.currency,
+    invitedSuppliers: invited,
     owner: r.requester,
     bids: [],
     sourceRequestRef: r.ref,

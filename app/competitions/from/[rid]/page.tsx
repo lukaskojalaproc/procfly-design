@@ -4,7 +4,7 @@ import { ArrowLeft, Sparkles } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { CompetitionDetailView } from "@/components/competition-detail-view"
-import { requestToCompetition } from "@/lib/competitions-data"
+import { requestToCompetition, type CompetitionTerms } from "@/lib/competitions-data"
 import { requests } from "@/lib/dashboard-data"
 
 export function generateStaticParams() {
@@ -16,14 +16,32 @@ export function generateStaticParams() {
 
 export default async function ConvertedCompetitionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ rid: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { rid } = await params
+  const sp = await searchParams
   const request = requests.find((r) => r.id === rid && r.status === "Approved")
   if (!request) notFound()
 
-  const competition = requestToCompetition(request)
+  const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+  const num = (v: string | string[] | undefined) => {
+    const n = Number(str(v))
+    return Number.isFinite(n) ? n : undefined
+  }
+  const terms: CompetitionTerms = {
+    title: str(sp.title),
+    category: str(sp.category),
+    description: str(sp.description),
+    requirements: str(sp.requirements),
+    baseline: num(sp.baseline),
+    deadlineInHours: num(sp.deadline) ?? null,
+    invitedSuppliers: num(sp.invited),
+  }
+
+  const competition = requestToCompetition(request, terms)
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -51,7 +69,7 @@ export default async function ConvertedCompetitionPage({
                   Converted from approved request {request.ref}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Title, category, owner, and approved budget were filled in automatically. Invite suppliers to begin collecting bids.
+                  Created from your competition terms and the approved budget. Suppliers can now start bidding.
                 </p>
               </div>
             </div>

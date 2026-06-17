@@ -17,7 +17,6 @@ import {
   Wallet,
   TrendingUp,
   Users,
-  Trophy,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -29,6 +28,7 @@ import {
   type ProcurementRequest,
   type RequestKind,
 } from "@/lib/dashboard-data"
+import { ConvertToCompetitionButton } from "@/components/convert-to-competition-dialog"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -182,13 +182,7 @@ function ApprovalRow({
               {decision} {actedByYou ? "by you" : ""}
             </span>
             {decision === "Approved" && (
-              <Link
-                href={`/competitions/from/${request.id}`}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
-              >
-                <Trophy className="size-4" />
-                Convert to Competition
-              </Link>
+              <ConvertToCompetitionButton request={request} className="w-full sm:w-auto" />
             )}
           </div>
         )}
