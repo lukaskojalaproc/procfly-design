@@ -14,6 +14,9 @@ import {
   Briefcase,
   UserPlus,
   ShieldCheck,
+  Wallet,
+  TrendingUp,
+  Users,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -49,6 +52,26 @@ const decisionStyles: Record<Decision, string> = {
   Pending: "bg-chart-2/15 text-chart-2",
   Approved: "bg-primary/12 text-primary",
   Rejected: "bg-destructive/12 text-destructive",
+}
+
+function HeroStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Wallet
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex flex-col gap-2 bg-sidebar p-4">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/55">
+        <Icon className="size-3.5" />
+        {label}
+      </span>
+      <span className="text-xl font-semibold tracking-tight">{value}</span>
+    </div>
+  )
 }
 
 const accentByDecision: Record<Decision, string> = {
@@ -185,6 +208,18 @@ export function ApprovalsExplorer() {
     All: queue.length,
   }
 
+  // Hero metrics — value at stake and reviewer throughput.
+  const pendingRequests = queue.filter((r) => decisions[r.id] === "Pending")
+  const pendingValue = pendingRequests.reduce((sum, r) => sum + r.amount, 0)
+  const highestPending = pendingRequests.reduce((max, r) => Math.max(max, r.amount), 0)
+  const uniqueRequesters = new Set(pendingRequests.map((r) => r.requester)).size
+  const actionedCount = Object.keys(actedByYou).length
+  const fmtEur = (n: number) => {
+    if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 2)}M`
+    if (n >= 1000) return `€${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}k`
+    return `€${n}`
+  }
+
   const filtered = queue.filter((r) => {
     const decision = decisions[r.id]
     const matchesTab = tab === "All" || decision === tab
@@ -203,18 +238,61 @@ export function ApprovalsExplorer() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Awaiting-action banner */}
-      <Card className="flex items-center justify-between gap-4 border-chart-2/30 bg-chart-2/10 p-5">
-        <div>
-          <p className="text-sm font-medium text-chart-2">Awaiting your action</p>
-          <p className="mt-0.5 text-2xl font-bold text-foreground">
-            {pendingCount} {pendingCount === 1 ? "approval" : "approvals"} pending
-          </p>
+      {/* Command-center hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground shadow-sm">
+        {/* subtle radial highlight */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-sidebar-primary/15 blur-3xl"
+        />
+        <div className="relative flex flex-col gap-8 p-6 md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sidebar-accent/60 px-3 py-1 text-xs font-medium text-sidebar-foreground/90 ring-1 ring-inset ring-sidebar-border/60">
+                <Clock className="size-3.5" />
+                Awaiting your action
+              </span>
+              <div className="mt-4 flex items-end gap-3">
+                <span className="text-6xl font-bold leading-none tracking-tight md:text-7xl">
+                  {pendingCount}
+                </span>
+                <span className="mb-1 text-lg font-medium text-sidebar-foreground/70">
+                  {pendingCount === 1 ? "approval" : "approvals"} pending
+                </span>
+              </div>
+              <p className="mt-2 max-w-sm text-sm text-sidebar-foreground/60">
+                {pendingValue > 0
+                  ? `${fmtEur(pendingValue)} in spend is waiting on your decision across ${uniqueRequesters} ${uniqueRequesters === 1 ? "requester" : "requesters"}.`
+                  : "You're all caught up — new approval requests will appear here."}
+              </p>
+            </div>
+
+            {actionedCount > 0 && (
+              <div className="flex items-center gap-2 rounded-xl bg-sidebar-accent/50 px-4 py-2.5 text-sm ring-1 ring-inset ring-sidebar-border/50">
+                <CheckCircle2 className="size-4" />
+                <span className="font-semibold">{actionedCount}</span>
+                <span className="text-sidebar-foreground/70">actioned today</span>
+              </div>
+            )}
+          </div>
+
+          {/* Metric tiles */}
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-sidebar-border/40 lg:grid-cols-4">
+            <HeroStat
+              icon={Wallet}
+              label="Value at stake"
+              value={pendingValue > 0 ? fmtEur(pendingValue) : "—"}
+            />
+            <HeroStat
+              icon={TrendingUp}
+              label="Largest request"
+              value={highestPending > 0 ? fmtEur(highestPending) : "—"}
+            />
+            <HeroStat icon={Users} label="Requesters waiting" value={`${uniqueRequesters}`} />
+            <HeroStat icon={Check} label="Cleared by you" value={`${actionedCount}`} />
+          </div>
         </div>
-        <span className="flex size-11 items-center justify-center rounded-full bg-card text-chart-2 shadow-sm">
-          <Clock className="size-5" />
-        </span>
-      </Card>
+      </div>
 
       <Card className="flex flex-col gap-4 p-4">
         <div className="relative">
