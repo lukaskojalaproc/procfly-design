@@ -24,6 +24,9 @@ import {
   Settings2,
   ListChecks,
   Trash2,
+  UploadCloud,
+  FileCheck2,
+  ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +72,7 @@ const categories: {
 const steps = [
   { id: "category", label: "Category", icon: Package },
   { id: "details", label: "Details", icon: FileText },
+  { id: "documents", label: "Documents", icon: UploadCloud },
   { id: "review", label: "Review", icon: ClipboardCheck },
 ] as const
 
@@ -87,6 +91,29 @@ interface LineItem {
   qty: string
   price: string
 }
+
+interface DocSlot {
+  id: string
+  label: string
+  hint: string
+  required: boolean
+}
+
+// Document checklist per category. Supplier onboarding needs compliance docs,
+// purchase requests need commercial docs.
+const supplierDocs: DocSlot[] = [
+  { id: "registration", label: "Business registration certificate", hint: "Proof of legal entity (e.g. company registry extract)", required: true },
+  { id: "tax", label: "Tax / VAT certificate", hint: "W-9, W-8BEN or local VAT registration", required: true },
+  { id: "bank", label: "Bank details confirmation", hint: "Signed letter or bank statement confirming IBAN", required: true },
+  { id: "insurance", label: "Insurance certificate", hint: "Liability or professional indemnity (if applicable)", required: false },
+  { id: "compliance", label: "Code of Conduct / NDA", hint: "Signed anti-bribery or confidentiality agreement", required: false },
+]
+
+const purchaseDocs: DocSlot[] = [
+  { id: "quote", label: "Supplier quote / proforma", hint: "Itemized quote or proforma invoice", required: true },
+  { id: "spec", label: "Specification / scope", hint: "Product spec sheet or statement of work", required: false },
+  { id: "approval", label: "Pre-approval / budget proof", hint: "Email or document approving the spend", required: false },
+]
 
 function Stepper({ current }: { current: number }) {
   return (
@@ -223,9 +250,17 @@ export function NewRequestDialog() {
   // Line items
   const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
 
+  // Documents — maps document slot id to an uploaded file name
+  const [docs, setDocs] = useState<Record<string, string>>({})
+  const [extraDocs, setExtraDocs] = useState<string[]>([])
+
   const selectedCategory = categories.find((c) => c.id === category)
   const isService = category === "service"
   const isSupplier = category === "supplier"
+
+  const docSlots = isSupplier ? supplierDocs : purchaseDocs
+  const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
+  const uploadedDocCount = Object.keys(docs).length + extraDocs.length
 
   const filledLines = lines.filter((l) => l.name.trim() !== "")
   const lineItemsTotal = filledLines.reduce(
@@ -259,11 +294,24 @@ export function NewRequestDialog() {
     setVatNumber("")
     setContactEmail("")
     setLines([{ id: 1, name: "", qty: "", price: "" }])
+    setDocs({})
+    setExtraDocs([])
   }
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (!next) setTimeout(reset, 200)
+  }
+
+  function selectDoc(slotId: string, name: string) {
+    setDocs((prev) => ({ ...prev, [slotId]: name }))
+  }
+  function clearDoc(slotId: string) {
+    setDocs((prev) => {
+      const copy = { ...prev }
+      delete copy[slotId]
+      return copy
+    })
   }
 
   function updateLine(id: number, key: keyof LineItem, value: string) {
@@ -281,10 +329,11 @@ export function NewRequestDialog() {
     (step === 1 &&
       department.trim() !== "" &&
       (isSupplier ? supplierName.trim() !== "" : description.trim() !== "")) ||
-    step === 2
+    (step === 2 && !requiredDocsMissing) ||
+    step === 3
 
   function next() {
-    if (step < 2) setStep((s) => s + 1)
+    if (step < 3) setStep((s) => s + 1)
     else handleOpenChange(false)
   }
 
@@ -304,12 +353,14 @@ export function NewRequestDialog() {
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
               {step === 1 && "Create a purchase request"}
-              {step === 2 && "Review Request"}
+              {step === 2 && "Upload supporting documents"}
+              {step === 3 && "Review Request"}
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               {step === 0 && "Choose a category to get started. Three quick steps to send for approval."}
               {step === 1 && "Fill in the details below. Required fields are marked with an asterisk."}
-              {step === 2 && "Make sure everything looks right before submitting."}
+              {step === 2 && "Attach the documents required for compliance and approval."}
+              {step === 3 && "Make sure everything looks right before submitting."}
             </p>
           </DialogHeader>
 
@@ -699,6 +750,135 @@ export function NewRequestDialog() {
 
             {step === 2 && (
               <div className="flex flex-col gap-5">
+                <Section
+                  icon={ShieldCheck}
+                  iconClass="bg-primary/12 text-primary"
+                  title={isSupplier ? "Compliance documents" : "Supporting documents"}
+                  subtitle={
+                    isSupplier
+                      ? "Required for vendor due-diligence and onboarding."
+                      : "Attach quotes and approvals to support this request."
+                  }
+                >
+                  <div className="flex flex-col gap-3">
+                    {docSlots.map((doc) => {
+                      const uploaded = docs[doc.id]
+                      return (
+                        <div
+                          key={doc.id}
+                          className={cn(
+                            "flex items-center gap-4 rounded-lg border p-4 transition-colors",
+                            uploaded
+                              ? "border-primary/40 bg-primary/5"
+                              : "border-border bg-background",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                              uploaded ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {uploaded ? <FileCheck2 className="size-5" /> : <FileText className="size-5" />}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                              {doc.label}
+                              {doc.required ? (
+                                <span className="text-destructive">*</span>
+                              ) : (
+                                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                              )}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {uploaded ?? doc.hint}
+                            </p>
+                          </div>
+                          {uploaded ? (
+                            <button
+                              onClick={() => clearDoc(doc.id)}
+                              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                            >
+                              <Trash2 className="size-3.5" />
+                              Remove
+                            </button>
+                          ) : (
+                            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted">
+                              <UploadCloud className="size-3.5" />
+                              Upload
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) selectDoc(doc.id, file.name)
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {extraDocs.length > 0 && (
+                    <div className="mt-3 flex flex-col gap-3">
+                      {extraDocs.map((name, i) => (
+                        <div
+                          key={`${name}-${i}`}
+                          className="flex items-center gap-4 rounded-lg border border-primary/40 bg-primary/5 p-4"
+                        >
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                            <FileCheck2 className="size-5" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">Additional document</p>
+                            <p className="truncate text-xs text-muted-foreground">{name}</p>
+                          </div>
+                          <button
+                            onClick={() => setExtraDocs((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                          >
+                            <Trash2 className="size-3.5" />
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
+                    <Plus className="size-4" />
+                    Add another document
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) setExtraDocs((prev) => [...prev, file.name])
+                      }}
+                    />
+                  </label>
+
+                  <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                    <span className="text-muted-foreground">
+                      {uploadedDocCount} document{uploadedDocCount === 1 ? "" : "s"} attached
+                    </span>
+                    {requiredDocsMissing ? (
+                      <span className="font-medium text-destructive">Required documents missing</span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 font-medium text-primary">
+                        <Check className="size-4" />
+                        All required documents attached
+                      </span>
+                    )}
+                  </div>
+                </Section>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="flex flex-col gap-5">
                 {/* Summary card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="flex items-start justify-between gap-4 border-b border-border p-5">
@@ -835,12 +1015,45 @@ export function NewRequestDialog() {
                   </div>
                 </div>
                 )}
+
+                {/* Documents card */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Documents</h3>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {uploadedDocCount} attached
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    {uploadedDocCount === 0 ? (
+                      <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    ) : (
+                      <>
+                        {docSlots
+                          .filter((d) => docs[d.id])
+                          .map((d) => (
+                            <div key={d.id} className="flex items-center gap-3 text-sm">
+                              <FileCheck2 className="size-4 shrink-0 text-primary" />
+                              <span className="font-medium text-foreground">{d.label}</span>
+                              <span className="truncate text-muted-foreground">{docs[d.id]}</span>
+                            </div>
+                          ))}
+                        {extraDocs.map((name, i) => (
+                          <div key={`x-${i}`} className="flex items-center gap-3 text-sm">
+                            <FileCheck2 className="size-4 shrink-0 text-primary" />
+                            <span className="truncate text-muted-foreground">{name}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
           <div className="flex shrink-0 items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
-            {step === 2 ? (
+            {step === 3 ? (
               <button
                 onClick={() => handleOpenChange(false)}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -858,7 +1071,7 @@ export function NewRequestDialog() {
               </button>
             )}
             <div className="flex items-center gap-3">
-              {step === 2 ? (
+              {step === 3 ? (
                 <button
                   onClick={() => setStep((s) => s - 1)}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -876,8 +1089,8 @@ export function NewRequestDialog() {
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 2 ? "Create" : "Next"}
-                {step !== 2 && <ChevronRight className="size-4" />}
+                {step === 3 ? "Create" : "Next"}
+                {step !== 3 && <ChevronRight className="size-4" />}
               </button>
             </div>
           </div>
