@@ -233,6 +233,68 @@ export function competitionToPurchaseOrder(c: Competition): PurchaseOrder {
   }
 }
 
+// --- Convert an approved request directly into a purchase order -------------
+//
+// Used when a request does not need a competitive sourcing event (e.g. a
+// small, low-value, or single-source buy). The approved request amount
+// becomes the order subtotal and the requester becomes the order owner.
+
+import type { ProcurementRequest } from "./dashboard-data"
+
+/** Stable PO id derived from a request (kept distinct from competition POs). */
+export function convertedOrderIdFromRequest(requestId: string) {
+  return `req-${requestId}`
+}
+
+/**
+ * Auto-fill a draft purchase order straight from an approved request,
+ * bypassing a competition. Supplier is left to be selected since no bid
+ * has been awarded yet.
+ */
+export function requestToPurchaseOrder(r: ProcurementRequest): PurchaseOrder {
+  const seq = (hash(r.id) % 900) + 100
+  const created = new Date().toISOString().slice(0, 16).replace("T", " ")
+  const supplierName = "To be selected"
+
+  return {
+    id: convertedOrderIdFromRequest(r.id),
+    number: `PRC-2026-000${seq}`,
+    created,
+    status: "Draft",
+    currency: r.currency,
+    sourceRef: r.ref,
+    category: r.category,
+    owner: r.requester,
+    supplier: {
+      name: supplierName,
+      contact: "Pending selection",
+      email: "",
+      phone: "",
+      address: "Add supplier details before sending",
+    },
+    lines: [
+      {
+        name: r.title,
+        description: `Direct purchase from approved request ${r.ref}`,
+        qty: 1,
+        unit: "lot",
+        unitPrice: r.amount,
+      },
+    ],
+    paymentTerms: "Net 30",
+    deliveryDate: "To be confirmed with supplier",
+    deliveryAddress: "ProcFly HQ — Receiving Dock, Vilnius",
+    notes: `Generated automatically from approved request ${r.ref} (direct purchase, no competition). Select a supplier and review line items before sending.`,
+    timeline: [
+      { label: "Converted from request", date: created, done: true },
+      { label: "Order drafted", date: created, done: true },
+      { label: "Supplier selected", date: "Pending", done: false },
+      { label: "Sent to supplier", date: "Pending", done: false },
+      { label: "Delivered", date: "Pending", done: false },
+    ],
+  }
+}
+
 // --- Derived helpers --------------------------------------------------------
 
 export function orderLineTotal(line: OrderLine) {

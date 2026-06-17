@@ -14,6 +14,8 @@ import {
   Building2,
   Landmark,
   Receipt,
+  Trophy,
+  ShoppingCart,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -152,6 +154,33 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           <MetaItem label="Cost center" value="TEST-003 - Randominis" />
           <MetaItem label="Created" value={request.date} />
         </div>
+
+        {request.status === "Approved" && request.kind !== "Add New Supplier" && (
+          <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">This request is approved</p>
+              <p className="text-xs text-muted-foreground">
+                Source it competitively, or raise a direct purchase order.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                href={`/competitions/from/${request.id}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              >
+                <Trophy className="size-4 text-primary" />
+                Convert to Competition
+              </Link>
+              <Link
+                href={`/orders/from-request/${request.id}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <ShoppingCart className="size-4" />
+                Convert to PO
+              </Link>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Two-column body */}
