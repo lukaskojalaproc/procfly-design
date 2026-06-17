@@ -923,6 +923,7 @@ function SetupOverview({
         done: false,
         detail: "Everything is ready — launch to open bidding.",
         action: onLaunch,
+        highlight: true,
       }
     : {
         label: "Move to Ready",
@@ -931,63 +932,38 @@ function SetupOverview({
           ? "Setup complete — mark this competition ready to launch."
           : "Complete the steps above to mark this competition ready.",
         action: setupComplete ? onMoveToReady : undefined,
+        highlight: setupComplete,
       }
 
-  const checklist = [...setupItems, finalItem]
+  const checklist: ChecklistItem[] = [...setupItems, finalItem]
   const completed = checklist.filter((c) => c.done).length
-
-  // Draft banner CTA: move to Ready when setup is done, otherwise nudge setup.
-  const draftCtaReady = !isReady && setupComplete
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="flex flex-col gap-6 lg:col-span-2">
-        {/* Stage banner */}
-        <div
-          className={cn(
-            "flex flex-wrap items-center gap-4 rounded-2xl border p-6",
-            isReady || draftCtaReady
-              ? "border-chart-3/40 bg-chart-3/10"
-              : "border-border bg-muted/40",
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-12 items-center justify-center rounded-full",
-              isReady || draftCtaReady ? "bg-chart-3/20 text-chart-3" : "bg-muted text-muted-foreground",
-            )}
-          >
-            {isReady ? <Send className="size-6" /> : <FileEdit className="size-6" />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground">
-              {isReady
-                ? "Ready to launch"
-                : draftCtaReady
-                  ? "Setup complete"
-                  : "Draft in progress"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isReady
-                ? "Suppliers are lined up. Launching opens the bidding window and notifies everyone."
-                : draftCtaReady
-                  ? "All terms are defined and suppliers are invited. Mark this competition ready to launch."
-                  : "Finish setting up the competition terms before this competition can go live."}
-            </p>
+        {/* AI import (Draft) or ready-to-launch banner (Ready) */}
+        {isReady ? (
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-chart-3/40 bg-chart-3/10 p-6">
+            <span className="flex size-12 items-center justify-center rounded-full bg-chart-3/20 text-chart-3">
+              <Send className="size-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">Ready to launch</p>
+              <p className="text-sm text-muted-foreground">
+                Suppliers are lined up. Launching opens the bidding window and notifies everyone.
+              </p>
+            </div>
+            <button
+              onClick={onLaunch}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Rocket className="size-4" />
+              Launch competition
+            </button>
           </div>
-          <button
-            onClick={isReady ? onLaunch : draftCtaReady ? onMoveToReady : () => onEditTerms("all")}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90",
-              isReady || draftCtaReady
-                ? "bg-primary text-primary-foreground"
-                : "bg-foreground text-background",
-            )}
-          >
-            {isReady ? <Rocket className="size-4" /> : draftCtaReady ? <Send className="size-4" /> : <FileEdit className="size-4" />}
-            {isReady ? "Launch competition" : draftCtaReady ? "Move to Ready" : "Continue setup"}
-          </button>
-        </div>
+        ) : (
+          <AiImportBanner onFilled={onAiFill} />
+        )}
 
         {/* Setup checklist */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -1004,31 +980,60 @@ function SetupOverview({
             {checklist.map((item) => (
               <li
                 key={item.label}
-                className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-4"
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border p-4 transition-colors",
+                  item.highlight
+                    ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                    : "border-border bg-muted/30",
+                )}
               >
                 <span
                   className={cn(
                     "flex size-7 shrink-0 items-center justify-center rounded-full",
                     item.done
                       ? "bg-chart-2 text-background"
-                      : "border-2 border-dashed border-muted-foreground/40 text-muted-foreground",
+                      : item.highlight
+                        ? "animate-pulse bg-primary text-primary-foreground"
+                        : "border-2 border-dashed border-muted-foreground/40 text-muted-foreground",
                   )}
                 >
-                  {item.done ? <CheckCircle2 className="size-4" /> : <ClipboardList className="size-3.5" />}
+                  {item.done ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : item.highlight ? (
+                    <Rocket className="size-4" />
+                  ) : (
+                    <ClipboardList className="size-3.5" />
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p
+                    className={cn(
+                      "text-sm font-medium",
+                      item.highlight ? "text-primary" : "text-foreground",
+                    )}
+                  >
+                    {item.label}
+                  </p>
                   <p className="text-xs text-muted-foreground">{item.detail}</p>
                 </div>
-                {item.action && (
-                  <button
-                    onClick={item.action}
-                    className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  >
-                    {item.done ? "Edit" : "Manage"}
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                )}
+                {item.action &&
+                  (item.highlight ? (
+                    <button
+                      onClick={item.action}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+                    >
+                      {item.label}
+                      <ArrowRight className="size-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={item.action}
+                      className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      {item.done ? "Edit" : "Manage"}
+                      <ArrowRight className="size-3.5" />
+                    </button>
+                  ))}
               </li>
             ))}
           </ol>
