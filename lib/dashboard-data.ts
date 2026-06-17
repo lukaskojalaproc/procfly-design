@@ -282,3 +282,7 @@ export function getRequestDetail(request: ProcurementRequest): RequestDetail {
 export function getRequestById(id: string) {
   return requests.find((r) => r.id === id)
 }
+
+export function getRequestByRef(ref: string) {
+  return requests.find((r) => r.ref === ref)
+}

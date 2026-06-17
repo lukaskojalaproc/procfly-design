@@ -160,6 +160,7 @@ export const competitions: Competition[] = [
     invitedSuppliers: 1,
     owner: "Marius Kazlauskas",
     bids: [],
+    sourceRequestRef: "REQ-1031",
   },
   {
     id: "c6",

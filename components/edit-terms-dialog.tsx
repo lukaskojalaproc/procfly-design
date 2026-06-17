@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { FileEdit, X, Tag, Wallet, FileText, Check, ListChecks, Scale, Receipt } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { FileEdit, X, Tag, Wallet, FileText, Check, ListChecks, Scale, Receipt, Lock, ExternalLink } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { Competition } from "@/lib/competitions-data"
+import { getRequestByRef } from "@/lib/dashboard-data"
 
 const CURRENCIES = ["EUR", "USD", "GBP"]
 
@@ -37,9 +39,11 @@ interface EditTermsDialogProps {
   onOpenChange: (open: boolean) => void
   competition: Competition
   onSave: (terms: CompetitionTermsEdit) => void
+  focus?: TermsFocus
 }
 
-export function EditTermsDialog({ open, onOpenChange, competition, onSave }: EditTermsDialogProps) {
+export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus = "all" }: EditTermsDialogProps) {
+  const router = useRouter()
   const [title, setTitle] = useState(competition.title)
   const [category, setCategory] = useState(competition.category)
   const [description, setDescription] = useState(competition.description)
@@ -49,18 +53,41 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
   const [evaluationCriteria, setEvaluationCriteria] = useState(competition.evaluationCriteria ?? "")
   const [paymentTerms, setPaymentTerms] = useState(competition.paymentTerms ?? "")
 
+  // The budget is locked once it has been approved via a procurement request.
+  // Changing it requires re-routing the request back through PR approval.
+  const sourceRequest = competition.sourceRequestRef
+    ? getRequestByRef(competition.sourceRequestRef)
+    : undefined
+  const budgetLocked = Boolean(competition.sourceRequestRef)
+
+  const meta = FOCUS_META[focus]
+  const showScope = focus === "all" || focus === "scope"
+  const showRequirements = focus === "all" || focus === "requirements"
+  const showEvaluation = focus === "all" || focus === "evaluation"
+  const showPayment = focus === "all" || focus === "payment"
+
   function handleSave() {
     onSave({
       title: title.trim() || competition.title,
       category: category.trim() || competition.category,
       description: description.trim(),
-      baseline: Number(baseline) || competition.baseline,
-      currency,
+      // Budget is never changed here when it is locked by an approved PR.
+      baseline: budgetLocked ? competition.baseline : Number(baseline) || competition.baseline,
+      currency: budgetLocked ? competition.currency : currency,
       requirements: requirements.trim(),
       evaluationCriteria: evaluationCriteria.trim(),
       paymentTerms: paymentTerms.trim(),
     })
     onOpenChange(false)
+  }
+
+  function handleRequestBudgetChange() {
+    onOpenChange(false)
+    if (sourceRequest) {
+      router.push(`/requests/${sourceRequest.id}`)
+    } else {
+      router.push("/requests")
+    }
   }
 
   return (
@@ -76,10 +103,8 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
               <FileEdit className="size-5" />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Edit competition terms</h2>
-              <p className="text-sm text-muted-foreground">
-                Define the scope and budget for {competition.ref}.
-              </p>
+              <h2 className="text-lg font-semibold text-foreground">{meta.title}</h2>
+              <p className="text-sm text-muted-foreground">{meta.subtitle(competition.ref)}</p>
             </div>
           </div>
           <button
@@ -94,92 +119,129 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave }: Edi
 
         {/* Body */}
         <div className="flex flex-col gap-5 overflow-y-auto p-6">
-          <Field icon={FileEdit} label="Competition title">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="e.g. Marketing agency retainer — Q3"
-            />
-          </Field>
+          {showScope && (
+            <>
+              <Field icon={FileEdit} label="Competition title">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                  placeholder="e.g. Marketing agency retainer — Q3"
+                />
+              </Field>
 
-          <Field icon={Tag} label="Category">
-            <input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="e.g. Marketing"
-            />
-          </Field>
+              <Field icon={Tag} label="Category">
+                <input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                  placeholder="e.g. Marketing"
+                />
+              </Field>
 
-          <Field icon={Wallet} label="Baseline budget">
-            <div className="flex gap-2">
-              <input
-                value={baseline}
-                onChange={(e) => setBaseline(e.target.value.replace(/[^0-9]/g, ""))}
-                inputMode="numeric"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-                placeholder="e.g. 18900"
+              <Field icon={Wallet} label="Baseline budget">
+                {budgetLocked ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-base font-semibold text-foreground">
+                        {new Intl.NumberFormat("en-US").format(competition.baseline)} {competition.currency}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-chart-3/15 px-2 py-1 text-xs font-medium text-chart-3">
+                        <Lock className="size-3" />
+                        Locked
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      This budget was approved on request{" "}
+                      <span className="font-medium text-foreground">{competition.sourceRequestRef}</span>. To change
+                      the amount, send the request back for re-approval.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleRequestBudgetChange}
+                      className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Request budget change
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      value={baseline}
+                      onChange={(e) => setBaseline(e.target.value.replace(/[^0-9]/g, ""))}
+                      inputMode="numeric"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                      placeholder="e.g. 18900"
+                    />
+                    <div className="flex shrink-0 gap-1">
+                      {CURRENCIES.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setCurrency(c)}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                            currency === c
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-background text-foreground hover:bg-muted",
+                          )}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Field>
+
+              <Field icon={FileText} label="Scope & description">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                  placeholder="Describe what suppliers are bidding on, requirements, deliverables…"
+                />
+              </Field>
+            </>
+          )}
+
+          {showRequirements && (
+            <Field icon={ListChecks} label="Requirements & deliverables">
+              <textarea
+                value={requirements}
+                onChange={(e) => setRequirements(e.target.value)}
+                rows={3}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                placeholder="Mandatory requirements suppliers must meet (certifications, SLAs, references…)"
               />
-              <div className="flex shrink-0 gap-1">
-                {CURRENCIES.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCurrency(c)}
-                    className={cn(
-                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                      currency === c
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-background text-foreground hover:bg-muted",
-                    )}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Field>
+            </Field>
+          )}
 
-          <Field icon={FileText} label="Scope & description">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="Describe what suppliers are bidding on, requirements, deliverables…"
-            />
-          </Field>
+          {showEvaluation && (
+            <Field icon={Scale} label="Evaluation criteria">
+              <textarea
+                value={evaluationCriteria}
+                onChange={(e) => setEvaluationCriteria(e.target.value)}
+                rows={2}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                placeholder="How bids are scored, e.g. Price 60% · Quality 30% · Delivery 10%"
+              />
+            </Field>
+          )}
 
-          <Field icon={ListChecks} label="Requirements & deliverables">
-            <textarea
-              value={requirements}
-              onChange={(e) => setRequirements(e.target.value)}
-              rows={3}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="Mandatory requirements suppliers must meet (certifications, SLAs, references…)"
-            />
-          </Field>
-
-          <Field icon={Scale} label="Evaluation criteria">
-            <textarea
-              value={evaluationCriteria}
-              onChange={(e) => setEvaluationCriteria(e.target.value)}
-              rows={2}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="How bids are scored, e.g. Price 60% · Quality 30% · Delivery 10%"
-            />
-          </Field>
-
-          <Field icon={Receipt} label="Payment & contract terms">
-            <textarea
-              value={paymentTerms}
-              onChange={(e) => setPaymentTerms(e.target.value)}
-              rows={2}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
-              placeholder="e.g. Net 30 · 12-month term · Termination for convenience"
-            />
-          </Field>
+          {showPayment && (
+            <Field icon={Receipt} label="Payment & contract terms">
+              <textarea
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
+                rows={2}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+                placeholder="e.g. Net 30 · 12-month term · Termination for convenience"
+              />
+            </Field>
+          )}
         </div>
 
         {/* Footer */}
