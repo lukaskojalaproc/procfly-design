@@ -58,6 +58,7 @@ import {
   type SupplierBid,
 } from "@/lib/competitions-data"
 import { formatAmount, initials } from "@/lib/dashboard-data"
+import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
 import { useCountdown } from "@/components/use-countdown"
 
 // ---------------------------------------------------------------------------
@@ -255,6 +256,10 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
   const [tab, setTab] = useState<TabKey>("overview")
   // Guard against an active tab disappearing for a given status.
   const activeTab = visibleTabs.some((t) => t.key === tab) ? tab : "overview"
+  const [celebrate, setCelebrate] = useState(false)
+
+  // Only the "Award winner" hero action triggers the celebration.
+  const onPrimaryAction = isActive && hasBids ? () => setCelebrate(true) : undefined
 
   const primaryAction = isFinished
     ? null
@@ -317,7 +322,10 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
             </div>
 
             {primaryAction && (
-              <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
+              <button
+                onClick={onPrimaryAction}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+              >
                 <primaryAction.icon className="size-4" />
                 {primaryAction.label}
               </button>
@@ -413,6 +421,17 @@ export function CompetitionDetailView({ competition }: { competition: Competitio
       {activeTab === "evaluation" && <EvaluationTab competition={competition} best={best} />}
       {activeTab === "award" && (
         <AwardTab competition={competition} best={best} saving={saving} pct={pct} />
+      )}
+
+      {best && (
+        <AwardCelebrationDialog
+          open={celebrate}
+          onOpenChange={setCelebrate}
+          supplier={best.supplier}
+          amount={`${formatAmount(best.amount)} ${competition.currency}`}
+          saving={`${formatAmount(saving)} ${competition.currency}`}
+          pct={Math.round(pct * 100)}
+        />
       )}
     </div>
   )
@@ -1641,6 +1660,7 @@ function AwardTab({
   const isClosed = competition.status === "Closed"
   const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
   const runnerUp = sorted.length > 1 ? sorted[1] : null
+  const [celebrate, setCelebrate] = useState(false)
 
   if (isAwarded) {
     return (
@@ -1780,13 +1800,24 @@ function AwardTab({
               {formatAmount(best.amount)} {competition.currency}
             </p>
           </div>
-          <button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto">
+          <button
+            onClick={() => setCelebrate(true)}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
+          >
             <Trophy className="size-4" />
             Award to {best.supplier}
           </button>
           <p className="mt-3 text-xs text-muted-foreground">
             Awarding closes the competition and notifies all invited suppliers.
           </p>
+          <AwardCelebrationDialog
+            open={celebrate}
+            onOpenChange={setCelebrate}
+            supplier={best.supplier}
+            amount={`${formatAmount(best.amount)} ${competition.currency}`}
+            saving={`${formatAmount(saving)} ${competition.currency}`}
+            pct={Math.round(pct * 100)}
+          />
         </>
       ) : (
         <EmptyState
