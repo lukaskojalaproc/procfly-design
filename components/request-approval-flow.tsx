@@ -1,12 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Check, X, Clock, CornerUpLeft } from "lucide-react"
+import { Check, X, Clock } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { initials, type ApprovalStep, type ApprovalState } from "@/lib/dashboard-data"
-import { useStepDecisions, recordDecision, type ActivityEvent } from "@/lib/request-activity-store"
-import { routeDecision, type NotificationType } from "@/lib/notification-store"
+import { useStepDecisions } from "@/lib/request-activity-store"
 
 // Display state for a step in the read-only progress view. The request creator
 // is never counted as an approval; a pending step is either the one currently
@@ -26,45 +24,19 @@ function displayStateFor(state: ApprovalState, isCurrent: boolean): DisplayState
   return isCurrent ? "in_progress" : "not_started"
 }
 
-type ActionKind = "approve" | "reject" | "changes"
-
-const actionConfig: Record<
-  ActionKind,
-  { label: string; state: ApprovalState; event: Exclude<ActivityEvent, "comment">; cls: string; icon: typeof Check }
-> = {
-  approve: { label: "Approve", state: "approved", event: "approved", cls: "bg-primary text-primary-foreground", icon: Check },
-  reject: { label: "Reject", state: "rejected", event: "rejected", cls: "bg-destructive text-destructive-foreground", icon: X },
-  changes: {
-    label: "Request changes",
-    state: "pending",
-    event: "changes_requested",
-    cls: "border border-border bg-background text-foreground",
-    icon: CornerUpLeft,
-  },
-}
-
+/**
+ * Read-only visualization of the approval workflow. It shows what has happened
+ * and what is next — it never renders decision actions. All decision-making
+ * lives in the Approval Review banner on the request detail page.
+ */
 export function RequestApprovalFlow({
   requestId,
   approvals,
-  requestRef,
-  requestTitle,
-  reviewMode = false,
-  requestedAction = null,
-  onActionHandled,
 }: {
   requestId: string
   approvals: ApprovalStep[]
-  requestRef: string
-  requestTitle: string
-  /** When true, the current approver can act on the active step. */
-  reviewMode?: boolean
-  /** External trigger (from the review banner) to open a decision panel. */
-  requestedAction?: ActionKind | null
-  onActionHandled?: () => void
 }) {
   const decisions = useStepDecisions(requestId)
-  const [activeAction, setActiveAction] = useState<{ index: number; kind: ActionKind } | null>(null)
-  const [comment, setComment] = useState("")
 
   // Merge seed approvals with any recorded decisions.
   const merged = approvals.map((step, i) => {
@@ -81,48 +53,6 @@ export function RequestApprovalFlow({
 
   // The current step is the first one still pending (after step 1 / creator).
   const currentIndex = merged.findIndex((s, i) => i > 0 && s.state === "pending")
-
-  function openAction(index: number, kind: ActionKind) {
-    setActiveAction({ index, kind })
-    setComment("")
-  }
-
-  // When the review banner triggers an action, open the matching panel on the
-  // current step and clear the external request so it can fire again later.
-  useEffect(() => {
-    if (reviewMode && requestedAction && currentIndex > 0) {
-      openAction(currentIndex, requestedAction)
-      onActionHandled?.()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedAction])
-
-  function confirmAction() {
-    if (!activeAction) return
-    const step = merged[activeAction.index]
-    const cfg = actionConfig[activeAction.kind]
-    recordDecision({
-      requestId,
-      stepIndex: activeAction.index,
-      step: step.role,
-      state: cfg.state,
-      event: cfg.event,
-      by: step.name,
-      comment: comment.trim(),
-    })
-    // Notify the request creator that their request moved.
-    routeDecision({
-      requestId,
-      requestRef,
-      requestTitle,
-      actor: step.name,
-      type: cfg.event as Exclude<NotificationType, "comment" | "mention">,
-      text: comment.trim(),
-      requester: merged[0]?.name ?? "",
-    })
-    setActiveAction(null)
-    setComment("")
-  }
 
   return (
     <Card className="p-6">
@@ -154,18 +84,18 @@ export function RequestApprovalFlow({
                   )}
                 />
               )}
-                <span
-                  className={cn(
-                    "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
-                    dState === "approved"
-                      ? "border-primary text-primary"
-                      : dState === "rejected"
-                        ? "border-destructive text-destructive"
-                        : dState === "in_progress"
-                          ? "border-chart-2 text-chart-2"
-                          : "border-border text-muted-foreground",
-                  )}
-                >
+              <span
+                className={cn(
+                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
+                  dState === "approved"
+                    ? "border-primary text-primary"
+                    : dState === "rejected"
+                      ? "border-destructive text-destructive"
+                      : dState === "in_progress"
+                        ? "border-chart-2 text-chart-2"
+                        : "border-border text-muted-foreground",
+                )}
+              >
                 <BadgeIcon className="size-4" />
               </span>
 
@@ -200,76 +130,11 @@ export function RequestApprovalFlow({
                   <span className="text-muted-foreground">{step.date}</span>
                 </div>
 
-                {/* Decision actions on the current pending step — only in review mode */}
-                {isCurrent && !reviewMode && (
-                  <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+                {/* Read-only assignment hint on the active step */}
+                {isCurrent && (
+                  <div className="mt-3 flex items-center gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
                     <Clock className="size-3.5 text-chart-2" />
-                    Awaiting decision from {step.name}
-                  </div>
-                )}
-                {isCurrent && reviewMode && (
-                  <div className="mt-3 border-t border-border pt-3">
-                    {activeAction?.index === i ? (
-                      <div className="flex flex-col gap-2">
-                        <label className="text-xs font-medium text-foreground">
-                          {actionConfig[activeAction.kind].label} — add a note
-                          {activeAction.kind === "approve" ? " (optional)" : ""}
-                        </label>
-                        <textarea
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          rows={2}
-                          autoFocus
-                          placeholder={
-                            activeAction.kind === "changes"
-                              ? "What needs to change before this can be approved?"
-                              : "Add a short rationale for the record"
-                          }
-                          className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={confirmAction}
-                            disabled={activeAction.kind !== "approve" && !comment.trim()}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-40",
-                              actionConfig[activeAction.kind].cls,
-                            )}
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setActiveAction(null)}
-                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {(["approve", "changes", "reject"] as ActionKind[]).map((kind) => {
-                          const cfg = actionConfig[kind]
-                          const Icon = cfg.icon
-                          return (
-                            <button
-                              key={kind}
-                              type="button"
-                              onClick={() => openAction(i, kind)}
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90",
-                                cfg.cls,
-                              )}
-                            >
-                              <Icon className="size-3.5" />
-                              {cfg.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
+                    Assigned to: <span className="font-medium text-foreground">{step.name}</span>
                   </div>
                 )}
               </div>
