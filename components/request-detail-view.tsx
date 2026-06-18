@@ -109,6 +109,12 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
     return [...new Set(names)]
   }, [request.requester, detail.approvals])
 
+  // Distinct approver names above the requester (skip step 1 / creator).
+  const approvers = useMemo(() => {
+    const names = detail.approvals.slice(1).map((a) => a.name).filter((n) => n !== request.requester)
+    return [...new Set(names)]
+  }, [detail.approvals, request.requester])
+
   const commentCount = activity.filter((a) => a.kind === "comment").length
 
   const tabs = [
@@ -219,6 +225,10 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             requestId={request.id}
             currentUser={request.requester}
             participants={participants}
+            requestRef={request.ref}
+            requestTitle={request.title}
+            requester={request.requester}
+            approvers={approvers}
           />
         </Card>
       )}
@@ -365,7 +375,12 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
 
         {/* Right column — approval flow */}
-        <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
+        <RequestApprovalFlow
+          requestId={request.id}
+          approvals={detail.approvals}
+          requestRef={request.ref}
+          requestTitle={request.title}
+        />
       </div>
       )}
     </div>

@@ -12,7 +12,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { initials } from "@/lib/dashboard-data"
-import { useRequestActivity, addComment, type ActivityItem, type ActivityEvent } from "@/lib/request-activity-store"
+import { useRequestActivity, addComment, parseMentions, type ActivityItem, type ActivityEvent } from "@/lib/request-activity-store"
+import { routeComment } from "@/lib/notification-store"
 
 // Visual treatment for each system-event type in the feed.
 const eventMeta: Record<Exclude<ActivityEvent, "comment">, { icon: typeof Check; cls: string; verb: string }> = {
@@ -87,11 +88,21 @@ export function RequestDiscussion({
   requestId,
   currentUser,
   participants,
+  requestRef,
+  requestTitle,
+  requester,
+  approvers,
 }: {
   requestId: string
   currentUser: string
   /** Names that can be @mentioned (approvers, requester). */
   participants: string[]
+  requestRef: string
+  requestTitle: string
+  /** The request creator — comments from approvers route back to them. */
+  requester: string
+  /** Distinct approver names above the requester. */
+  approvers: string[]
 }) {
   const activity = useRequestActivity(requestId)
   const [draft, setDraft] = useState("")
@@ -129,6 +140,19 @@ export function RequestDiscussion({
     const text = draft.trim()
     if (!text) return
     addComment(requestId, currentUser, text, participants)
+    // Route a notification to the right recipient(s): up to the approvers when
+    // the requester comments, back to the requester when an approver comments,
+    // plus anyone explicitly @mentioned.
+    routeComment({
+      requestId,
+      requestRef,
+      requestTitle,
+      author: currentUser,
+      text,
+      mentions: parseMentions(text, participants),
+      requester,
+      approvers,
+    })
     setDraft("")
     setMentionOpen(false)
   }

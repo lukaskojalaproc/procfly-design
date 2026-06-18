@@ -1,6 +1,7 @@
 import { Search, Globe, LogOut, MoreVertical, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { NewRequestDialog } from "@/components/new-request-dialog"
+import { NotificationBell } from "@/components/notification-bell"
 import { cn } from "@/lib/utils"
 
 export function TopBar() {
@@ -18,6 +19,7 @@ export function TopBar() {
         <Globe className="size-4" />
         English
       </button>
+      <NotificationBell />
       <button
         className="flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted"
         aria-label="Log out"

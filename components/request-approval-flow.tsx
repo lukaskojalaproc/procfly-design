@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { initials, type ApprovalStep, type ApprovalState } from "@/lib/dashboard-data"
 import { useStepDecisions, recordDecision, type ActivityEvent } from "@/lib/request-activity-store"
+import { routeDecision, type NotificationType } from "@/lib/notification-store"
 
 const approvalBadge: Record<ApprovalState, { label: string; cls: string; icon: typeof Check }> = {
   approved: { label: "Approved", cls: "bg-primary/12 text-primary", icon: Check },
@@ -33,9 +34,13 @@ const actionConfig: Record<
 export function RequestApprovalFlow({
   requestId,
   approvals,
+  requestRef,
+  requestTitle,
 }: {
   requestId: string
   approvals: ApprovalStep[]
+  requestRef: string
+  requestTitle: string
 }) {
   const decisions = useStepDecisions(requestId)
   const [activeAction, setActiveAction] = useState<{ index: number; kind: ActionKind } | null>(null)
@@ -71,6 +76,16 @@ export function RequestApprovalFlow({
       event: cfg.event,
       by: step.name,
       comment: comment.trim(),
+    })
+    // Notify the request creator that their request moved.
+    routeDecision({
+      requestId,
+      requestRef,
+      requestTitle,
+      actor: step.name,
+      type: cfg.event as Exclude<NotificationType, "comment" | "mention">,
+      text: comment.trim(),
+      requester: merged[0]?.name ?? "",
     })
     setActiveAction(null)
     setComment("")
