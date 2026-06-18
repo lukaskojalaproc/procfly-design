@@ -114,7 +114,7 @@ export function buildPurchaseOrderPdf(po: PurchaseOrder, opts: PdfOptions): jsPD
   doc.setFontSize(9)
   doc.setTextColor(90, 90, 90)
   doc.text(doc.splitTextToSize(po.deliveryAddress, colW - 28), margin + colW + 30, y + 48)
-  doc.text(`Expected: ${po.deliveryDate}`, margin + colW + 30, y + 72)
+  doc.text(`Expected: ${po.expectedDelivery}`, margin + colW + 30, y + 72)
 
   // --- Line items table ----------------------------------------------------
   y += 112

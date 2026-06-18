@@ -1257,6 +1257,71 @@ function GlanceLinkRow({ label, value, href }: { label: string; value: string; h
   )
 }
 
+function SavingsMetric({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="bg-card p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-base font-bold tabular-nums", accent ? "text-primary" : "text-foreground")}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function DateRow({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: string; value: string }) {
+  return (
+    <li className="flex items-center justify-between gap-3">
+      <span className="inline-flex items-center gap-2 text-muted-foreground">
+        <Icon className="size-4" />
+        {label}
+      </span>
+      <span className="font-medium text-foreground">{value}</span>
+    </li>
+  )
+}
+
+const ACTIVITY_ICON: Record<ActivityKind, typeof History> = {
+  created: FileEdit,
+  invited: UserPlus,
+  submitted: Send,
+  updated: RotateCcw,
+  closed: XCircle,
+  awarded: Trophy,
+}
+
+function ActivityTab({ competition }: { competition: Competition }) {
+  const entries = competitionActivity(competition)
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <History className="size-4 text-primary" />
+        Activity history
+      </h3>
+      <ol className="mt-5 flex flex-col">
+        {entries.map((entry, i) => {
+          const Icon = ACTIVITY_ICON[entry.kind]
+          const last = i === entries.length - 1
+          return (
+            <li key={i} className="relative flex gap-3 pb-5 last:pb-0">
+              {!last && <span className="absolute left-4 top-9 h-[calc(100%-1.5rem)] w-px bg-border" aria-hidden />}
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1 pt-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <p className="text-sm font-semibold text-foreground">{entry.title}</p>
+                  <span className="text-xs text-muted-foreground">{entry.when}</span>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">{entry.detail}</p>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 function ResponseGauge({ submitted, total }: { submitted: number; total: number }) {
   const pct = total > 0 ? submitted / total : 0
   const r = 52

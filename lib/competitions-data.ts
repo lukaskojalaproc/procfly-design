@@ -215,7 +215,7 @@ export const competitions: Competition[] = [
   {
     id: "c7",
     ref: "CMP-1998",
-    title: "MacBook Pro procurement — design team",
+    title: "MacBook Pro procurement �� design team",
     description: "Closed competition for 14 design-team laptops.",
     category: "Hardware",
     status: "Awarded",
@@ -416,6 +416,11 @@ export function competitionActivity(c: Competition): ActivityEntry[] {
 /** Local number formatter (avoids a circular import on dashboard-data). */
 function formatBidAmount(n: number): string {
   return new Intl.NumberFormat("en-US").format(n)
+}
+
+/** Look up a competition by its human reference (e.g. "CMP-2042"). */
+export function getCompetitionByRef(ref: string) {
+  return competitions.find((c) => c.ref === ref)
 }
 
 export const competitionStats = {

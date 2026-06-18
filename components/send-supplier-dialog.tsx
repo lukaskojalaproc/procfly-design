@@ -35,7 +35,7 @@ export function SendSupplierDialog({ open, onOpenChange, po }: SendSupplierDialo
         ``,
         `Total (incl. VAT): ${formatAmount(total)} ${po.currency}`,
         `Payment terms: ${po.paymentTerms}`,
-        `Requested delivery: ${po.deliveryDate}`,
+        `Requested delivery: ${po.expectedDelivery}`,
         ``,
         `The full purchase order is attached as a PDF. Please confirm acceptance at your earliest convenience.`,
         ``,
@@ -137,7 +137,7 @@ export function SendSupplierDialog({ open, onOpenChange, po }: SendSupplierDialo
                 </ul>
                 <div className="grid grid-cols-2 gap-px bg-border text-xs">
                   <CardFact label="Payment terms" value={po.paymentTerms} />
-                  <CardFact label="Delivery" value={po.deliveryDate} />
+                  <CardFact label="Delivery" value={po.expectedDelivery} />
                 </div>
               </div>
 
