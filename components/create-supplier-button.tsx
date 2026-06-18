@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Network } from "lucide-react"
-import { CreateSupplierDialog } from "@/components/create-supplier-dialog"
+import { NewRequestDialog } from "@/components/new-request-dialog"
 
 export function CreateSupplierButton() {
   const [open, setOpen] = useState(false)
@@ -15,7 +15,8 @@ export function CreateSupplierButton() {
         <Network className="size-4" />
         New Supplier
       </button>
-      <CreateSupplierDialog open={open} onOpenChange={setOpen} />
+      {/* Opens the New Request flow directly on the "Add Supplier" form. */}
+      <NewRequestDialog open={open} onOpenChange={setOpen} hideTrigger initialCategory="supplier" />
     </>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -559,12 +559,15 @@ export function NewRequestDialog({
   open: openProp,
   onOpenChange,
   hideTrigger = false,
+  initialCategory,
 }: {
   /** Control the dialog from a parent (e.g. the sidebar nav item). */
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Hide the built-in "New Request" button when an external trigger is used. */
   hideTrigger?: boolean
+  /** Open directly on a given request type, skipping the category step. */
+  initialCategory?: CategoryId
 } = {}) {
   const isControlled = openProp !== undefined
   const [openState, setOpenState] = useState(false)
@@ -575,6 +578,15 @@ export function NewRequestDialog({
   }
   const [step, setStep] = useState(0)
   const [category, setCategory] = useState<CategoryId | null>(null)
+
+  // When opened with a preset category (e.g. "New Supplier"), skip the
+  // category picker and land directly on that request type's form.
+  useEffect(() => {
+    if (open && initialCategory) {
+      setCategory(initialCategory)
+      setStep((s) => (s === 0 ? 1 : s))
+    }
+  }, [open, initialCategory])
 
   // General
   const [department, setDepartment] = useState("")
