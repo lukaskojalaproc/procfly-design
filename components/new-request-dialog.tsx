@@ -142,6 +142,61 @@ const supplierStatusOptions = [
   "Competitive sourcing required",
 ]
 
+// Buy Software specific option sets
+const softwareProcurementCategories = [
+  "SaaS",
+  "Productivity",
+  "CRM",
+  "ERP",
+  "Finance",
+  "HR",
+  "Security",
+  "Analytics",
+  "Development Tools",
+  "Other Software",
+]
+const softwareTypes = ["SaaS", "On-Premise", "Hybrid"]
+const softwareAcquisitionTypes = ["New Software", "Replacement Software"]
+const licensePlans = ["Per User / Seat", "Flat Fee", "Usage Based", "Tiered", "Enterprise", "Free / Open Source"]
+const softwareBillingCycles = ["Monthly", "Quarterly", "Annual", "Multi-Year", "One-Time"]
+const subscriptionPeriods = ["1 month", "3 months", "6 months", "12 months", "24 months", "36 months", "Perpetual"]
+const cancellationNoticePeriods = ["30 days", "60 days", "90 days", "None", "Custom"]
+const personalDataCategoryOptions = [
+  "Contact details",
+  "Identification data",
+  "Financial data",
+  "Employment data",
+  "Location data",
+  "Behavioural / usage data",
+  "Special category (sensitive) data",
+]
+const dataSubjectTypeOptions = ["Employees", "Customers", "Suppliers", "Job applicants", "Website visitors", "Minors"]
+const dataHostingRegions = ["EU / EEA", "United Kingdom", "United States", "Global / Multi-region", "Other"]
+
+// Buy Software documents are rule-generated.
+const baseSoftwareDocs: DocSlot[] = [
+  { id: "quote", label: "Supplier quote", hint: "Pricing quote from the software vendor", required: true },
+  { id: "license", label: "License agreement", hint: "Software license or subscription agreement", required: true },
+  { id: "terms", label: "Terms & conditions", hint: "Vendor terms of service", required: false },
+]
+const conditionalSoftwareDocs: { doc: DocSlot; when: (ctx: SoftwareDocContext) => boolean }[] = [
+  { doc: { id: "dpa", label: "Data Processing Agreement (DPA)", hint: "Required when personal data is processed", required: true }, when: (c) => c.dpaRequired },
+  { doc: { id: "privacy", label: "Privacy documentation", hint: "Privacy policy / impact assessment", required: true }, when: (c) => c.privacyReview },
+  { doc: { id: "security", label: "Security documentation", hint: "Security overview / questionnaire", required: true }, when: (c) => c.securityReview },
+  { doc: { id: "soc2", label: "SOC 2 report", hint: "SOC 2 Type II report", required: false }, when: (c) => c.soc2 },
+  { doc: { id: "iso", label: "ISO 27001 certificate", hint: "ISO 27001 certification", required: false }, when: (c) => c.iso },
+  { doc: { id: "contract", label: "Contract draft", hint: "Draft contract for high-value or new supplier", required: true }, when: (c) => c.contract },
+]
+
+interface SoftwareDocContext {
+  dpaRequired: boolean
+  privacyReview: boolean
+  securityReview: boolean
+  soc2: boolean
+  iso: boolean
+  contract: boolean
+}
+
 const fieldClass =
   "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
 
@@ -153,7 +208,11 @@ interface LineItem {
   uom: string
   price: string
   // Service line items: how the rate is billed (Per hour, Per month, ...)
+  // Software line items: the billing cycle (Monthly, Annual, ...)
   billingPeriod: string
+  // Software line items: subscription period and one-time fee
+  subscriptionPeriod: string
+  oneTimeFee: string
   // Optional product details to help Procurement compare offers
   brand: string
   model: string
@@ -171,6 +230,8 @@ function emptyLine(id: number): LineItem {
     uom: "Unit",
     price: "",
     billingPeriod: "One-time",
+    subscriptionPeriod: "12 months",
+    oneTimeFee: "",
     brand: "",
     model: "",
     equivalentAllowed: true,
@@ -371,6 +432,40 @@ function Field({
   )
 }
 
+function ChipMultiSelect({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: string[]
+  selected: string[]
+  onToggle: (value: string) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt)
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            aria-pressed={active}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              active
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background text-muted-foreground hover:border-primary/40",
+            )}
+          >
+            {opt}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function NewRequestDialog() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
@@ -425,16 +520,40 @@ export function NewRequestDialog() {
 
   // Specific — software (SaaS / license)
   const [softwareName, setSoftwareName] = useState("")
-  const [licenseType, setLicenseType] = useState("SaaS subscription")
+  const [softwareType, setSoftwareType] = useState("SaaS")
+  const [itOwner, setItOwner] = useState("")
+  const [softwarePurpose, setSoftwarePurpose] = useState("")
+  const [softwareAcquisition, setSoftwareAcquisition] = useState("New Software")
+  const [existingSoftwareName, setExistingSoftwareName] = useState("")
+  const [replacementReason, setReplacementReason] = useState("")
   const [numberOfUsers, setNumberOfUsers] = useState("")
-  const [billingCycle, setBillingCycle] = useState("Annual")
   const [subscriptionStart, setSubscriptionStart] = useState("")
-  const [renewalType, setRenewalType] = useState("Auto-renew")
+  const [subscriptionEnd, setSubscriptionEnd] = useState("")
+  const [softwareContractDuration, setSoftwareContractDuration] = useState("")
+  // Software — license & renewal
+  const [licenseType, setLicenseType] = useState("Per User / Seat")
+  const [billingCycle, setBillingCycle] = useState("Annual")
+  const [softwareAutoRenewal, setSoftwareAutoRenewal] = useState("No")
   const [renewalDate, setRenewalDate] = useState("")
-  // Software — compliance (EU / GDPR)
-  const [dataProcessing, setDataProcessing] = useState("No personal data")
+  const [cancellationNotice, setCancellationNotice] = useState("30 days")
+  const [cancellationDeadline, setCancellationDeadline] = useState("")
+  // Software — data protection & compliance (EU / GDPR)
+  const [personalDataProcessed, setPersonalDataProcessed] = useState("No")
+  const [personalDataCategories, setPersonalDataCategories] = useState<string[]>([])
+  const [dataSubjectTypes, setDataSubjectTypes] = useState<string[]>([])
+  const [sensitiveDataProcessed, setSensitiveDataProcessed] = useState("No")
   const [hostingRegion, setHostingRegion] = useState("EU / EEA")
-  const [dpaRequired, setDpaRequired] = useState("Yes")
+  const [dpaAvailable, setDpaAvailable] = useState("Unknown")
+  const [privacyReviewRequired, setPrivacyReviewRequired] = useState("No")
+  const [securityReviewManual, setSecurityReviewManual] = useState("No")
+  // Software — security & IT
+  const [ssoRequired, setSsoRequired] = useState("No")
+  const [scimRequired, setScimRequired] = useState("No")
+  const [integrationsRequired, setIntegrationsRequired] = useState("No")
+  const [adminAccessRequired, setAdminAccessRequired] = useState("No")
+  const [soc2Available, setSoc2Available] = useState("Unknown")
+  const [iso27001Available, setIso27001Available] = useState("Unknown")
+  const [dataExportAvailable, setDataExportAvailable] = useState("Unknown")
   const [softwareOwner, setSoftwareOwner] = useState("")
 
   // Specific — supplier onboarding
@@ -472,10 +591,23 @@ export function NewRequestDialog() {
     (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.price) || 0),
     0,
   )
-  // For Buy Product and Buy Service the estimated total is always derived from
-  // line items (no manual amount). Other categories keep the manual fallback.
-  const reviewTotal = isProduct || isService ? lineItemsTotal : Number(amount) || lineItemsTotal
+  // Software line total includes recurring (seats × price per seat) plus any
+  // one-time fee per line.
+  const softwareLineItemsTotal = filledLines.reduce(
+    (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.price) || 0) + (Number(l.oneTimeFee) || 0),
+    0,
+  )
+  // For Buy Product / Service / Software the estimated total is always derived
+  // from line items (no manual amount). Other categories keep the fallback.
+  const reviewTotal = isSoftware
+    ? softwareLineItemsTotal
+    : isProduct || isService
+      ? lineItemsTotal
+      : Number(amount) || lineItemsTotal
   const fmt = (n: number) => n.toLocaleString("en-US")
+  // Total seats across all software line items (replaces a separate seat field).
+  const totalSeats = filledLines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+  const seatBasedLicensing = licenseType === "Per User / Seat"
 
   // High-value threshold drives extra document + quote requirements.
   const HIGH_VALUE = 25000
@@ -523,6 +655,47 @@ export function NewRequestDialog() {
       ]
     : []
 
+  // ---- Buy Software derivations ----
+  const isHighValueSoftware = isSoftware && reviewTotal >= HIGH_VALUE
+  const processesPersonalData = personalDataProcessed === "Yes"
+  // DPA is determined by rules: required whenever personal data is processed.
+  const dpaRequiredEffective = processesPersonalData
+  // Security review is auto-required for higher-risk requests.
+  const securityReviewEffective =
+    securityReviewManual === "Yes" ||
+    isHighValueSoftware ||
+    adminAccessRequired === "Yes" ||
+    integrationsRequired === "Yes" ||
+    procurementCategory === "Security" ||
+    (processesPersonalData && sensitiveDataProcessed === "Yes")
+  // Privacy review auto-required when sensitive personal data is processed.
+  const privacyReviewEffective =
+    privacyReviewRequired === "Yes" ||
+    (processesPersonalData && (sensitiveDataProcessed === "Yes" || hostingRegion === "United States" || hostingRegion === "Other"))
+  const isReplacement = softwareAcquisition === "Replacement Software"
+  const softwareNewSupplier = supplierState === "New supplier required"
+  const softwareContractNeeded = isHighValueSoftware || softwareNewSupplier
+  const subscriptionDatesInvalid =
+    !!subscriptionStart && !!subscriptionEnd && new Date(subscriptionEnd) < new Date(subscriptionStart)
+
+  const softwareDocs: DocSlot[] = isSoftware
+    ? [
+        ...baseSoftwareDocs,
+        ...conditionalSoftwareDocs
+          .filter(({ when }) =>
+            when({
+              dpaRequired: dpaRequiredEffective,
+              privacyReview: privacyReviewEffective,
+              securityReview: securityReviewEffective,
+              soc2: soc2Available === "Yes",
+              iso: iso27001Available === "Yes",
+              contract: softwareContractNeeded,
+            }),
+          )
+          .map(({ doc }) => doc),
+      ]
+    : []
+
   // Generate the Buy Product document list from rules instead of a fixed list.
   const productDocs: DocSlot[] = isProduct
     ? [
@@ -543,9 +716,11 @@ export function NewRequestDialog() {
     ? productDocs
     : isService
       ? serviceDocs
-      : isSupplier
-        ? supplierDocs
-        : purchaseDocs
+      : isSoftware
+        ? softwareDocs
+        : isSupplier
+          ? supplierDocs
+          : purchaseDocs
   const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
   const uploadedDocCount = Object.keys(docs).length + extraDocs.length
 
@@ -593,6 +768,44 @@ export function NewRequestDialog() {
       serviceErrors.push("Description must explain the justification, not repeat the title")
   }
 
+  // Buy Software validation
+  const softwareErrors: string[] = []
+  if (isSoftware) {
+    if (!requestTitle.trim()) softwareErrors.push("Request Title is required")
+    if (!description.trim()) softwareErrors.push("Description / Business Justification is required")
+    if (!department) softwareErrors.push("Department is required")
+    if (!costCenter) softwareErrors.push("Cost Center is required")
+    if (!procurementCategory) softwareErrors.push("Procurement Category is required")
+    if (!softwareName.trim()) softwareErrors.push("Software Name is required")
+    if (!businessOwner.trim()) softwareErrors.push("Business Owner is required")
+    if (isReplacement && !existingSoftwareName.trim())
+      softwareErrors.push("Existing Software Name is required for a replacement")
+    if (isReplacement && !replacementReason.trim())
+      softwareErrors.push("Replacement Reason is required for a replacement")
+    if (filledLines.length === 0) softwareErrors.push("At least one line item is required")
+    if (filledLines.some((l) => !(Number(l.price) > 0)))
+      softwareErrors.push("Each line item needs a price greater than zero")
+    // Seat-based licensing requires seats per line and an overall seat count.
+    if (seatBasedLicensing) {
+      if (filledLines.some((l) => !(Number(l.qty) > 0)))
+        softwareErrors.push("Seat-based licensing requires a number of seats greater than zero on each line")
+      if (totalSeats <= 0) softwareErrors.push("Number of Users / Seats is required for seat-based licensing")
+    }
+    // Illogical combination guard.
+    if (!processesPersonalData && dpaAvailable === "Yes" && privacyReviewRequired === "Yes")
+      softwareErrors.push("Privacy review can't be required when no personal data is processed")
+    // Auto-renew without renewal information.
+    if (softwareAutoRenewal === "Yes" && !renewalDate && !cancellationDeadline)
+      softwareErrors.push("Auto Renewal requires a renewal date or cancellation deadline")
+    if (subscriptionDatesInvalid) softwareErrors.push("Subscription End Date cannot be before the Start Date")
+    if (
+      description.trim() &&
+      requestTitle.trim() &&
+      description.trim().toLowerCase() === requestTitle.trim().toLowerCase()
+    )
+      softwareErrors.push("Description must explain the justification, not repeat the title")
+  }
+
   function reset() {
     setStep(0)
     setCategory(null)
@@ -629,15 +842,37 @@ export function NewRequestDialog() {
     setRegion("")
     setBusinessOwner("")
     setSoftwareName("")
-    setLicenseType("SaaS subscription")
+    setSoftwareType("SaaS")
+    setItOwner("")
+    setSoftwarePurpose("")
+    setSoftwareAcquisition("New Software")
+    setExistingSoftwareName("")
+    setReplacementReason("")
     setNumberOfUsers("")
-    setBillingCycle("Annual")
     setSubscriptionStart("")
-    setRenewalType("Auto-renew")
+    setSubscriptionEnd("")
+    setSoftwareContractDuration("")
+    setLicenseType("Per User / Seat")
+    setBillingCycle("Annual")
+    setSoftwareAutoRenewal("No")
     setRenewalDate("")
-    setDataProcessing("No personal data")
+    setCancellationNotice("30 days")
+    setCancellationDeadline("")
+    setPersonalDataProcessed("No")
+    setPersonalDataCategories([])
+    setDataSubjectTypes([])
+    setSensitiveDataProcessed("No")
     setHostingRegion("EU / EEA")
-    setDpaRequired("Yes")
+    setDpaAvailable("Unknown")
+    setPrivacyReviewRequired("No")
+    setSecurityReviewManual("No")
+    setSsoRequired("No")
+    setScimRequired("No")
+    setIntegrationsRequired("No")
+    setAdminAccessRequired("No")
+    setSoc2Available("Unknown")
+    setIso27001Available("Unknown")
+    setDataExportAvailable("Unknown")
     setSoftwareOwner("")
     setSupplierName("")
     setCountry("")
@@ -720,8 +955,10 @@ export function NewRequestDialog() {
         ? productErrors.length === 0
         : isService
           ? serviceErrors.length === 0
-          : department.trim() !== "" &&
-            (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
+          : isSoftware
+            ? softwareErrors.length === 0
+            : department.trim() !== "" &&
+              (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
     (step === 2 && !requiredDocsMissing) ||
     step === 3
 
@@ -746,7 +983,13 @@ export function NewRequestDialog() {
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
               {step === 1 &&
-                (isProduct ? "Buy Product request" : isService ? "Buy Service request" : "Create a purchase request")}
+                (isProduct
+                  ? "Buy Product request"
+                  : isService
+                    ? "Buy Service request"
+                    : isSoftware
+                      ? "Buy Software request"
+                      : "Create a purchase request")}
               {step === 2 && "Upload supporting documents"}
               {step === 3 && "Review Request"}
             </DialogTitle>
@@ -1711,7 +1954,662 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 1 && !isProduct && !isService && (
+            {step === 1 && isSoftware && (
+              <div className="flex flex-col gap-5">
+                {/* GENERAL */}
+                <Section
+                  icon={Layers}
+                  iconClass="bg-primary/12 text-primary"
+                  title="General"
+                  subtitle="The core details of the software request and why it is needed."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field label="Request Title" required>
+                        <input
+                          value={requestTitle}
+                          onChange={(e) => setRequestTitle(e.target.value)}
+                          placeholder="e.g. CRM platform – Sales team"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="Description / Business Justification"
+                        required
+                        hint="Explain why the software is needed and the expected outcome — don't repeat the title."
+                      >
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Why is this software needed? What problem does it solve?"
+                          rows={3}
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Department" required>
+                      <select value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldClass}>
+                        <option value="">Choose department...</option>
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Cost Center" required>
+                      <select value={costCenter} onChange={(e) => setCostCenter(e.target.value)} className={fieldClass}>
+                        <option value="">Choose cost center...</option>
+                        {costCenters.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Request Type" hint="Request type cannot be changed here.">
+                      <input
+                        readOnly
+                        value="Buy Software"
+                        className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <Field label="Procurement Category" required hint="Drives approval routing and reporting.">
+                      <select
+                        value={procurementCategory}
+                        onChange={(e) => setProcurementCategory(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose category...</option>
+                        {softwareProcurementCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Business Priority" required>
+                      <select
+                        value={businessPriority}
+                        onChange={(e) => setBusinessPriority(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {businessPriorities.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Currency">
+                      <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={fieldClass}>
+                        {["EUR", "USD", "GBP", "PLN"].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* SOFTWARE DETAILS */}
+                <Section
+                  icon={Monitor}
+                  iconClass="bg-chart-2/15 text-chart-2"
+                  title="Software Details"
+                  subtitle="What the software is, who owns it, and how it is acquired."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Software Name" required>
+                      <input
+                        value={softwareName}
+                        onChange={(e) => setSoftwareName(e.target.value)}
+                        placeholder="e.g. Salesforce Sales Cloud"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Software Type">
+                      <select value={softwareType} onChange={(e) => setSoftwareType(e.target.value)} className={fieldClass}>
+                        {softwareTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <div className="sm:col-span-2">
+                      <Field label="Software Purpose" hint="What the tool will be used for.">
+                        <input
+                          value={softwarePurpose}
+                          onChange={(e) => setSoftwarePurpose(e.target.value)}
+                          placeholder="e.g. Manage the sales pipeline and customer records"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Business Owner" required hint="Owns the tool, budget and renewals.">
+                      <input
+                        value={businessOwner}
+                        onChange={(e) => setBusinessOwner(e.target.value)}
+                        placeholder="e.g. Jane Doe"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="IT Owner" hint="Technical owner / admin.">
+                      <input
+                        value={itOwner}
+                        onChange={(e) => setItOwner(e.target.value)}
+                        placeholder="e.g. IT Service Desk"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Preferred Supplier" hint="Optional — leave blank if not known yet.">
+                      <select
+                        value={supplierState === "Supplier selected" ? supplier : ""}
+                        onChange={(e) => {
+                          setSupplier(e.target.value)
+                          setSupplierState(e.target.value ? "Supplier selected" : "Supplier not selected")
+                        }}
+                        className={fieldClass}
+                      >
+                        <option value="">Not selected</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Supplier status">
+                      <select
+                        value={supplierState}
+                        onChange={(e) => {
+                          setSupplierState(e.target.value)
+                          if (e.target.value !== "Supplier selected") setSupplier("")
+                        }}
+                        className={fieldClass}
+                      >
+                        {supplierStatusOptions.concat("New supplier required").filter((v, i, a) => a.indexOf(v) === i).map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Subscription Start Date">
+                      <input
+                        type="date"
+                        value={subscriptionStart}
+                        onChange={(e) => setSubscriptionStart(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field
+                      label="Subscription End Date"
+                      error={subscriptionDatesInvalid ? "End date cannot be before the start date." : undefined}
+                    >
+                      <input
+                        type="date"
+                        value={subscriptionEnd}
+                        min={subscriptionStart || undefined}
+                        onChange={(e) => setSubscriptionEnd(e.target.value)}
+                        className={cn(
+                          fieldClass,
+                          subscriptionDatesInvalid && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                    <Field label="Contract Duration" hint="e.g. 12 months">
+                      <input
+                        value={softwareContractDuration}
+                        onChange={(e) => setSoftwareContractDuration(e.target.value)}
+                        placeholder="e.g. 12 months"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Number of Users / Seats" hint="Calculated from line items.">
+                      <input
+                        readOnly
+                        value={totalSeats > 0 ? String(totalSeats) : "—"}
+                        className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <Field label="New Software / Replacement">
+                      <select
+                        value={softwareAcquisition}
+                        onChange={(e) => setSoftwareAcquisition(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {softwareAcquisitionTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    {isReplacement && (
+                      <>
+                        <Field label="Existing Software Name" required>
+                          <input
+                            value={existingSoftwareName}
+                            onChange={(e) => setExistingSoftwareName(e.target.value)}
+                            placeholder="Software being replaced"
+                            className={fieldClass}
+                          />
+                        </Field>
+                        <div className="sm:col-span-2">
+                          <Field label="Replacement Reason" required>
+                            <Textarea
+                              value={replacementReason}
+                              onChange={(e) => setReplacementReason(e.target.value)}
+                              placeholder="Why is the existing software being replaced?"
+                              rows={2}
+                              className={fieldClass}
+                            />
+                          </Field>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </Section>
+
+                {/* LICENSE & RENEWAL */}
+                <Section
+                  icon={CalendarClock}
+                  iconClass="bg-primary/12 text-primary"
+                  title="License & Renewal"
+                  subtitle="Licensing model and renewal / cancellation terms."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="License Type">
+                      <select value={licenseType} onChange={(e) => setLicenseType(e.target.value)} className={fieldClass}>
+                        {licensePlans.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Billing Cycle">
+                      <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)} className={fieldClass}>
+                        {softwareBillingCycles.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Auto Renewal">
+                      <select
+                        value={softwareAutoRenewal}
+                        onChange={(e) => setSoftwareAutoRenewal(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    </Field>
+                    <Field
+                      label="Renewal Date"
+                      error={
+                        softwareAutoRenewal === "Yes" && !renewalDate && !cancellationDeadline
+                          ? "Provide a renewal date or cancellation deadline."
+                          : undefined
+                      }
+                    >
+                      <input
+                        type="date"
+                        value={renewalDate}
+                        onChange={(e) => setRenewalDate(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Cancellation Notice Period">
+                      <select
+                        value={cancellationNotice}
+                        onChange={(e) => setCancellationNotice(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {cancellationNoticePeriods.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Cancellation Deadline" hint="Last day to cancel before renewal.">
+                      <input
+                        type="date"
+                        value={cancellationDeadline}
+                        onChange={(e) => setCancellationDeadline(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* DATA PROTECTION & COMPLIANCE */}
+                <Section
+                  icon={ShieldCheck}
+                  iconClass="bg-destructive/12 text-destructive"
+                  title="Data Protection & Compliance"
+                  subtitle="GDPR review. Privacy fields appear only when personal data is processed."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Personal Data Processed" hint="Does the tool process personal data?">
+                      <select
+                        value={personalDataProcessed}
+                        onChange={(e) => {
+                          setPersonalDataProcessed(e.target.value)
+                          if (e.target.value === "No") {
+                            setPersonalDataCategories([])
+                            setDataSubjectTypes([])
+                            setSensitiveDataProcessed("No")
+                            setPrivacyReviewRequired("No")
+                            setDpaAvailable("Unknown")
+                          }
+                        }}
+                        className={fieldClass}
+                      >
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    </Field>
+                    <Field label="Data Hosting Region">
+                      <select value={hostingRegion} onChange={(e) => setHostingRegion(e.target.value)} className={fieldClass}>
+                        {dataHostingRegions.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    {processesPersonalData && (
+                      <>
+                        <div className="sm:col-span-2">
+                          <Field label="Personal Data Categories">
+                            <ChipMultiSelect
+                              options={personalDataCategoryOptions}
+                              selected={personalDataCategories}
+                              onToggle={(v) =>
+                                setPersonalDataCategories((prev) =>
+                                  prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+                                )
+                              }
+                            />
+                          </Field>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Field label="Data Subject Types">
+                            <ChipMultiSelect
+                              options={dataSubjectTypeOptions}
+                              selected={dataSubjectTypes}
+                              onToggle={(v) =>
+                                setDataSubjectTypes((prev) =>
+                                  prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+                                )
+                              }
+                            />
+                          </Field>
+                        </div>
+                        <Field label="Sensitive Data Processed" hint="Special category data under GDPR.">
+                          <select
+                            value={sensitiveDataProcessed}
+                            onChange={(e) => setSensitiveDataProcessed(e.target.value)}
+                            className={fieldClass}
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        </Field>
+                        <Field label="DPA Required" hint="Determined automatically by GDPR rules.">
+                          <input
+                            readOnly
+                            value={dpaRequiredEffective ? "Yes (auto)" : "No"}
+                            className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                          />
+                        </Field>
+                        <Field label="DPA Available">
+                          <select value={dpaAvailable} onChange={(e) => setDpaAvailable(e.target.value)} className={fieldClass}>
+                            <option value="Unknown">Unknown</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                        </Field>
+                        <Field label="Privacy Review Required">
+                          <select
+                            value={privacyReviewEffective ? "Yes" : privacyReviewRequired}
+                            onChange={(e) => setPrivacyReviewRequired(e.target.value)}
+                            disabled={privacyReviewEffective}
+                            className={cn(fieldClass, privacyReviewEffective && "bg-muted/50 text-muted-foreground")}
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        </Field>
+                      </>
+                    )}
+
+                    <Field label="Security Review Required" hint={securityReviewEffective ? "Auto-required for this request." : undefined}>
+                      <select
+                        value={securityReviewEffective ? "Yes" : securityReviewManual}
+                        onChange={(e) => setSecurityReviewManual(e.target.value)}
+                        disabled={securityReviewEffective}
+                        className={cn(fieldClass, securityReviewEffective && "bg-muted/50 text-muted-foreground")}
+                      >
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* SECURITY & IT */}
+                <Section
+                  icon={Settings2}
+                  iconClass="bg-chart-3/12 text-chart-3"
+                  title="Security & IT"
+                  subtitle="Integration, access, and certification requirements."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {[
+                      { label: "SSO Required", value: ssoRequired, set: setSsoRequired },
+                      { label: "SCIM Required", value: scimRequired, set: setScimRequired },
+                      { label: "Integrations Required", value: integrationsRequired, set: setIntegrationsRequired },
+                      { label: "Admin Access Required", value: adminAccessRequired, set: setAdminAccessRequired },
+                    ].map((f) => (
+                      <Field key={f.label} label={f.label}>
+                        <select value={f.value} onChange={(e) => f.set(e.target.value)} className={fieldClass}>
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </Field>
+                    ))}
+                    {[
+                      { label: "SOC 2 Available", value: soc2Available, set: setSoc2Available },
+                      { label: "ISO 27001 Available", value: iso27001Available, set: setIso27001Available },
+                      { label: "Data Export Available", value: dataExportAvailable, set: setDataExportAvailable },
+                    ].map((f) => (
+                      <Field key={f.label} label={f.label}>
+                        <select value={f.value} onChange={(e) => f.set(e.target.value)} className={fieldClass}>
+                          <option value="Unknown">Unknown</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                      </Field>
+                    ))}
+                  </div>
+                </Section>
+
+                {/* LINE ITEMS */}
+                <Section
+                  icon={ListChecks}
+                  iconClass="bg-primary/12 text-primary"
+                  title="Line Items"
+                  subtitle="Add a line per license / plan. The estimated total is calculated automatically."
+                >
+                  <div className="flex flex-col gap-4">
+                    {lines.map((line, idx) => {
+                      const seats = Number(line.qty) || 0
+                      const perSeat = Number(line.price) || 0
+                      const oneTime = Number(line.oneTimeFee) || 0
+                      const recurring = seats * perSeat
+                      const lineTotal = recurring + oneTime
+                      return (
+                        <div key={line.id} className="rounded-xl border border-border bg-background p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Item {idx + 1}
+                            </span>
+                            <button
+                              onClick={() => removeLine(line.id)}
+                              disabled={lines.length === 1}
+                              aria-label="Remove line item"
+                              className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                            <div className="sm:col-span-3">
+                              <Field label="License / Plan" required>
+                                <input
+                                  value={line.name}
+                                  onChange={(e) => updateLine(line.id, "name", e.target.value)}
+                                  placeholder="e.g. Enterprise plan"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Seats" required={seatBasedLicensing}>
+                                <input
+                                  value={line.qty}
+                                  onChange={(e) => updateLine(line.id, "qty", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="25"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Price / Seat" required>
+                                <input
+                                  value={line.price}
+                                  onChange={(e) => updateLine(line.id, "price", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="0.00"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="One-Time Fee">
+                                <input
+                                  value={line.oneTimeFee}
+                                  onChange={(e) => updateLine(line.id, "oneTimeFee", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="0.00"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Billing Cycle">
+                                <select
+                                  value={line.billingPeriod}
+                                  onChange={(e) => updateLine(line.id, "billingPeriod", e.target.value)}
+                                  className={fieldClass}
+                                >
+                                  {softwareBillingCycles.map((b) => (
+                                    <option key={b} value={b}>
+                                      {b}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Subscription Period">
+                                <select
+                                  value={line.subscriptionPeriod}
+                                  onChange={(e) => updateLine(line.id, "subscriptionPeriod", e.target.value)}
+                                  className={fieldClass}
+                                >
+                                  {subscriptionPeriods.map((p) => (
+                                    <option key={p} value={p}>
+                                      {p}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Line Total" hint="Recurring + one-time">
+                                <input
+                                  readOnly
+                                  value={lineTotal ? `${fmt(lineTotal)} ${currency}` : "—"}
+                                  className={cn(fieldClass, "bg-muted/50 font-semibold text-foreground")}
+                                />
+                              </Field>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    <button
+                      onClick={addLine}
+                      className="flex w-fit items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                    >
+                      <Plus className="size-4" />
+                      Add Line Item
+                    </button>
+
+                    <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+                      <span className="text-sm font-medium text-muted-foreground">Estimated Total</span>
+                      <span className="text-lg font-bold text-foreground">
+                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : `0 ${currency}`}
+                      </span>
+                    </div>
+                  </div>
+                </Section>
+
+                {/* ADDITIONAL INFORMATION */}
+                <Section
+                  icon={Settings2}
+                  iconClass="bg-chart-3/12 text-chart-3"
+                  title="Additional Information"
+                  subtitle="Optional notes or workspace-specific details."
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Workspace-specific fields can be configured by an administrator. None are required for this request.
+                  </p>
+                </Section>
+
+                {softwareErrors.length > 0 && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        Resolve the following before continuing
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {softwareErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 1 && !isProduct && !isService && !isSoftware && (
               <div className="flex flex-col gap-5">
                 <Section
                   icon={Layers}
@@ -2008,138 +2906,6 @@ export function NewRequestDialog() {
                   </Section>
                 )}
 
-                {isSoftware && (
-                  <Section
-                    icon={Monitor}
-                    iconClass="bg-chart-2/15 text-chart-2"
-                    title="License & renewal"
-                    subtitle="License model and renewal terms for budgeting and contract tracking."
-                  >
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <Field label="License type">
-                        <select
-                          value={licenseType}
-                          onChange={(e) => setLicenseType(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {[
-                            "SaaS subscription",
-                            "Perpetual license",
-                            "Per-seat license",
-                            "Usage-based",
-                            "Open source / support",
-                          ].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Renewal">
-                        <select
-                          value={renewalType}
-                          onChange={(e) => setRenewalType(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {["Auto-renew", "Manual renewal", "No renewal (one-time)"].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field
-                        label="Renewal / notice date"
-                        hint="Trigger a reminder before auto-renewal"
-                      >
-                        <input
-                          type="date"
-                          value={renewalDate}
-                          onChange={(e) => setRenewalDate(e.target.value)}
-                          disabled={renewalType === "No renewal (one-time)"}
-                          className={cn(
-                            fieldClass,
-                            renewalType === "No renewal (one-time)" && "opacity-50",
-                          )}
-                        />
-                      </Field>
-                    </div>
-                  </Section>
-                )}
-
-                {isSoftware && (
-                  <Section
-                    icon={ShieldCheck}
-                    iconClass="bg-destructive/12 text-destructive"
-                    title="Data protection & compliance"
-                    subtitle="Required for GDPR review before the tool can be approved."
-                  >
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field
-                        label="Personal data processed"
-                        hint="Does the tool process personal data?"
-                      >
-                        <select
-                          value={dataProcessing}
-                          onChange={(e) => setDataProcessing(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {[
-                            "No personal data",
-                            "Employee data",
-                            "Customer data",
-                            "Special category data",
-                          ].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Data hosting region" hint="Where data is stored">
-                        <select
-                          value={hostingRegion}
-                          onChange={(e) => setHostingRegion(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {[
-                            "EU / EEA",
-                            "UK (adequacy)",
-                            "US (DPF certified)",
-                            "Other / non-EU",
-                          ].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="DPA required" hint="Data Processing Agreement">
-                        <select
-                          value={dpaRequired}
-                          onChange={(e) => setDpaRequired(e.target.value)}
-                          disabled={dataProcessing === "No personal data"}
-                          className={cn(
-                            fieldClass,
-                            dataProcessing === "No personal data" && "opacity-50",
-                          )}
-                        >
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                      </Field>
-                      <Field label="Internal owner" required>
-                        <input
-                          value={softwareOwner}
-                          onChange={(e) => setSoftwareOwner(e.target.value)}
-                          placeholder="Person responsible for the tool"
-                          className={fieldClass}
-                        />
-                      </Field>
-                    </div>
-                  </Section>
-                )}
-
                 {isSupplier && (
                   <Section
                     icon={Receipt}
@@ -2371,18 +3137,20 @@ export function NewRequestDialog() {
                   subtitle={
                     isSupplier
                       ? "Required for vendor due-diligence and onboarding."
-                      : isProduct || isService
+                      : isProduct || isService || isSoftware
                         ? "Requirements are generated automatically from this request."
                         : "Attach quotes and approvals to support this request."
                   }
                 >
-                  {(isProduct || isService) && (
+                  {(isProduct || isService || isSoftware) && (
                     <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
                       <Info className="mt-0.5 size-4 shrink-0 text-primary" />
                       <p className="text-xs text-muted-foreground">
-                        {isService
-                          ? "Document requirements below are generated from the contract requirement, statement of work, service value, and supplier status. They update as your request changes."
-                          : "Document requirements below are generated from the request value, procurement category, and line item details. They update as your request changes."}
+                        {isSoftware
+                          ? "Document requirements below are generated from data protection, security, certification, and contract rules. They update as your request changes."
+                          : isService
+                            ? "Document requirements below are generated from the contract requirement, statement of work, service value, and supplier status. They update as your request changes."
+                            : "Document requirements below are generated from the request value, procurement category, and line item details. They update as your request changes."}
                       </p>
                     </div>
                   )}
@@ -2940,7 +3708,280 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 3 && !isProduct && !isService && (
+            {step === 3 && isSoftware && (
+              <div className="flex flex-col gap-5">
+                {/* Validation summary */}
+                {softwareErrors.length > 0 ? (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        {softwareErrors.length} issue{softwareErrors.length === 1 ? "" : "s"} must be resolved before submitting
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {softwareErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <Check className="size-4 shrink-0 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      All required information is complete. Ready to submit for approval.
+                    </p>
+                  </div>
+                )}
+
+                {/* Software details */}
+                <ReviewBlock title="Software Details" onEdit={() => setStep(1)}>
+                  <MetaCell label="Request Type" value="Buy Software" />
+                  <MetaCell label="Request Title" value={requestTitle || "Not provided"} />
+                  <MetaCell label="Software Name" value={softwareName || "Not provided"} />
+                  <MetaCell label="Software Type" value={softwareType} />
+                  <MetaCell label="Department" value={department || "Not provided"} />
+                  <MetaCell label="Cost Center" value={costCenter || "Not provided"} />
+                  <MetaCell label="Procurement Category" value={procurementCategory || "Not provided"} />
+                  <MetaCell label="Business Priority" value={businessPriority} />
+                  <MetaCell label="Business Owner" value={businessOwner || "Not provided"} />
+                  <MetaCell label="IT Owner" value={itOwner || "Not provided"} />
+                  <MetaCell
+                    label="Preferred Supplier"
+                    value={supplier || (supplierState !== "Supplier selected" ? supplierState : "Not selected")}
+                  />
+                  <MetaCell label="Acquisition" value={softwareAcquisition} />
+                  {isReplacement && <MetaCell label="Replacing" value={existingSoftwareName || "Not provided"} />}
+                  <div className="col-span-2 sm:col-span-4">
+                    <MetaCell label="Description / Business Justification" value={description || "Not provided"} />
+                  </div>
+                </ReviewBlock>
+
+                {/* Licensing details */}
+                <ReviewBlock title="Licensing Details" onEdit={() => setStep(1)}>
+                  <MetaCell label="License Type" value={licenseType} />
+                  <MetaCell label="Billing Cycle" value={billingCycle} />
+                  <MetaCell label="Number of Seats" value={totalSeats > 0 ? String(totalSeats) : "—"} />
+                  <MetaCell label="Contract Duration" value={softwareContractDuration || "Not set"} />
+                  <MetaCell
+                    label="Subscription Start"
+                    value={subscriptionStart ? new Date(subscriptionStart).toLocaleDateString("en-GB") : "Not set"}
+                  />
+                  <MetaCell
+                    label="Subscription End"
+                    value={subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-GB") : "Not set"}
+                  />
+                  <MetaCell label="Auto Renewal" value={softwareAutoRenewal} />
+                  <MetaCell
+                    label="Renewal Date"
+                    value={renewalDate ? new Date(renewalDate).toLocaleDateString("en-GB") : "Not set"}
+                  />
+                  <MetaCell label="Cancellation Notice" value={cancellationNotice} />
+                  <MetaCell
+                    label="Cancellation Deadline"
+                    value={cancellationDeadline ? new Date(cancellationDeadline).toLocaleDateString("en-GB") : "Not set"}
+                  />
+                </ReviewBlock>
+
+                {/* Data protection details */}
+                <ReviewBlock title="Data Protection Details" onEdit={() => setStep(1)}>
+                  <MetaCell label="Personal Data Processed" value={personalDataProcessed} />
+                  <MetaCell label="Data Hosting Region" value={hostingRegion} />
+                  {processesPersonalData && (
+                    <>
+                      <MetaCell label="Sensitive Data" value={sensitiveDataProcessed} />
+                      <MetaCell label="DPA Required" value={dpaRequiredEffective ? "Yes" : "No"} />
+                      <MetaCell label="DPA Available" value={dpaAvailable} />
+                      <MetaCell label="Privacy Review" value={privacyReviewEffective ? "Yes" : "No"} />
+                      <div className="col-span-2 sm:col-span-4">
+                        <MetaCell
+                          label="Personal Data Categories"
+                          value={personalDataCategories.length ? personalDataCategories.join(", ") : "None selected"}
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-4">
+                        <MetaCell
+                          label="Data Subject Types"
+                          value={dataSubjectTypes.length ? dataSubjectTypes.join(", ") : "None selected"}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <MetaCell label="Security Review" value={securityReviewEffective ? "Yes" : "No"} />
+                </ReviewBlock>
+
+                {/* Security details */}
+                <ReviewBlock title="Security Details" onEdit={() => setStep(1)}>
+                  <MetaCell label="SSO Required" value={ssoRequired} />
+                  <MetaCell label="SCIM Required" value={scimRequired} />
+                  <MetaCell label="Integrations Required" value={integrationsRequired} />
+                  <MetaCell label="Admin Access Required" value={adminAccessRequired} />
+                  <MetaCell label="SOC 2 Available" value={soc2Available} />
+                  <MetaCell label="ISO 27001 Available" value={iso27001Available} />
+                  <MetaCell label="Data Export Available" value={dataExportAvailable} />
+                </ReviewBlock>
+
+                {/* Line items */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Line Items</h3>
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <th className="px-5 py-3 text-left font-semibold">License / Plan</th>
+                          <th className="px-5 py-3 text-center font-semibold">Seats</th>
+                          <th className="px-5 py-3 text-right font-semibold">Price / Seat</th>
+                          <th className="px-5 py-3 text-right font-semibold">One-Time</th>
+                          <th className="px-5 py-3 text-center font-semibold">Billing</th>
+                          <th className="px-5 py-3 text-right font-semibold">Line total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filledLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-5 py-6 text-center text-muted-foreground">
+                              No line items added.
+                            </td>
+                          </tr>
+                        ) : (
+                          filledLines.map((l) => {
+                            const seats = Number(l.qty) || 0
+                            const perSeat = Number(l.price) || 0
+                            const oneTime = Number(l.oneTimeFee) || 0
+                            const lineTotal = seats * perSeat + oneTime
+                            return (
+                              <tr key={l.id}>
+                                <td className="px-5 py-3">
+                                  <p className="font-medium text-foreground">{l.name}</p>
+                                  <p className="text-xs text-muted-foreground">{l.subscriptionPeriod}</p>
+                                </td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{seats || "—"}</td>
+                                <td className="px-5 py-3 text-right text-muted-foreground">
+                                  {perSeat ? `${fmt(perSeat)} ${currency}` : "—"}
+                                </td>
+                                <td className="px-5 py-3 text-right text-muted-foreground">
+                                  {oneTime ? `${fmt(oneTime)} ${currency}` : "—"}
+                                </td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{l.billingPeriod}</td>
+                                <td className="px-5 py-3 text-right font-semibold text-foreground">
+                                  {lineTotal ? `${fmt(lineTotal)} ${currency}` : "—"}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-muted/40">
+                          <td colSpan={5} className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Estimated Total
+                          </td>
+                          <td className="px-5 py-3 text-right text-base font-bold text-foreground">
+                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Documents</h3>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    {uploadedDocCount === 0 ? (
+                      <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    ) : (
+                      <>
+                        {docSlots
+                          .filter((d) => docs[d.id])
+                          .map((d) => (
+                            <div key={d.id} className="flex items-center gap-3 text-sm">
+                              <FileCheck2 className="size-4 shrink-0 text-primary" />
+                              <span className="font-medium text-foreground">{d.label}</span>
+                              <span className="truncate text-muted-foreground">{docs[d.id]}</span>
+                            </div>
+                          ))}
+                        {extraDocs.map((name, i) => (
+                          <div key={`x-${i}`} className="flex items-center gap-3 text-sm">
+                            <FileCheck2 className="size-4 shrink-0 text-primary" />
+                            <span className="truncate text-muted-foreground">{name}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {requiredDocsMissing && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertCircle className="size-3.5" />
+                        Mandatory documents are still missing.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval route preview */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border p-5">
+                    <Workflow className="size-4 text-primary" />
+                    <h3 className="font-semibold text-foreground">Generated Approval Route</h3>
+                  </div>
+                  <div className="flex flex-col gap-3 p-5">
+                    {[
+                      { role: "Requester", who: "You", note: "Submits the request" },
+                      { role: "Department Manager", who: department || "Department head", note: "Reviews need & budget" },
+                      { role: "Business Owner", who: businessOwner || "Software owner", note: "Confirms business need" },
+                      { role: "IT", who: itOwner || "IT team", note: "Technical & integration review" },
+                      ...(processesPersonalData
+                        ? [{ role: "Data Protection Officer", who: "DPO", note: "GDPR / DPA review" }]
+                        : []),
+                      ...(securityReviewEffective
+                        ? [{ role: "Security", who: "Security team", note: "Security assessment" }]
+                        : []),
+                      ...(isHighValueSoftware
+                        ? [{ role: "Finance", who: "Finance team", note: "High-value approval" }]
+                        : []),
+                      { role: "Procurement", who: "Procurement team", note: "Sourcing & contract" },
+                    ].map((s, i, arr) => (
+                      <div key={s.role} className="flex items-center gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{s.role}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.who} · {s.note}
+                          </p>
+                        </div>
+                        {i < arr.length - 1 && <ChevronRight className="size-4 text-muted-foreground" />}
+                      </div>
+                    ))}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Approval steps are generated from procurement category, software type, data protection, security review, value, and supplier status — not hard-coded.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && !isProduct && !isService && !isSoftware && (
               <div className="flex flex-col gap-5">
                 {/* Summary card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -3107,58 +4148,6 @@ export function NewRequestDialog() {
                 </div>
                 )}
 
-                {/* Software license & compliance card */}
-                {isSoftware && (
-                  <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <div className="border-b border-border p-5">
-                      <h3 className="font-semibold text-foreground">License &amp; Compliance</h3>
-                    </div>
-
-                    <ReviewGroup title="Subscription & cost">
-                      <MetaCell label="Software" value={softwareName || "Not provided"} />
-                      <MetaCell label="Users / seats" value={numberOfUsers || "Not provided"} />
-                      <MetaCell
-                        label="Start date"
-                        value={
-                          subscriptionStart
-                            ? new Date(subscriptionStart).toLocaleDateString("en-GB")
-                            : "Not set"
-                        }
-                      />
-                      <MetaCell
-                        label={`Contract value (${billingCycle.toLowerCase()})`}
-                        value={reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
-                      />
-                    </ReviewGroup>
-
-                    <ReviewGroup title="License & renewal">
-                      <MetaCell label="License type" value={licenseType} />
-                      <MetaCell label="Billing cycle" value={billingCycle} />
-                      <MetaCell label="Renewal" value={renewalType} />
-                      <MetaCell
-                        label="Renewal date"
-                        value={
-                          renewalType === "No renewal (one-time)"
-                            ? "—"
-                            : renewalDate
-                              ? new Date(renewalDate).toLocaleDateString("en-GB")
-                              : "Not set"
-                        }
-                      />
-                    </ReviewGroup>
-
-                    <ReviewGroup title="Data protection (GDPR)" last>
-                      <MetaCell label="Personal data" value={dataProcessing} />
-                      <MetaCell label="Hosting region" value={hostingRegion} />
-                      <MetaCell
-                        label="DPA required"
-                        value={dataProcessing === "No personal data" ? "—" : dpaRequired}
-                      />
-                      <MetaCell label="Internal owner" value={softwareOwner || "Not provided"} />
-                    </ReviewGroup>
-                  </div>
-                )}
-
                 {/* Documents card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="flex items-center justify-between border-b border-border p-5">
@@ -3232,7 +4221,7 @@ export function NewRequestDialog() {
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 3 ? (isProduct || isService ? "Submit for Approval" : "Create") : "Next"}
+                {step === 3 ? (isProduct || isService || isSoftware ? "Submit for Approval" : "Create") : "Next"}
                 {step !== 3 && <ChevronRight className="size-4" />}
               </button>
             </div>
