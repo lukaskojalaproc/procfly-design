@@ -75,10 +75,11 @@ import { useCompetitionMessages } from "@/lib/message-store"
 // ---------------------------------------------------------------------------
 const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
   Draft: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
-  Ready: { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
+  "Ready to Start": { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
   Active: { dot: "bg-primary", text: "text-primary", bg: "bg-primary/10" },
+  Evaluation: { dot: "bg-chart-4", text: "text-chart-4", bg: "bg-chart-4/15" },
   Awarded: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  Closed: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+  Cancelled: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
 }
 
 function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolean }) {
@@ -300,10 +301,10 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
       : 0
 
   const isDraft = competition.status === "Draft"
-  const isReady = competition.status === "Ready"
+  const isReady = competition.status === "Ready to Start"
   const isActive = competition.status === "Active"
   const isAwarded = competition.status === "Awarded"
-  const isClosed = competition.status === "Closed"
+  const isClosed = competition.status === "Cancelled"
   const isFinished = isAwarded || isClosed
   const canStart = isDraft || isReady
   const hasBids = competition.bids.length > 0
@@ -381,7 +382,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
   // Draft → Ready: setup is complete, move the competition to the Ready stage
   // so it can be launched.
   function handleMoveToReady() {
-    setCompetition((c) => ({ ...c, status: "Ready" }))
+    setCompetition((c) => ({ ...c, status: "Ready to Start" }))
     setTab("overview")
   }
 
@@ -591,14 +592,15 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
 // ---------------------------------------------------------------------------
 const LIFECYCLE: { key: CompetitionStatus; label: string; icon: typeof Trophy }[] = [
   { key: "Draft", label: "Draft", icon: FileEdit },
-  { key: "Ready", label: "Ready", icon: Send },
+  { key: "Ready to Start", label: "Ready to Start", icon: Send },
   { key: "Active", label: "Live bidding", icon: Zap },
+  { key: "Evaluation", label: "Evaluation", icon: Scale },
   { key: "Awarded", label: "Awarded", icon: Trophy },
 ]
 
 function LifecycleStepper({ status }: { status: CompetitionStatus }) {
-  // Closed competitions never reached an award — show them as an off-track end.
-  const isClosed = status === "Closed"
+  // Cancelled competitions never reached an award — show them as an off-track end.
+  const isClosed = status === "Cancelled"
   // Awarded is terminal: every step (including the final award) is complete.
   const isAwarded = status === "Awarded"
   const currentIndex = isClosed
@@ -725,7 +727,7 @@ function OverviewTab({
   >[]
 
   const isDraft = competition.status === "Draft"
-  const isReady = competition.status === "Ready"
+  const isReady = competition.status === "Ready to Start"
   const hasBids = competition.bids.length > 0
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
@@ -783,11 +785,13 @@ function OverviewTab({
               <p className="text-sm font-semibold text-foreground">
                 {competition.status === "Awarded"
                   ? "Competition closed and awarded"
-                  : competition.status === "Closed"
-                    ? "Competition closed"
-                    : competition.status === "Ready"
-                      ? "Ready to launch"
-                      : "Draft — not yet launched"}
+                  : competition.status === "Cancelled"
+                    ? "Competition cancelled"
+                    : competition.status === "Evaluation"
+                      ? "Bidding closed — evaluating bids"
+                      : competition.status === "Ready to Start"
+                        ? "Ready to launch"
+                        : "Draft — not yet launched"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {competition.status === "Awarded" && competition.awardedOn
@@ -1682,7 +1686,7 @@ function EvaluationTab({
 }) {
   const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS)
   const [manual, setManual] = useState<ManualScores>(() => defaultManualScores(competition))
-  const locked = competition.status === "Awarded" || competition.status === "Closed"
+  const locked = competition.status === "Awarded" || competition.status === "Cancelled"
 
   const scored = scoreBids(competition, weights, manual)
   const weightSum = weights.price + weights.quality + weights.delivery
@@ -2034,7 +2038,7 @@ function AwardTab({
   pct: number
 }) {
   const isAwarded = competition.status === "Awarded"
-  const isClosed = competition.status === "Closed"
+  const isClosed = competition.status === "Cancelled"
   const sorted = [...competition.bids].sort((a, b) => a.amount - b.amount)
   const runnerUp = sorted.length > 1 ? sorted[1] : null
   const [celebrate, setCelebrate] = useState(false)

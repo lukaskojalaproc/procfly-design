@@ -6,7 +6,13 @@
 // savings achieved versus the original baseline budget.
 // ---------------------------------------------------------------------------
 
-export type CompetitionStatus = "Draft" | "Ready" | "Active" | "Awarded" | "Closed"
+export type CompetitionStatus =
+  | "Draft"
+  | "Ready to Start"
+  | "Active"
+  | "Evaluation"
+  | "Awarded"
+  | "Cancelled"
 
 export type AttachmentKind = "pdf" | "xlsx" | "docx" | "zip"
 
@@ -97,6 +103,7 @@ export const competitions: Competition[] = [
     invitedSuppliers: 6,
     owner: "Vaidas Petrauskas",
     featured: true,
+    sourceRequestRef: "REQ-1042",
     bids: [
       { supplier: "SAP Baltics", amount: 812_000, submittedAgo: "3m ago", trend: "down" },
       { supplier: "Oracle NetSuite", amount: 845_500, submittedAgo: "12m ago", trend: "down" },
@@ -131,9 +138,9 @@ export const competitions: Competition[] = [
     title: "Warehouse racking and shelving system",
     description: "Heavy-duty racking for the new Vilnius distribution centre.",
     category: "Facilities",
-    status: "Active",
+    status: "Evaluation",
     created: "2026-06-14 09:20",
-    deadlineInHours: 72,
+    deadlineInHours: null,
     baseline: 47_250,
     currency: "EUR",
     invitedSuppliers: 5,
@@ -151,7 +158,7 @@ export const competitions: Competition[] = [
     title: "Marketing agency retainer — Q3",
     description: "Approved and ready — invite shortlisted agencies to compete.",
     category: "Marketing",
-    status: "Ready",
+    status: "Ready to Start",
     created: "2026-06-13 16:10",
     deadlineInHours: null,
     baseline: 18_900,
@@ -242,7 +249,7 @@ export const competitions: Competition[] = [
     title: "Annual cloud infrastructure commitment",
     description: "Closed without award — requirements changed.",
     category: "Cloud",
-    status: "Closed",
+    status: "Cancelled",
     created: "2026-05-12 09:00",
     deadlineInHours: null,
     baseline: 128_400,
@@ -304,7 +311,7 @@ export function savingsPct(c: Competition): number {
 
 export const competitionStats = {
   active: competitions.filter((c) => c.status === "Active").length,
-  ready: competitions.filter((c) => c.status === "Ready").length,
+  ready: competitions.filter((c) => c.status === "Ready to Start").length,
   awarded: competitions.filter((c) => c.status === "Awarded").length,
   total: competitions.length,
 }
@@ -383,7 +390,7 @@ export function requestToCompetition(r: ProcurementRequest, terms: CompetitionTe
     title: terms.title ?? r.title,
     description,
     category: terms.category ?? r.category,
-    status: invited > 0 || deadline != null ? "Active" : "Ready",
+    status: invited > 0 || deadline != null ? "Active" : "Ready to Start",
     created: new Date().toISOString().slice(0, 16).replace("T", " "),
     deadlineInHours: deadline,
     baseline: terms.baseline ?? r.amount,

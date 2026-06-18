@@ -32,6 +32,7 @@ import {
   type CompetitionStatus,
 } from "@/lib/competitions-data"
 import { formatAmount, initials } from "@/lib/dashboard-data"
+import { StartCompetitionButton } from "@/components/start-competition-button"
 
 function fmtEur(n: number) {
   if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 2)}M`
@@ -39,11 +40,16 @@ function fmtEur(n: number) {
   return `€${n}`
 }
 
-function deadlineLabel(hours: number | null): string {
-  if (hours == null) return "—"
-  if (hours < 1) return `${Math.round(hours * 60)}m left`
-  if (hours < 48) return `${Math.round(hours)}h left`
-  return `${Math.round(hours / 24)}d left`
+/**
+ * Human, deadline-relative closing status. We bucket the remaining hours into
+ * Today / Tomorrow / in N Days rather than showing raw "10h left".
+ */
+function closingLabel(hours: number | null): { text: string; urgent: boolean } | null {
+  if (hours == null) return null
+  if (hours <= 24) return { text: "Closing Today", urgent: true }
+  if (hours <= 48) return { text: "Closing Tomorrow", urgent: true }
+  const days = Math.ceil(hours / 24)
+  return { text: `Closing in ${days} Days`, urgent: days <= 3 }
 }
 
 // ---------------------------------------------------------------------------
@@ -51,10 +57,11 @@ function deadlineLabel(hours: number | null): string {
 // ---------------------------------------------------------------------------
 const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
   Draft: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
-  Ready: { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
+  "Ready to Start": { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
   Active: { dot: "bg-primary", text: "text-primary", bg: "bg-primary/10" },
+  Evaluation: { dot: "bg-chart-4", text: "text-chart-4", bg: "bg-chart-4/15" },
   Awarded: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  Closed: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+  Cancelled: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
 }
 
 function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolean }) {
@@ -154,6 +161,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
   const isAwarded = competition.status === "Awarded"
   const responded = competition.bids.length
   const invited = competition.invitedSuppliers
+  const closing = closingLabel(competition.deadlineInHours)
 
   return (
     <Link
@@ -170,23 +178,31 @@ function CompetitionRow({ competition }: { competition: Competition }) {
           <StatusPill status={competition.status} live={isActive} />
         </div>
         <h4 className="mt-1 line-clamp-1 font-semibold text-foreground">{competition.title}</h4>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="flex size-4 items-center justify-center rounded-full bg-muted text-[8px] font-bold text-muted-foreground">
               {initials(competition.owner)}
             </span>
-            {competition.owner}
+            Owner: <span className="font-medium text-foreground">{competition.owner}</span>
           </span>
-          {competition.sourceRequestRef && (
-            <span className="inline-flex items-center gap-1">
-              <FileText className="size-3" />
-              {competition.sourceRequestRef}
-            </span>
-          )}
-          {competition.deadlineInHours != null && (
-            <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1">
+            <FileText className="size-3" />
+            Linked Request:{" "}
+            {competition.sourceRequestRef ? (
+              <span className="font-medium text-foreground">{competition.sourceRequestRef}</span>
+            ) : (
+              <span className="italic">None</span>
+            )}
+          </span>
+          {closing && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 font-medium",
+                closing.urgent ? "text-destructive" : "text-foreground",
+              )}
+            >
               <Clock className="size-3" />
-              {deadlineLabel(competition.deadlineInHours)}
+              {closing.text}
             </span>
           )}
         </div>
@@ -220,13 +236,13 @@ function CompetitionRow({ competition }: { competition: Competition }) {
             </p>
           )}
         </div>
-        {pct > 0 && (
+        {saving > 0 && (
           <div className="text-right">
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-              <TrendingDown className="size-3.5" />
-              {Math.round(pct * 100)}%
+            <p className="text-base font-bold tabular-nums text-primary">{fmtEur(saving)} saved</p>
+            <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <TrendingDown className="size-3" />
+              {Math.round(pct * 100)}% vs baseline
             </span>
-            <p className="mt-1 text-[11px] text-muted-foreground">{fmtEur(saving)} saved</p>
           </div>
         )}
       </div>
@@ -246,10 +262,10 @@ function CompetitionRow({ competition }: { competition: Competition }) {
 type Tab = "Active" | "Ready to Start" | "Awarded" | "Cancelled" | "All"
 
 const tabToStatus: Record<Exclude<Tab, "All">, CompetitionStatus[]> = {
-  Active: ["Active"],
-  "Ready to Start": ["Ready", "Draft"],
+  Active: ["Active", "Evaluation"],
+  "Ready to Start": ["Ready to Start", "Draft"],
   Awarded: ["Awarded"],
-  Cancelled: ["Closed"],
+  Cancelled: ["Cancelled"],
 }
 
 // ===========================================================================
@@ -262,7 +278,7 @@ export function CompetitionsExplorer() {
   const [categoryFilter, setCategoryFilter] = useState("All categories")
   const [ownerFilter, setOwnerFilter] = useState("All owners")
   const [supplierFilter, setSupplierFilter] = useState("Any suppliers")
-  const [sourceFilter, setSourceFilter] = useState("All sources")
+  const [linkedFilter, setLinkedFilter] = useState("All requests")
   const [sort, setSort] = useState("Newest")
 
   const categories = useMemo(
@@ -273,15 +289,23 @@ export function CompetitionsExplorer() {
     () => ["All owners", ...Array.from(new Set(competitions.map((c) => c.owner))).sort()],
     [],
   )
+  const linkedRequests = useMemo(
+    () => [
+      "All requests",
+      "Standalone (no request)",
+      ...Array.from(new Set(competitions.map((c) => c.sourceRequestRef).filter(Boolean) as string[])).sort(),
+    ],
+    [],
+  )
 
   const tabCounts = useMemo(() => {
     const count = (statuses: CompetitionStatus[]) =>
       competitions.filter((c) => statuses.includes(c.status)).length
     return {
-      Active: count(["Active"]),
-      "Ready to Start": count(["Ready", "Draft"]),
+      Active: count(["Active", "Evaluation"]),
+      "Ready to Start": count(["Ready to Start", "Draft"]),
       Awarded: count(["Awarded"]),
-      Cancelled: count(["Closed"]),
+      Cancelled: count(["Cancelled"]),
       All: competitions.length,
     }
   }, [])
@@ -317,8 +341,10 @@ export function CompetitionsExplorer() {
         return true
       })
     }
-    if (sourceFilter !== "All sources") {
-      list = list.filter((c) => (sourceFilter === "From request" ? !!c.sourceRequestRef : !c.sourceRequestRef))
+    if (linkedFilter !== "All requests") {
+      list = list.filter((c) =>
+        linkedFilter === "Standalone (no request)" ? !c.sourceRequestRef : c.sourceRequestRef === linkedFilter,
+      )
     }
 
     // Sort
@@ -340,21 +366,21 @@ export function CompetitionsExplorer() {
     }
 
     return list
-  }, [tab, query, statusFilter, categoryFilter, ownerFilter, supplierFilter, sourceFilter, sort])
+  }, [tab, query, statusFilter, categoryFilter, ownerFilter, supplierFilter, linkedFilter, sort])
 
   const activeFilterCount =
     (statusFilter !== "All statuses" ? 1 : 0) +
     (categoryFilter !== "All categories" ? 1 : 0) +
     (ownerFilter !== "All owners" ? 1 : 0) +
     (supplierFilter !== "Any suppliers" ? 1 : 0) +
-    (sourceFilter !== "All sources" ? 1 : 0)
+    (linkedFilter !== "All requests" ? 1 : 0)
 
   function clearFilters() {
     setStatusFilter("All statuses")
     setCategoryFilter("All categories")
     setOwnerFilter("All owners")
     setSupplierFilter("Any suppliers")
-    setSourceFilter("All sources")
+    setLinkedFilter("All requests")
   }
 
   const tabs: Tab[] = ["Active", "Ready to Start", "Awarded", "Cancelled", "All"]
@@ -442,7 +468,7 @@ export function CompetitionsExplorer() {
           label="Status"
           value={statusFilter}
           onChange={setStatusFilter}
-          options={["All statuses", "Active", "Ready", "Draft", "Awarded", "Closed"]}
+          options={["All statuses", "Draft", "Ready to Start", "Active", "Evaluation", "Awarded", "Cancelled"]}
         />
         <FilterSelect label="Category" value={categoryFilter} onChange={setCategoryFilter} options={categories} />
         <FilterSelect label="Request Owner" value={ownerFilter} onChange={setOwnerFilter} options={owners} />
@@ -453,10 +479,10 @@ export function CompetitionsExplorer() {
           options={["Any suppliers", "1–3 suppliers", "4–6 suppliers", "7+ suppliers"]}
         />
         <FilterSelect
-          label="Source"
-          value={sourceFilter}
-          onChange={setSourceFilter}
-          options={["All sources", "From request", "Standalone"]}
+          label="Linked Request"
+          value={linkedFilter}
+          onChange={setLinkedFilter}
+          options={linkedRequests}
         />
         <FilterSelect
           label="Sort By"
@@ -502,23 +528,35 @@ export function CompetitionsExplorer() {
           <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Network className="size-6" />
           </span>
-          <div>
-            <p className="font-semibold text-foreground">No competitions found</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your search or filters to see more results.
-            </p>
-          </div>
-          {(activeFilterCount > 0 || query) && (
-            <button
-              onClick={() => {
-                clearFilters()
-                setQuery("")
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              <X className="size-4" />
-              Clear search & filters
-            </button>
+          {activeFilterCount > 0 || query ? (
+            <>
+              <div>
+                <p className="font-semibold text-foreground">No competitions found</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Try adjusting your search or filters to see more results.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  clearFilters()
+                  setQuery("")
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <X className="size-4" />
+                Clear search & filters
+              </button>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="font-semibold text-foreground">No competitions found</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Start a competition from an approved request.
+                </p>
+              </div>
+              <StartCompetitionButton />
+            </>
           )}
         </div>
       )}

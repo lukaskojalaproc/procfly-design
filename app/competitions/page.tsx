@@ -1,6 +1,8 @@
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { CompetitionsExplorer } from "@/components/competitions-explorer"
+import { StartCompetitionButton } from "@/components/start-competition-button"
+import { OptionsMenu } from "@/components/options-menu"
 
 export default function CompetitionsPage() {
   return (
@@ -13,6 +15,12 @@ export default function CompetitionsPage() {
             crumb="Competitions"
             title="Competitions"
             description="Run supplier competitions for approved requests and drive measurable savings."
+            actions={
+              <>
+                <StartCompetitionButton />
+                <OptionsMenu />
+              </>
+            }
           />
           <CompetitionsExplorer />
         </main>
