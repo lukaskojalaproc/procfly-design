@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import {
   Package,
   Briefcase,
@@ -17,6 +18,9 @@ import {
   Receipt,
   ListChecks,
   MessageSquare,
+  Check,
+  CornerUpLeft,
+  Gavel,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -91,6 +95,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   const [tab, setTab] = useState<RequestTab>("details")
   const activity = useRequestActivity(request.id)
 
+  // Approval Review Mode: entered from the Approvals page ("Review" action),
+  // which links here with ?review=1. Decisions are only possible in this mode
+  // and only while the request is still pending approval.
+  const searchParams = useSearchParams()
+  const canReview = searchParams.get("review") === "1" && request.status === "Pending Approval"
+  const [reviewAction, setReviewAction] = useState<"approve" | "reject" | "changes" | null>(null)
+
   // Everyone who can be @mentioned: the requester plus each named approver.
   const participants = useMemo(() => {
     const names = [request.requester, ...detail.approvals.map((a) => a.name)]
@@ -112,6 +123,49 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Approval Review Mode banner */}
+      {canReview && (
+        <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <Gavel className="size-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">You are reviewing this request</p>
+              <p className="text-xs text-muted-foreground">
+                Make a decision below. Your action applies to the current approval step.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setReviewAction("approve")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Check className="size-3.5" />
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewAction("changes")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              <CornerUpLeft className="size-3.5" />
+              Request changes
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewAction("reject")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
+            >
+              <X className="size-3.5" />
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header card */}
       <Card className="p-0">
         <div className="flex items-start justify-between gap-4 p-6">
@@ -368,6 +422,9 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           approvals={detail.approvals}
           requestRef={request.ref}
           requestTitle={request.title}
+          reviewMode={canReview}
+          requestedAction={reviewAction}
+          onActionHandled={() => setReviewAction(null)}
         />
       </div>
       )}

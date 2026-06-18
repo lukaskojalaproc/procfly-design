@@ -72,6 +72,16 @@ export function RequestApprovalFlow({
     setComment("")
   }
 
+  // When the review banner triggers an action, open the matching panel on the
+  // current step and clear the external request so it can fire again later.
+  useEffect(() => {
+    if (reviewMode && requestedAction && currentIndex > 0) {
+      openAction(currentIndex, requestedAction)
+      onActionHandled?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedAction])
+
   function confirmAction() {
     if (!activeAction) return
     const step = merged[activeAction.index]
@@ -172,8 +182,14 @@ export function RequestApprovalFlow({
                   <span className="text-muted-foreground">{step.date}</span>
                 </div>
 
-                {/* Decision actions on the current pending step */}
-                {isCurrent && (
+                {/* Decision actions on the current pending step — only in review mode */}
+                {isCurrent && !reviewMode && (
+                  <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+                    <Clock className="size-3.5 text-chart-2" />
+                    Awaiting decision from {step.name}
+                  </div>
+                )}
+                {isCurrent && reviewMode && (
                   <div className="mt-3 border-t border-border pt-3">
                     {activeAction?.index === i ? (
                       <div className="flex flex-col gap-2">
