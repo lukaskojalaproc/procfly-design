@@ -28,6 +28,7 @@ import {
   ImageIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { CreateItemDialog } from "@/components/create-item-dialog"
 import { formatAmount } from "@/lib/dashboard-data"
 import {
   inventoryItems,
@@ -157,6 +158,7 @@ const ALL_STATUSES = "All statuses"
 export function WarehouseExplorer() {
   const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading")
   const [view, setView] = useState<"list" | "card">("list") // list is the default working view
+  const [addOpen, setAddOpen] = useState(false)
 
   const [query, setQuery] = useState("")
   const [tab, setTab] = useState<(typeof TABS)[number]>("All")
@@ -246,6 +248,7 @@ export function WarehouseExplorer() {
 
   return (
     <div className="flex flex-col gap-6">
+      <CreateItemDialog open={addOpen} onOpenChange={setAddOpen} />
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <KpiCard icon={Boxes} label="Total items" value={`${warehouseStats.total}`} sub="SKUs tracked" iconClass="bg-primary/10 text-primary" />
@@ -379,6 +382,7 @@ export function WarehouseExplorer() {
               setQuery("")
               setTab("All")
             }}
+            onAdd={() => setAddOpen(true)}
           />
         ) : view === "list" ? (
           <div className="overflow-x-auto">
@@ -669,7 +673,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   )
 }
 
-function EmptyState({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
+function EmptyState({ filtered, onClear, onAdd }: { filtered: boolean; onClear: () => void; onAdd: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 p-12 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -690,7 +694,10 @@ function EmptyState({ filtered, onClear }: { filtered: boolean; onClear: () => v
           Clear search & filters
         </button>
       ) : (
-        <button className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
           <Plus className="size-4" />
           Add item
         </button>

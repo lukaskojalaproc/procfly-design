@@ -376,6 +376,73 @@ export function getItemById(id: string): InventoryItem | undefined {
   return inventoryItems.find((i) => i.id === id)
 }
 
+// ---------------------------------------------------------------------------
+// Creation
+// ---------------------------------------------------------------------------
+
+export interface NewItemInput {
+  code: string
+  sku: string
+  name: string
+  category: string
+  description: string
+  image?: string
+  quantity: number
+  minQuantity: number
+  reorderPoint: number
+  unit: string
+  location: StockLocation
+  supplierName?: string
+  purchaseOrderNumber?: string
+  unitCost: number
+  currency: string
+  owner: string
+}
+
+/**
+ * Build an inventory item from the add-item form and prepend it to the live
+ * list so it appears immediately on the warehouse page and detail route.
+ */
+export function createItem(input: NewItemInput): InventoryItem {
+  const today = new Date().toISOString().slice(0, 10)
+  const when = new Date().toISOString().slice(0, 16).replace("T", " ")
+  const slug = (input.code || input.name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+
+  const item: InventoryItem = {
+    id: `itm-new-${Date.now().toString(36)}-${slug}`,
+    code: input.code.trim() || `ITM-${Date.now().toString().slice(-5)}`,
+    sku: input.sku.trim(),
+    name: input.name.trim(),
+    category: input.category,
+    description: input.description.trim(),
+    image: input.image,
+    status: "In Stock",
+    quantity: input.quantity,
+    minQuantity: input.minQuantity,
+    reorderPoint: input.reorderPoint,
+    unit: input.unit || "pcs",
+    location: input.location,
+    supplierName: input.supplierName || undefined,
+    purchaseOrderNumber: input.purchaseOrderNumber || undefined,
+    lastPurchaseDate: input.purchaseOrderNumber ? today : undefined,
+    unitCost: input.unitCost,
+    currency: input.currency,
+    owner: input.owner,
+    updated: today,
+    movements:
+      input.quantity > 0
+        ? [{ kind: "Stock Added", delta: input.quantity, balance: input.quantity, by: input.owner, note: "Initial stock", when }]
+        : [],
+    activity: [{ kind: "created", title: "Item created", detail: `Added by ${input.owner}.`, when: today }],
+    documents: [],
+  }
+  item.status = computeStatus(item)
+  inventoryItems.unshift(item)
+  return item
+}
+
+export const itemUnits = ["pcs", "box", "set", "kg", "license", "pack"]
+
 /** Resolve the supplier record (if any) for cross-linking. */
 export function itemSupplier(item: InventoryItem) {
   return item.supplierName ? getSupplierByName(item.supplierName) : undefined

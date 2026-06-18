@@ -1,7 +1,7 @@
-import { Plus } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { WarehouseExplorer } from "@/components/warehouse-explorer"
+import { CreateItemButton } from "@/components/create-item-button"
 
 export default function WarehousePage() {
   return (
@@ -14,12 +14,7 @@ export default function WarehousePage() {
             crumb="Warehouse"
             title="Warehouse"
             description="Browse, search, and manage your company's inventory."
-            actions={
-              <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
-                <Plus className="size-4" />
-                Add Item
-              </button>
-            }
+            actions={<CreateItemButton />}
           />
           <WarehouseExplorer />
         </main>
