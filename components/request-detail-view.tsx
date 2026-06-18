@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import {
   Package,
@@ -14,7 +13,8 @@ import {
   ShieldCheck,
   Building2,
   Landmark,
-  Receipt,
+  Wallet,
+  History,
   ListChecks,
   MessageSquare,
   Check,
@@ -116,6 +116,40 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
   const commentCount = activity.filter((a) => a.kind === "comment").length
 
+  // Estimated total label, reused in the header and Financial Information.
+  const estimatedTotalLabel = detail.supplierOnboarding
+    ? detail.supplierOnboarding.expectedAnnualSpend
+    : detail.estimatedTotal > 0
+      ? `${formatAmount(detail.estimatedTotal)} ${request.currency}`
+      : "No cost"
+
+  // Request-only activity history (NOT comments, NOT approval decisions —
+  // those live in the Discussion tab and Approval flow respectively).
+  const activityHistory = useMemo(() => {
+    const items: { action: string; user: string; at: string }[] = [
+      { action: "Request Created", user: request.requester, at: request.date },
+    ]
+    if ((request.attachments ?? 0) > 0) {
+      items.push({ action: "Documents Uploaded", user: request.requester, at: request.date })
+    }
+    if (request.status !== "Draft") {
+      items.push({ action: "Submitted for Approval", user: request.requester, at: request.date })
+    }
+    // Resubmissions recorded in the activity store.
+    for (const a of activity) {
+      if (a.kind === "resubmitted") {
+        items.push({ action: "Request Resubmitted", user: a.author, at: a.at })
+      }
+    }
+    if (request.status === "Cancelled") {
+      items.push({ action: "Request Withdrawn", user: request.requester, at: request.updated })
+    }
+    if (request.updated !== request.date) {
+      items.push({ action: "Request Updated", user: request.requester, at: request.updated })
+    }
+    return items.sort((x, y) => x.at.localeCompare(y.at))
+  }, [request, activity])
+
   const tabs = [
     { key: "details" as const, label: "Details", icon: ListChecks },
     { key: "discussion" as const, label: "Discussion", icon: MessageSquare, count: commentCount },
@@ -189,20 +223,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           <div className="flex items-center gap-3">
             <span
               className={cn(
-          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                  statusMeta[request.status].badge,
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full", statusMeta[request.status].dot)} />
-                {statusMeta[request.status].label}
-            </span>
-            <Link
-              href="/requests"
-              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
-              aria-label="Close"
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                statusMeta[request.status].badge,
+              )}
             >
-              <X className="size-4" />
-            </Link>
+              <span className={cn("size-1.5 rounded-full", statusMeta[request.status].dot)} />
+              {statusMeta[request.status].label}
+            </span>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-y-5 border-t border-border p-6 lg:grid-cols-3">
@@ -210,6 +237,14 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           <MetaItem label="Department" value={request.department} />
           <MetaItem label="Cost center" value={detail.costCenter} />
           <MetaItem label="Business priority" value={detail.businessPriority} />
+          <MetaItem label="Estimated total" value={estimatedTotalLabel} />
+          {detail.product && <MetaItem label="Needed by" value={detail.product.neededBy} />}
+          {detail.service && (
+            <MetaItem
+              label="Service dates"
+              value={`${detail.service.serviceStartDate} → ${detail.service.serviceEndDate}`}
+            />
+          )}
           <MetaItem label="Created" value={request.date} />
           <MetaItem label="Last updated" value={request.updated} />
         </div>
@@ -283,6 +318,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           <SectionCard icon={FileText} iconClass="bg-accent text-accent-foreground" title="General Information">
             <div className="flex flex-col gap-3.5">
               <OverviewRow label="Description" value={detail.description} />
+              <OverviewRow label="Procurement Category" value={request.category} />
               <OverviewRow label="Department" value={request.department} />
               <OverviewRow label="Cost Center" value={detail.costCenter} />
               <OverviewRow label="Business Priority" value={detail.businessPriority} />
@@ -318,42 +354,22 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           )}
 
           {detail.software && (
-            <>
-              <SectionCard icon={Monitor} iconClass="bg-chart-2/15 text-chart-2" title="Software Details">
-                <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="Procurement Category" value={detail.software.procurementCategory} />
-                  <MetaItem label="Software Name" value={detail.software.softwareName} />
-                  <MetaItem label="Preferred Supplier" value={detail.software.preferredSupplier} />
-                  <MetaItem label="Business Owner" value={detail.software.businessOwner} />
-                  <MetaItem label="IT Owner" value={detail.software.itOwner} />
-                  <MetaItem label="Number of Users" value={detail.software.users} />
-                  <MetaItem label="Billing Cycle" value={detail.software.billingCycle} />
-                  <MetaItem label="Subscription Start" value={detail.software.subscriptionStart} />
-                  <MetaItem label="Subscription End" value={detail.software.subscriptionEnd} />
-                  <MetaItem label="Contract Duration" value={detail.software.contractDuration} />
-                </div>
-              </SectionCard>
-
-              <SectionCard
-                icon={ShieldCheck}
-                iconClass="bg-destructive/12 text-destructive"
-                title="Data Protection"
-              >
-                <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="Personal Data Processed" value={detail.software.dataProcessing} />
-                  <MetaItem label="Data Hosting Region" value={detail.software.hostingRegion} />
-                  <MetaItem label="DPA Required" value={detail.software.dpaRequired} />
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={Receipt} iconClass="bg-chart-4/15 text-chart-4" title="License Information">
-                <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="License Type" value={detail.software.licenseType} />
-                  <MetaItem label="Auto Renewal" value={detail.software.autoRenewal} />
-                  <MetaItem label="Renewal Date" value={detail.software.renewalDate} />
-                </div>
-              </SectionCard>
-            </>
+            <SectionCard icon={Monitor} iconClass="bg-chart-2/15 text-chart-2" title="Software Details">
+              <div className="grid grid-cols-2 gap-y-4">
+                <MetaItem label="Procurement Category" value={detail.software.procurementCategory} />
+                <MetaItem label="Software Name" value={detail.software.softwareName} />
+                <MetaItem label="Preferred Supplier" value={detail.software.preferredSupplier} />
+                <MetaItem label="Business Owner" value={detail.software.businessOwner} />
+                <MetaItem label="IT Owner" value={detail.software.itOwner} />
+                <MetaItem label="Number of Users" value={detail.software.users} />
+                <MetaItem label="Billing Cycle" value={detail.software.billingCycle} />
+                <MetaItem label="Subscription Start" value={detail.software.subscriptionStart} />
+                <MetaItem label="Subscription End" value={detail.software.subscriptionEnd} />
+                <MetaItem label="Contract Duration" value={detail.software.contractDuration} />
+                <MetaItem label="License Type" value={detail.software.licenseType} />
+                <MetaItem label="Auto Renewal" value={detail.software.autoRenewal} />
+              </div>
+            </SectionCard>
           )}
 
           {detail.supplierOnboarding && (
@@ -388,14 +404,70 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             </>
           )}
 
-          {/* Line items — product & service only */}
-          {(detail.product || detail.service) && detail.lineItems.length > 0 && (
+          {/* Data Protection — software only, conditional on personal data */}
+          {detail.software && (
+            <SectionCard
+              icon={ShieldCheck}
+              iconClass="bg-destructive/12 text-destructive"
+              title="Data Protection"
+            >
+              <div className="grid grid-cols-2 gap-y-4">
+                <MetaItem label="Personal Data Processed" value={detail.software.dataProcessing} />
+                {detail.software.dataProcessing !== "No" && (
+                  <>
+                    <MetaItem label="Data Hosting Region" value={detail.software.hostingRegion} />
+                    <MetaItem label="DPA Required" value={detail.software.dpaRequired} />
+                  </>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Financial Information */}
+          <SectionCard icon={Wallet} iconClass="bg-primary/12 text-primary" title="Financial Information">
+            <div className="grid grid-cols-2 gap-y-4">
+              {detail.supplierOnboarding ? (
+                <>
+                  <MetaItem label="Expected Annual Spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                  <MetaItem label="Currency" value={request.currency} />
+                </>
+              ) : detail.software ? (
+                <>
+                  <MetaItem label="One-Time Cost" value={`${formatAmount(0)} ${request.currency}`} />
+                  <MetaItem label="Recurring Cost" value={estimatedTotalLabel} />
+                  <MetaItem label="Annual Cost" value={estimatedTotalLabel} />
+                  <MetaItem label="Currency" value={request.currency} />
+                  <MetaItem label="Estimated Total" value={estimatedTotalLabel} />
+                </>
+              ) : detail.product ? (
+                <>
+                  <MetaItem label="Quantity" value={String(detail.lineItems.reduce((s, i) => s + i.qty, 0) || "—")} />
+                  <MetaItem
+                    label="Unit Price"
+                    value={detail.lineItems[0] ? `${formatAmount(detail.lineItems[0].unitPrice)} ${request.currency}` : "—"}
+                  />
+                  <MetaItem label="Currency" value={request.currency} />
+                  <MetaItem label="Estimated Total" value={estimatedTotalLabel} />
+                </>
+              ) : (
+                <>
+                  <MetaItem label="Currency" value={request.currency} />
+                  <MetaItem label="Estimated Total" value={estimatedTotalLabel} />
+                </>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Line Items — never for supplier onboarding */}
+          {!detail.supplierOnboarding && detail.lineItems.length > 0 && (
             <SectionCard icon={Box} iconClass="bg-chart-3/15 text-chart-3" title="Line Items">
               <div className="flex flex-col">
                 <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-border pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <span>{detail.service ? "Deliverable" : "Item"}</span>
-                  <span className="text-right">Qty</span>
-                  <span className="text-right">{detail.service ? "Rate" : "Unit Price"}</span>
+                  <span>{detail.service ? "Deliverable" : detail.software ? "License / Plan" : "Item"}</span>
+                  <span className="text-right">{detail.software ? "Seats" : "Qty"}</span>
+                  <span className="text-right">
+                    {detail.service ? "Rate" : detail.software ? "Price / Seat" : "Unit Price"}
+                  </span>
                   <span className="text-right">Line Total</span>
                 </div>
                 {detail.lineItems.map((item, i) => (
@@ -413,6 +485,11 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                     </span>
                   </div>
                 ))}
+                {detail.software && (
+                  <p className="pt-2 text-xs text-muted-foreground">
+                    Billing cycle: {detail.software.billingCycle}
+                  </p>
+                )}
               </div>
             </SectionCard>
           )}
@@ -460,20 +537,26 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             )}
           </SectionCard>
 
-          {/* Financial summary */}
-          <SectionCard icon={Landmark} iconClass="bg-primary/12 text-primary" title="Financial Summary">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {detail.supplierOnboarding ? "Expected Annual Spend" : "Estimated Total"}
-              </span>
-              <span className="text-lg font-bold text-foreground">
-                {detail.supplierOnboarding
-                  ? detail.supplierOnboarding.expectedAnnualSpend
-                  : detail.estimatedTotal > 0
-                    ? `${formatAmount(detail.estimatedTotal)} ${request.currency}`
-                    : "No cost"}
-              </span>
-            </div>
+          {/* Activity History — request lifecycle events only */}
+          <SectionCard icon={History} iconClass="bg-secondary text-secondary-foreground" title="Activity History">
+            <ol className="flex flex-col">
+              {activityHistory.map((item, i) => (
+                <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                  {i !== activityHistory.length - 1 && (
+                    <span className="absolute left-[11px] top-6 h-[calc(100%-1rem)] w-px bg-border" />
+                  )}
+                  <span className="relative z-10 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-foreground/60" />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-sm font-medium text-foreground">{item.action}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {item.user} · {item.at}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </SectionCard>
         </div>
 

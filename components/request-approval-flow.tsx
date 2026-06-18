@@ -8,10 +8,22 @@ import { initials, type ApprovalStep, type ApprovalState } from "@/lib/dashboard
 import { useStepDecisions, recordDecision, type ActivityEvent } from "@/lib/request-activity-store"
 import { routeDecision, type NotificationType } from "@/lib/notification-store"
 
-const approvalBadge: Record<ApprovalState, { label: string; cls: string; icon: typeof Check }> = {
+// Display state for a step in the read-only progress view. The request creator
+// is never counted as an approval; a pending step is either the one currently
+// In Progress or a future step that has Not Started.
+type DisplayState = "approved" | "in_progress" | "not_started" | "rejected"
+
+const displayBadge: Record<DisplayState, { label: string; cls: string; icon: typeof Check }> = {
   approved: { label: "Approved", cls: "bg-primary/12 text-primary", icon: Check },
-  pending: { label: "Pending", cls: "bg-chart-2/15 text-chart-2", icon: Clock },
+  in_progress: { label: "In Progress", cls: "bg-chart-2/15 text-chart-2", icon: Clock },
+  not_started: { label: "Not Started", cls: "bg-muted text-muted-foreground", icon: Clock },
   rejected: { label: "Rejected", cls: "bg-destructive/12 text-destructive", icon: X },
+}
+
+function displayStateFor(state: ApprovalState, isCurrent: boolean): DisplayState {
+  if (state === "approved") return "approved"
+  if (state === "rejected") return "rejected"
+  return isCurrent ? "in_progress" : "not_started"
 }
 
 type ActionKind = "approve" | "reject" | "changes"
@@ -60,9 +72,12 @@ export function RequestApprovalFlow({
     return d ? { ...step, state: d.state, comment: d.comment || step.comment, date: localDate(d.at) } : step
   })
 
-  const completed = merged.filter((a) => a.state === "approved").length
-  const total = merged.length
-  const progressPct = Math.round((completed / total) * 100)
+  // Progress is measured over approval steps only — the creator (step 1) does
+  // not count as an approval.
+  const approverSteps = merged.slice(1)
+  const completed = approverSteps.filter((a) => a.state === "approved").length
+  const total = approverSteps.length
+  const progressPct = total ? Math.round((completed / total) * 100) : 0
 
   // The current step is the first one still pending (after step 1 / creator).
   const currentIndex = merged.findIndex((s, i) => i > 0 && s.state === "pending")
@@ -123,11 +138,12 @@ export function RequestApprovalFlow({
 
       <ol className="mt-6 flex flex-col">
         {merged.map((step, i) => {
-          const badge = approvalBadge[step.state]
-          const BadgeIcon = badge.icon
           const isLast = i === merged.length - 1
           const done = step.state === "approved"
           const isCurrent = i === currentIndex
+          const dState = displayStateFor(step.state, isCurrent)
+          const badge = displayBadge[dState]
+          const BadgeIcon = badge.icon
           return (
             <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
               {!isLast && (
@@ -138,16 +154,18 @@ export function RequestApprovalFlow({
                   )}
                 />
               )}
-              <span
-                className={cn(
-                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
-                  done
-                    ? "border-primary text-primary"
-                    : step.state === "rejected"
-                      ? "border-destructive text-destructive"
-                      : "border-chart-2 text-chart-2",
-                )}
-              >
+                <span
+                  className={cn(
+                    "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
+                    dState === "approved"
+                      ? "border-primary text-primary"
+                      : dState === "rejected"
+                        ? "border-destructive text-destructive"
+                        : dState === "in_progress"
+                          ? "border-chart-2 text-chart-2"
+                          : "border-border text-muted-foreground",
+                  )}
+                >
                 <BadgeIcon className="size-4" />
               </span>
 

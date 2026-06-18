@@ -24,8 +24,9 @@ export default async function RequestDetailPage({
         <main className="flex flex-1 flex-col gap-6 p-6">
           <PageHeader
             crumbs={[{ label: "Requests", href: "/requests" }, { label: "Details" }]}
-            title="Requests"
-            description="Create a purchase request. Three quick steps to send for approval."
+            title="Request Details"
+            description="View the full details and approval progress of this request."
+            actions={<></>}
           />
           <RequestDetailView request={request} />
         </main>
