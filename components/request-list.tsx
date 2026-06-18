@@ -12,9 +12,9 @@ import {
   myRequests,
   maxAmount,
   initials,
+  statusMeta,
   type ProcurementRequest,
   type RequestKind,
-  type RequestStatus,
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
@@ -24,18 +24,6 @@ const kindIcon: Record<RequestKind, typeof Package> = {
   "Add New Supplier": UserPlus,
 }
 
-const statusStyles: Record<RequestStatus, string> = {
-  Pending: "bg-chart-2/15 text-chart-2",
-  Approved: "bg-primary/12 text-primary",
-  Rejected: "bg-destructive/12 text-destructive",
-}
-
-const accentByStatus: Record<RequestStatus, string> = {
-  Pending: "bg-chart-2",
-  Approved: "bg-primary",
-  Rejected: "bg-destructive",
-}
-
 function RequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
   return (
@@ -43,7 +31,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       href={`/requests/${request.id}`}
       className="group flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-muted/60"
     >
-      <span className={cn("h-10 w-1 shrink-0 rounded-full", accentByStatus[request.status])} />
+      <span className={cn("h-10 w-1 shrink-0 rounded-full", statusMeta[request.status].dot)} />
       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
         <Icon className="size-5" />
       </div>
@@ -84,10 +72,10 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       <span
         className={cn(
           "hidden shrink-0 rounded-full px-3 py-1 text-xs font-semibold sm:inline-flex",
-          statusStyles[request.status],
+          statusMeta[request.status].badge,
         )}
       >
-        {request.status}
+        {statusMeta[request.status].label}
       </span>
 
       <RequestRowMenu request={request} />

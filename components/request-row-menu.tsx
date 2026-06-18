@@ -8,11 +8,25 @@ import {
   PenLine,
   Copy,
   Download,
-  History,
-  XCircle,
+  Send,
+  RotateCcw,
+  Undo2,
+  Archive,
+  ArchiveRestore,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ProcurementRequest } from "@/lib/dashboard-data"
+import { formatAmount, type ProcurementRequest, type RequestStatus } from "@/lib/dashboard-data"
+
+type LucideIcon = typeof Eye
+
+interface RowAction {
+  label: string
+  icon: LucideIcon
+  href?: string
+  run?: (r: ProcurementRequest) => void
+  destructive?: boolean
+}
 
 /** Build a lightweight text "PDF" summary and download it for the request. */
 function downloadSummary(request: ProcurementRequest) {
@@ -24,7 +38,7 @@ function downloadSummary(request: ProcurementRequest) {
     `Department:  ${request.department}`,
     `Category:    ${request.category}`,
     `Type:        ${request.kind}`,
-    `Amount:      ${request.amount.toLocaleString("en-US")} ${request.currency}`,
+    `Amount:      ${formatAmount(request.amount)} ${request.currency}`,
     `Status:      ${request.status}`,
     `Created:     ${request.date}`,
   ]
@@ -35,6 +49,50 @@ function downloadSummary(request: ProcurementRequest) {
   a.download = `${request.ref}.txt`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// Action sets per status. Approval actions (Approve / Reject / Request Changes)
+// intentionally live ONLY in the Approvals module and never appear here.
+const openAction = (id: string): RowAction => ({ label: "Open Request", icon: Eye, href: `/requests/${id}` })
+const edit = (id: string): RowAction => ({ label: "Edit", icon: PenLine, href: `/requests/${id}` })
+const duplicate: RowAction = { label: "Duplicate", icon: Copy, run: () => {} }
+const downloadPdf: RowAction = { label: "Download PDF", icon: Download, run: downloadSummary }
+
+function actionsForStatus(status: RequestStatus, id: string): RowAction[] {
+  switch (status) {
+    case "Draft":
+      return [
+        openAction(id),
+        edit(id),
+        duplicate,
+        { label: "Submit for Approval", icon: Send, run: () => {} },
+        { label: "Delete Draft", icon: Trash2, destructive: true, run: () => {} },
+      ]
+    case "Pending Approval":
+      return [
+        openAction(id),
+        duplicate,
+        downloadPdf,
+        { label: "Withdraw Request", icon: Undo2, destructive: true, run: () => {} },
+      ]
+    case "Approved":
+      return [openAction(id), duplicate, downloadPdf, { label: "Archive", icon: Archive, run: () => {} }]
+    case "Rejected":
+      return [
+        openAction(id),
+        edit(id),
+        { label: "Resubmit", icon: RotateCcw, run: () => {} },
+        duplicate,
+        downloadPdf,
+        { label: "Archive", icon: Archive, run: () => {} },
+      ]
+    case "Cancelled":
+      return [openAction(id), duplicate, { label: "Archive", icon: Archive, run: () => {} }]
+    case "Archived":
+      return [openAction(id), { label: "Restore", icon: ArchiveRestore, run: () => {} }]
+    default:
+      return [openAction(id)]
+  }
 }
 
 export function RequestRowMenu({ request }: { request: ProcurementRequest }) {
@@ -51,39 +109,24 @@ export function RequestRowMenu({ request }: { request: ProcurementRequest }) {
     return () => document.removeEventListener("mousedown", onDocClick)
   }, [open])
 
-  // Stop the parent <Link> from navigating when interacting with the menu.
+  // Stop the parent row link from navigating when interacting with the menu.
   function guard(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
   }
 
-  const go = (path: string) => (e: React.MouseEvent) => {
-    guard(e)
-    setOpen(false)
-    router.push(path)
+  const actions = actionsForStatus(request.status, request.id)
+  const primary = actions.filter((a) => !a.destructive)
+  const destructive = actions.filter((a) => a.destructive)
+
+  function handle(a: RowAction) {
+    return (e: React.MouseEvent) => {
+      guard(e)
+      setOpen(false)
+      if (a.href) router.push(a.href)
+      else a.run?.(request)
+    }
   }
-
-  const isCancelable = request.status === "Pending"
-
-  const actions = [
-    { label: "Open", icon: Eye, onClick: go(`/requests/${request.id}`) },
-    { label: "Edit", icon: PenLine, onClick: go(`/requests/${request.id}`) },
-    {
-      label: "Duplicate",
-      icon: Copy,
-      onClick: (e: React.MouseEvent) => go("/?new=" + request.id)(e),
-    },
-    {
-      label: "Download PDF",
-      icon: Download,
-      onClick: (e: React.MouseEvent) => {
-        guard(e)
-        setOpen(false)
-        downloadSummary(request)
-      },
-    },
-    { label: "View audit history", icon: History, onClick: go(`/requests/${request.id}`) },
-  ]
 
   return (
     <div ref={ref} className="relative shrink-0" onClick={guard}>
@@ -103,36 +146,30 @@ export function RequestRowMenu({ request }: { request: ProcurementRequest }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 z-30 w-52 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg">
-          {actions.map((a) => (
+        <div className="absolute right-0 top-9 z-30 w-56 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg">
+          {primary.map((a) => (
             <button
               key={a.label}
               type="button"
-              onClick={a.onClick}
+              onClick={handle(a)}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               <a.icon className="size-4 text-muted-foreground" />
               {a.label}
             </button>
           ))}
-          <div className="my-1 border-t border-border" />
-          <button
-            type="button"
-            disabled={!isCancelable}
-            onClick={(e) => {
-              guard(e)
-              setOpen(false)
-            }}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors",
-              isCancelable
-                ? "text-destructive hover:bg-destructive/10"
-                : "cursor-not-allowed text-muted-foreground/50",
-            )}
-          >
-            <XCircle className="size-4" />
-            Cancel request
-          </button>
+          {destructive.length > 0 && <div className="my-1 border-t border-border" />}
+          {destructive.map((a) => (
+            <button
+              key={a.label}
+              type="button"
+              onClick={handle(a)}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <a.icon className="size-4" />
+              {a.label}
+            </button>
+          ))}
         </div>
       )}
     </div>

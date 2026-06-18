@@ -1,7 +1,15 @@
-export type RequestStatus = "Pending" | "Approved" | "Rejected"
+export type RequestStatus =
+  | "Draft"
+  | "Pending Approval"
+  | "Approved"
+  | "Rejected"
+  | "Cancelled"
+  | "Archived"
 export type RequestKind = "Buy Product" | "Buy Service" | "Add New Supplier"
 
 export type Department = "IT" | "Operations" | "Marketing" | "Finance" | "Facilities" | "Legal"
+
+export type RequestPriority = "Urgent" | "High" | "Normal"
 
 export interface ProcurementRequest {
   id: string
@@ -17,34 +25,73 @@ export interface ProcurementRequest {
   requester: string
   department: Department
   quotes: number
+  /** ISO-ish date the request is needed by, e.g. "2026-06-20". */
+  neededBy?: string
+  attachments?: number
+  comments?: number
+  supplier?: string
+  priority?: RequestPriority
+  description?: string
 }
 
 export const requests: ProcurementRequest[] = [
   // critical tier (>= 100k)
-  { id: "r4", ref: "REQ-1042", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", updated: "2026-06-15 20:09", kind: "Buy Service", category: "Software", amount: 1000000, currency: "EUR", status: "Pending", requester: "Vaidas Petrauskas", department: "IT", quotes: 4 },
-  { id: "r9", ref: "REQ-1039", title: "Fleet of 12 delivery vehicles", date: "2026-06-15 16:30", updated: "2026-06-15 17:02", kind: "Buy Product", category: "Logistics", amount: 384000, currency: "EUR", status: "Approved", requester: "Greta Jonaitis", department: "Operations", quotes: 3 },
-  { id: "r10", ref: "REQ-1036", title: "Annual cloud infrastructure commitment", date: "2026-06-14 11:05", updated: "2026-06-14 15:20", kind: "Buy Service", category: "Cloud", amount: 128400, currency: "EUR", status: "Rejected", requester: "Marius Kazlauskas", department: "IT", quotes: 2 },
+  { id: "r4", ref: "REQ-1042", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", updated: "2026-06-15 20:09", kind: "Buy Service", category: "Software", amount: 1000000, currency: "EUR", status: "Pending Approval", requester: "Vaidas Petrauskas", department: "IT", quotes: 4, attachments: 3, comments: 2, neededBy: "2026-06-20", priority: "High", description: "Three-year enterprise ERP platform license covering finance, procurement and HR modules." },
+  { id: "r9", ref: "REQ-1039", title: "Fleet of 12 delivery vehicles", date: "2026-06-15 16:30", updated: "2026-06-15 17:02", kind: "Buy Product", category: "Logistics", amount: 384000, currency: "EUR", status: "Approved", requester: "Greta Jonaitis", department: "Operations", quotes: 3, attachments: 2, comments: 1, neededBy: "2026-07-15", supplier: "Baltic Auto Group" },
+  { id: "r10", ref: "REQ-1036", title: "Annual cloud infrastructure commitment", date: "2026-06-14 11:05", updated: "2026-06-14 15:20", kind: "Buy Service", category: "Cloud", amount: 128400, currency: "EUR", status: "Rejected", requester: "Marius Kazlauskas", department: "IT", quotes: 2, attachments: 1, comments: 4, neededBy: "2026-06-30", description: "Needs revised quotes — current pricing exceeds approved budget." },
   // high tier (10k - 100k)
-  { id: "r11", ref: "REQ-1034", title: "Warehouse racking and shelving system", date: "2026-06-14 09:20", updated: "2026-06-14 09:20", kind: "Buy Product", category: "Facilities", amount: 47250, currency: "EUR", status: "Pending", requester: "Greta Jonaitis", department: "Facilities", quotes: 3 },
-  { id: "r12", ref: "REQ-1031", title: "Marketing agency retainer — Q3", date: "2026-06-13 14:42", updated: "2026-06-13 16:10", kind: "Buy Service", category: "Marketing", amount: 18900, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2 },
+  { id: "r11", ref: "REQ-1034", title: "Warehouse racking and shelving system", date: "2026-06-14 09:20", updated: "2026-06-14 09:20", kind: "Buy Product", category: "Facilities", amount: 47250, currency: "EUR", status: "Pending Approval", requester: "Greta Jonaitis", department: "Facilities", quotes: 3, attachments: 2, comments: 0, neededBy: "2026-07-01" },
+  { id: "r12", ref: "REQ-1031", title: "Marketing agency retainer — Q3", date: "2026-06-13 14:42", updated: "2026-06-13 16:10", kind: "Buy Service", category: "Marketing", amount: 18900, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2, attachments: 1, comments: 1, neededBy: "2026-07-01", supplier: "Brandhouse Agency" },
   // mid tier (1k - 10k)
-  { id: "r8", ref: "REQ-1028", title: "Customer research interviews for Q3 campaign", date: "2026-06-10 01:52", updated: "2026-06-15 13:18", kind: "Buy Service", category: "Consulting", amount: 8500, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2 },
-  { id: "r1", ref: "REQ-1025", title: "Standing desks for new hires (x8)", date: "2026-06-16 08:58", updated: "2026-06-16 08:58", kind: "Buy Product", category: "Office", amount: 2033, currency: "EUR", status: "Pending", requester: "Tomas Vasiliauskas", department: "Facilities", quotes: 3 },
-  { id: "r13", ref: "REQ-1022", title: "Legal review of supplier contracts", date: "2026-06-12 10:15", updated: "2026-06-12 14:00", kind: "Buy Service", category: "Legal", amount: 1450, currency: "EUR", status: "Rejected", requester: "Rūta Stankevičius", department: "Legal", quotes: 1 },
+  { id: "r8", ref: "REQ-1028", title: "Customer research interviews for Q3 campaign", date: "2026-06-10 01:52", updated: "2026-06-15 13:18", kind: "Buy Service", category: "Consulting", amount: 8500, currency: "EUR", status: "Approved", requester: "Aistė Navickas", department: "Marketing", quotes: 2, attachments: 0, comments: 1, neededBy: "2026-06-25" },
+  { id: "r1", ref: "REQ-1025", title: "Standing desks for new hires (x8)", date: "2026-06-16 08:58", updated: "2026-06-16 08:58", kind: "Buy Product", category: "Office", amount: 2033, currency: "EUR", status: "Pending Approval", requester: "Tomas Vasiliauskas", department: "Facilities", quotes: 3, attachments: 1, comments: 0, neededBy: "2026-06-28" },
+  { id: "r13", ref: "REQ-1022", title: "Legal review of supplier contracts", date: "2026-06-12 10:15", updated: "2026-06-12 14:00", kind: "Buy Service", category: "Legal", amount: 1450, currency: "EUR", status: "Rejected", requester: "Rūta Stankevičius", department: "Legal", quotes: 1, attachments: 2, comments: 3, neededBy: "2026-06-22", description: "Scope unclear — please attach the contracts to be reviewed and resubmit." },
   // low tier (< 1k)
-  { id: "r2", ref: "REQ-1019", title: "Translation services — product sheet", date: "2026-06-16 08:40", updated: "2026-06-16 08:40", kind: "Buy Service", category: "Marketing", amount: 123, currency: "EUR", status: "Pending", requester: "Aistė Navickas", department: "Marketing", quotes: 1 },
-  { id: "r3", ref: "REQ-1018", title: "Translation services — landing page", date: "2026-06-16 08:38", updated: "2026-06-16 08:38", kind: "Buy Service", category: "Marketing", amount: 123, currency: "EUR", status: "Pending", requester: "Aistė Navickas", department: "Marketing", quotes: 1 },
-  { id: "r5", ref: "REQ-1015", title: "USB-C docking station", date: "2026-06-15 18:45", updated: "2026-06-15 18:48", kind: "Buy Product", category: "Hardware", amount: 30, currency: "EUR", status: "Approved", requester: "Tomas Vasiliauskas", department: "IT", quotes: 2 },
+  { id: "r2", ref: "REQ-1019", title: "Translation services — product sheet", date: "2026-06-16 08:40", updated: "2026-06-16 08:40", kind: "Buy Service", category: "Marketing", amount: 123, currency: "EUR", status: "Pending Approval", requester: "Aistė Navickas", department: "Marketing", quotes: 1, attachments: 0, comments: 0, neededBy: "2026-06-19" },
+  { id: "r3", ref: "REQ-1018", title: "Translation services — landing page", date: "2026-06-16 08:38", updated: "2026-06-16 08:38", kind: "Buy Service", category: "Marketing", amount: 123, currency: "EUR", status: "Pending Approval", requester: "Aistė Navickas", department: "Marketing", quotes: 1, attachments: 0, comments: 0, neededBy: "2026-06-19" },
+  { id: "r5", ref: "REQ-1015", title: "USB-C docking station", date: "2026-06-15 18:45", updated: "2026-06-15 18:48", kind: "Buy Product", category: "Hardware", amount: 30, currency: "EUR", status: "Approved", requester: "Tomas Vasiliauskas", department: "IT", quotes: 2, attachments: 0, comments: 0, neededBy: "2026-06-21", supplier: "TechParts EU" },
   // no cost (supplier onboarding)
-  { id: "r6", ref: "REQ-1012", title: "Onboard ProcFly Logistics as preferred carrier", date: "2026-06-15 12:17", updated: "2026-06-15 12:17", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Approved", requester: "Marius Kazlauskas", department: "Operations", quotes: 0 },
-  { id: "r7", ref: "REQ-1008", title: "Onboard Office Supplies Baltics for recurring office orders", date: "2026-06-11 01:52", updated: "2026-06-11 01:52", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Pending", requester: "Tomas Vasiliauskas", department: "Operations", quotes: 0 },
+  { id: "r6", ref: "REQ-1012", title: "Onboard ProcFly Logistics as preferred carrier", date: "2026-06-15 12:17", updated: "2026-06-15 12:17", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Approved", requester: "Marius Kazlauskas", department: "Operations", quotes: 0, attachments: 1, comments: 0 },
+  { id: "r7", ref: "REQ-1008", title: "Onboard Office Supplies Baltics for recurring office orders", date: "2026-06-11 01:52", updated: "2026-06-11 01:52", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Pending Approval", requester: "Tomas Vasiliauskas", department: "Operations", quotes: 0, attachments: 1, comments: 1, description: "Missing bank confirmation document." },
+  // drafts (created by current user, not yet submitted)
+  { id: "d1", ref: "REQ-1048", title: "Replacement laptops for design team (x6)", date: "2026-06-17 09:10", updated: "2026-06-17 09:32", kind: "Buy Product", category: "Hardware", amount: 12400, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 0, attachments: 1, comments: 0, neededBy: "2026-07-10" },
+  { id: "d2", ref: "REQ-1047", title: "Figma organization-wide license renewal", date: "2026-06-16 18:05", updated: "2026-06-16 18:20", kind: "Buy Service", category: "Software", amount: 9600, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 1, attachments: 0, comments: 0, neededBy: "2026-07-05" },
+  // cancelled
+  { id: "c1", ref: "REQ-1003", title: "Trade show booth — autumn expo (cancelled event)", date: "2026-06-05 11:00", updated: "2026-06-09 10:12", kind: "Buy Service", category: "Marketing", amount: 22000, currency: "EUR", status: "Cancelled", requester: "Greta Jonaitis", department: "Marketing", quotes: 2, attachments: 1, comments: 1 },
+  // archived
+  { id: "a1", ref: "REQ-0991", title: "2025 office multifunction printer lease", date: "2025-11-12 10:00", updated: "2026-01-15 09:00", kind: "Buy Product", category: "Office", amount: 5400, currency: "EUR", status: "Archived", requester: "Vaidas Petrauskas", department: "Facilities", quotes: 3, attachments: 2, comments: 0 },
+  { id: "a2", ref: "REQ-0985", title: "Legacy CRM subscription — sunset", date: "2025-10-01 14:00", updated: "2025-12-20 16:00", kind: "Buy Service", category: "Software", amount: 31200, currency: "EUR", status: "Archived", requester: "Marius Kazlauskas", department: "IT", quotes: 1, attachments: 0, comments: 2 },
+  { id: "a3", ref: "REQ-0972", title: "Annual office plant maintenance", date: "2025-09-03 09:30", updated: "2025-11-30 12:00", kind: "Buy Service", category: "Facilities", amount: 1800, currency: "EUR", status: "Archived", requester: "Tomas Vasiliauskas", department: "Facilities", quotes: 2, attachments: 0, comments: 0 },
 ]
 
 export const stats = {
   total: requests.length,
-  pending: requests.filter((r) => r.status === "Pending").length,
+  pending: requests.filter((r) => r.status === "Pending Approval").length,
   approved: requests.filter((r) => r.status === "Approved").length,
   rejected: requests.filter((r) => r.status === "Rejected").length,
+}
+
+// ---------------------------------------------------------------------------
+// Status display — single source of truth for label + colors. Every module
+// (dashboard, requests list, detail view) reads from here so a request shows
+// the same general status everywhere. Detailed approval workflow lives only in
+// the Approvals module.
+// ---------------------------------------------------------------------------
+
+export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
+  Draft: { label: "Draft", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
+  "Pending Approval": { label: "Pending Approval", badge: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
+  Approved: { label: "Approved", badge: "bg-primary/12 text-primary", dot: "bg-primary" },
+  Rejected: { label: "Rejected", badge: "bg-destructive/12 text-destructive", dot: "bg-destructive" },
+  Cancelled: { label: "Cancelled", badge: "bg-destructive/10 text-destructive", dot: "bg-destructive/70" },
+  Archived: { label: "Archived", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },
+}
+
+/** Amount above which a request is flagged "High Value". Configurable in workspace settings. */
+export const HIGH_VALUE_THRESHOLD = 100000
+
+export function isHighValue(amount: number) {
+  return amount > HIGH_VALUE_THRESHOLD
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +114,16 @@ export const currentUser: { name: string; role: UserRole } = {
 /** Requests created by the current user. */
 export function myRequests(): ProcurementRequest[] {
   return requests.filter((r) => r.requester === currentUser.name)
+}
+
+/** The current user's unsubmitted drafts. */
+export function draftRequests(): ProcurementRequest[] {
+  return requests.filter((r) => r.requester === currentUser.name && r.status === "Draft")
+}
+
+/** Archived requests the user can view. */
+export function archivedRequests(): ProcurementRequest[] {
+  return requests.filter((r) => r.status === "Archived")
 }
 
 // ---------------------------------------------------------------------------

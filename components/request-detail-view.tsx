@@ -24,9 +24,9 @@ import {
   initials,
   formatAmount,
   getRequestDetail,
+  statusMeta,
   type ProcurementRequest,
   type RequestKind,
-  type RequestStatus,
 } from "@/lib/dashboard-data"
 import { ApprovedRequestActions } from "@/components/convert-to-competition-dialog"
 import { RequestApprovalFlow } from "@/components/request-approval-flow"
@@ -37,18 +37,6 @@ const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
   "Buy Service": Briefcase,
   "Add New Supplier": UserPlus,
-}
-
-const statusStyles: Record<RequestStatus, string> = {
-  Pending: "bg-chart-2/15 text-chart-2",
-  Approved: "bg-primary/12 text-primary",
-  Rejected: "bg-destructive/12 text-destructive",
-}
-
-const statusDot: Record<RequestStatus, string> = {
-  Pending: "bg-chart-2",
-  Approved: "bg-primary",
-  Rejected: "bg-destructive",
 }
 
 function SectionCard({
@@ -147,12 +135,12 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           <div className="flex items-center gap-3">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                statusStyles[request.status],
-              )}
-            >
-              <span className={cn("size-1.5 rounded-full", statusDot[request.status])} />
-              {request.status}
+          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                  statusMeta[request.status].badge,
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", statusMeta[request.status].dot)} />
+                {statusMeta[request.status].label}
             </span>
             <Link
               href="/requests"

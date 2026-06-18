@@ -192,13 +192,17 @@ function ApprovalRow({
 }
 
 export function ApprovalsExplorer() {
-  // The reviewer's queue spans every request: Pending items are actionable,
-  // while Approved / Rejected ones form the decision history shown under their
-  // respective tabs. Seed each row's decision from the request's own status.
-  const queue = requests
+  // The reviewer's queue only spans requests that go through approval:
+  // "Pending Approval" items are actionable, while Approved / Rejected ones form
+  // the decision history. Drafts, cancelled and archived requests never appear.
+  const queue = requests.filter(
+    (r) => r.status === "Pending Approval" || r.status === "Approved" || r.status === "Rejected",
+  )
 
   const [decisions, setDecisions] = useState<Record<string, Decision>>(() =>
-    Object.fromEntries(queue.map((r) => [r.id, r.status as Decision])),
+    Object.fromEntries(
+      queue.map((r) => [r.id, (r.status === "Pending Approval" ? "Pending" : r.status) as Decision]),
+    ),
   )
   // Ids the reviewer actioned during this session (vs. seeded history).
   const [actedByYou, setActedByYou] = useState<Record<string, boolean>>({})

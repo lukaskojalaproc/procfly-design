@@ -12,7 +12,7 @@ export default function RequestsPage() {
           <PageHeader
             crumb="Requests"
             title="Requests"
-            description="Create a purchase request. Three quick steps to send for approval."
+            description="View, track, and manage purchase requests across your workspace."
           />
           <RequestsExplorer />
         </main>
