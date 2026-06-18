@@ -164,7 +164,22 @@ function getSnapshot(): Store {
   const raw = window.localStorage.getItem(KEY) ?? ""
   if (raw !== lastRaw) {
     lastRaw = raw
-    lastParsed = raw ? (JSON.parse(raw) as Store) : {}
+    // Parsing MUST never throw here: getSnapshot runs synchronously during
+    // render (useSyncExternalStore). Corrupt or old-schema data would crash
+    // the whole page (white screen), so fall back to an empty store and
+    // self-heal by clearing the bad value.
+    try {
+      lastParsed = raw ? (JSON.parse(raw) as Store) : {}
+    } catch (err) {
+      console.error("[v0] request-activity-store: corrupt data, resetting:", err)
+      lastParsed = {}
+      try {
+        window.localStorage.removeItem(KEY)
+      } catch {
+        // ignore
+      }
+      lastRaw = ""
+    }
   }
   return lastParsed
 }

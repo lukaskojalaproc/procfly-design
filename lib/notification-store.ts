@@ -188,7 +188,20 @@ function getSnapshot(): Notification[] {
   const raw = window.localStorage.getItem(KEY) ?? ""
   if (raw !== lastRaw) {
     lastRaw = raw
-    lastParsed = raw ? (JSON.parse(raw) as Notification[]) : []
+    // Must never throw during render: corrupt data would crash every page that
+    // mounts this store (the bell lives in the shared top bar). Self-heal.
+    try {
+      lastParsed = raw ? (JSON.parse(raw) as Notification[]) : []
+    } catch (err) {
+      console.error("[v0] notification-store: corrupt data, resetting:", err)
+      lastParsed = []
+      try {
+        window.localStorage.removeItem(KEY)
+      } catch {
+        // ignore
+      }
+      lastRaw = ""
+    }
   }
   return lastParsed
 }

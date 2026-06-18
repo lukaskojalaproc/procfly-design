@@ -85,7 +85,19 @@ function getSnapshot(): ChatMessage[] {
   const raw = window.localStorage.getItem(KEY) ?? ""
   if (raw !== lastRaw) {
     lastRaw = raw
-    lastParsed = raw ? (JSON.parse(raw) as ChatMessage[]) : []
+    // Must never throw during render — self-heal on corrupt data.
+    try {
+      lastParsed = raw ? (JSON.parse(raw) as ChatMessage[]) : []
+    } catch (err) {
+      console.error("[v0] message-store: corrupt data, resetting:", err)
+      lastParsed = []
+      try {
+        window.localStorage.removeItem(KEY)
+      } catch {
+        // ignore
+      }
+      lastRaw = ""
+    }
   }
   return lastParsed
 }

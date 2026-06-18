@@ -106,7 +106,19 @@ function getSnapshot(): SubmittedProposal[] {
   const raw = window.localStorage.getItem(KEY) ?? ""
   if (raw !== lastRaw) {
     lastRaw = raw
-    lastParsed = raw ? (JSON.parse(raw) as SubmittedProposal[]) : []
+    // Must never throw during render — self-heal on corrupt data.
+    try {
+      lastParsed = raw ? (JSON.parse(raw) as SubmittedProposal[]) : []
+    } catch (err) {
+      console.error("[v0] proposal-store: corrupt data, resetting:", err)
+      lastParsed = []
+      try {
+        window.localStorage.removeItem(KEY)
+      } catch {
+        // ignore
+      }
+      lastRaw = ""
+    }
   }
   return lastParsed
 }
