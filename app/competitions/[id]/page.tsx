@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { CompetitionDetailView } from "@/components/competition-detail-view"
+import { OptionsMenu } from "@/components/options-menu"
 import { competitions } from "@/lib/competitions-data"
 
 export function generateStaticParams() {
@@ -30,6 +31,7 @@ export default async function CompetitionDetailPage({
             ]}
             title={competition.title}
             description="Live sourcing event — track suppliers, proposals, and savings in real time."
+            actions={<OptionsMenu />}
           />
           <CompetitionDetailView competition={competition} />
         </main>

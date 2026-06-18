@@ -51,6 +51,10 @@ export interface Competition {
   category: string
   status: CompetitionStatus
   created: string
+  /** Date the competition was published / opened to suppliers. */
+  publishedDate?: string
+  /** Scheduled bidding close date (deadline). */
+  closingDate?: string
   /**
    * Hours from "now" until the bidding deadline. Resolved to a real timestamp
    * on the client at mount so countdowns are always live and ticking. `null`
@@ -97,6 +101,8 @@ export const competitions: Competition[] = [
     category: "Software",
     status: "Active",
     created: "2026-06-15 20:09",
+    publishedDate: "2026-06-15 21:00",
+    closingDate: "2026-06-19 18:00",
     deadlineInHours: 9.5,
     baseline: 1_000_000,
     currency: "EUR",
@@ -314,6 +320,102 @@ export function savingsAmount(c: Competition): number {
 export function savingsPct(c: Competition): number {
   if (c.baseline <= 0) return 0
   return savingsAmount(c) / c.baseline
+}
+
+/**
+ * Resolve the three milestone dates a buyer cares about, with sensible
+ * fallbacks so every competition shows meaningful values.
+ */
+export function competitionDates(c: Competition): {
+  published: string | null
+  closing: string | null
+  award: string | null
+} {
+  const launched = c.status !== "Draft" && c.status !== "Ready to Start"
+  return {
+    published: c.publishedDate ?? (launched ? c.created : null),
+    closing: c.closingDate ?? null,
+    award: c.awardedOn ?? null,
+  }
+}
+
+export type ActivityKind =
+  | "created"
+  | "invited"
+  | "submitted"
+  | "updated"
+  | "closed"
+  | "awarded"
+
+export interface ActivityEntry {
+  kind: ActivityKind
+  title: string
+  detail: string
+  /** Display timestamp / relative label. */
+  when: string
+}
+
+/**
+ * Derive a chronological activity history for a competition from its data:
+ * creation, supplier invites, proposal submissions/updates, close, and award.
+ */
+export function competitionActivity(c: Competition): ActivityEntry[] {
+  const entries: ActivityEntry[] = []
+  const dates = competitionDates(c)
+
+  entries.push({
+    kind: "created",
+    title: "Competition created",
+    detail: c.sourceRequestRef
+      ? `Created from request ${c.sourceRequestRef} by ${c.owner}.`
+      : `Created by ${c.owner}.`,
+    when: c.created,
+  })
+
+  if (dates.published) {
+    entries.push({
+      kind: "invited",
+      title: `${c.invitedSuppliers} suppliers invited`,
+      detail: "Invitations sent and bidding opened.",
+      when: dates.published,
+    })
+  }
+
+  // One entry per submitted proposal. Buyer-uploaded bids are recorded as updates.
+  for (const bid of c.bids) {
+    const updated = bid.source === "buyer"
+    entries.push({
+      kind: updated ? "updated" : "submitted",
+      title: updated ? `Proposal updated — ${bid.supplier}` : `Proposal submitted — ${bid.supplier}`,
+      detail: `${formatBidAmount(bid.amount)} ${c.currency}`,
+      when: bid.submittedAgo,
+    })
+  }
+
+  if (c.status === "Cancelled") {
+    entries.push({
+      kind: "closed",
+      title: "Competition cancelled",
+      detail: "Closed without an award.",
+      when: dates.closing ?? c.created,
+    })
+  }
+
+  if (c.status === "Awarded" && c.awardedTo) {
+    entries.push({
+      kind: "awarded",
+      title: `Winner awarded — ${c.awardedTo}`,
+      detail: "Award decision sent to all bidders.",
+      when: dates.award ?? c.created,
+    })
+  }
+
+  return entries
+}
+
+/** Local number formatter (avoids a circular import on dashboard-data). */
+function formatBidAmount(n: number): string {
+  return new Intl.NumberFormat("en-US").format(n)
 }
 
 export const competitionStats = {

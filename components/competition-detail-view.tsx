@@ -46,6 +46,10 @@ import {
   RotateCcw,
   Minus,
   MessageSquare,
+  History,
+  UserPlus,
+  CalendarClock,
+  CalendarCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -53,6 +57,10 @@ import {
   bidAttachments,
   savingsAmount,
   savingsPct,
+  competitionDates,
+  competitionActivity,
+  type ActivityEntry,
+  type ActivityKind,
   type BidAttachment,
   type Competition,
   type CompetitionStatus,
@@ -226,6 +234,7 @@ const TABS = [
   { key: "qa", label: "Q&A", icon: MessageSquare },
   { key: "evaluation", label: "Evaluation", icon: Star },
   { key: "award", label: "Award", icon: Trophy },
+  { key: "activity", label: "Activity", icon: History },
 ] as const
 
 type TabKey = (typeof TABS)[number]["key"]
@@ -390,19 +399,33 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
   // to "what am I buying". Resolved to its route id when the ref exists.
   const linkedRequest = competition.sourceRequestRef ? getRequestByRef(competition.sourceRequestRef) : undefined
 
-  // Hero primary action: launch (pre-live) or award the winner (live).
-  const onPrimaryAction =
-    isActive && hasBids ? () => setCelebrate(true) : canStart ? () => setLaunchOpen(true) : undefined
+  // Award is only possible once the event is live/evaluating AND at least one
+  // proposal has been received. Otherwise the action stays disabled.
+  const canAward = (isActive || competition.status === "Evaluation") && hasBids
 
-  const primaryAction = isFinished
-    ? null
-    : isDraft
-      ? { label: "Continue setup", icon: Rocket }
-      : isReady
-        ? { label: "Launch competition", icon: Rocket }
-        : isActive
-          ? { label: "Award winner", icon: Trophy }
-          : null
+  // Hero primary action depends on the lifecycle stage:
+  //  - Awarded  → "View Award" (jump to the Award tab)
+  //  - Live      → "Award winner" (disabled until a proposal exists)
+  //  - Draft/Ready → setup / launch
+  const primaryAction: { label: string; icon: typeof Trophy; disabled?: boolean } | null = isAwarded
+    ? { label: "View Award", icon: Trophy }
+    : isClosed
+      ? null
+      : isDraft
+        ? { label: "Continue setup", icon: Rocket }
+        : isReady
+          ? { label: "Launch competition", icon: Rocket }
+          : isActive || competition.status === "Evaluation"
+            ? { label: "Award winner", icon: Trophy, disabled: !canAward }
+            : null
+
+  const onPrimaryAction = isAwarded
+    ? () => setTab("award")
+    : canAward
+      ? () => setTab("award")
+      : canStart
+        ? () => setLaunchOpen(true)
+        : undefined
 
   return (
     <div className="flex flex-col gap-6">
@@ -467,7 +490,9 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
             {primaryAction && (
               <button
                 onClick={onPrimaryAction}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+                disabled={primaryAction.disabled}
+                title={primaryAction.disabled ? "Award is available once a proposal has been received" : undefined}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40"
               >
                 <primaryAction.icon className="size-4" />
                 {primaryAction.label}
@@ -570,6 +595,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
       {activeTab === "award" && (
         <AwardTab competition={competition} best={best} saving={saving} pct={pct} />
       )}
+      {activeTab === "activity" && <ActivityTab competition={competition} />}
 
       <LaunchCompetitionDialog
         open={launchOpen}
@@ -744,6 +770,7 @@ function OverviewTab({
   const isReady = competition.status === "Ready to Start"
   const hasBids = competition.bids.length > 0
   const linkedRequest = competition.sourceRequestRef ? getRequestByRef(competition.sourceRequestRef) : undefined
+  const dates = competitionDates(competition)
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
   if (isDraft || isReady) {
@@ -830,13 +857,16 @@ function OverviewTab({
                 {Math.round(pct * 100)}% lower
               </span>
             </div>
-            <div className="mt-4 flex items-baseline gap-3">
-              <span className="text-4xl font-bold tabular-nums text-foreground">
-                {formatAmount(best.amount)}
-              </span>
-              <span className="text-base font-medium text-muted-foreground line-through">
-                {formatAmount(competition.baseline)} {competition.currency}
-              </span>
+            {/* Clear 4-metric breakdown */}
+            <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
+              <SavingsMetric label="Baseline budget" value={`${formatAmount(competition.baseline)} ${competition.currency}`} />
+              <SavingsMetric
+                label="Best bid"
+                value={`${formatAmount(best.amount)} ${competition.currency}`}
+                accent
+              />
+              <SavingsMetric label="Savings amount" value={`${formatAmount(saving)} ${competition.currency}`} accent />
+              <SavingsMetric label="Savings %" value={`${Math.round(pct * 100)}%`} accent />
             </div>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted">
               <div
@@ -888,17 +918,18 @@ function OverviewTab({
             <GlanceRow label="Status" value={competition.status} />
             {linkedRequest ? (
               <GlanceLinkRow
-                label="Source request"
+                label="Linked request"
                 value={competition.sourceRequestRef!}
                 href={`/requests/${linkedRequest.id}`}
               />
             ) : (
               competition.sourceRequestRef && (
-                <GlanceRow label="Source request" value={competition.sourceRequestRef} />
+                <GlanceRow label="Linked request" value={competition.sourceRequestRef} />
               )
             )}
             <GlanceRow label="Owner" value={competition.owner} />
             <GlanceRow label="Category" value={competition.category} />
+            <GlanceRow label="Closing date" value={dates.closing ?? "Not scheduled"} />
             <GlanceRow
               label="Baseline"
               value={`${formatAmount(competition.baseline)} ${competition.currency}`}
@@ -907,6 +938,29 @@ function OverviewTab({
             <GlanceRow label="Proposals" value={`${competition.bids.length} received`} />
             {competition.awardedTo && <GlanceRow label="Awarded to" value={competition.awardedTo} />}
           </dl>
+          {linkedRequest && (
+            <Link
+              href={`/requests/${linkedRequest.id}`}
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              <FileText className="size-4" />
+              Open Request {competition.sourceRequestRef}
+              <ArrowRight className="size-4" />
+            </Link>
+          )}
+        </div>
+
+        {/* Key dates */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <CalendarClock className="size-4 text-primary" />
+            Key dates
+          </h3>
+          <ul className="mt-4 flex flex-col gap-3 text-sm">
+            <DateRow icon={CalendarDays} label="Published" value={dates.published ?? "Not published"} />
+            <DateRow icon={CalendarClock} label="Closing" value={dates.closing ?? "Not scheduled"} />
+            <DateRow icon={CalendarCheck} label="Award" value={dates.award ?? "Pending"} />
+          </ul>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
