@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Package, Briefcase, UserPlus, MoreVertical, Users, ShieldCheck } from "lucide-react"
+import { Package, Briefcase, UserPlus, Users, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { PriceTag } from "@/components/price-tag"
+import { RequestRowMenu } from "@/components/request-row-menu"
 import {
   requests,
   myRequests,
@@ -89,13 +90,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         {request.status}
       </span>
 
-      <button
-        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
-        aria-label="More options"
-        onClick={(e) => e.preventDefault()}
-      >
-        <MoreVertical className="size-4" />
-      </button>
+      <RequestRowMenu request={request} />
     </Link>
   )
 }

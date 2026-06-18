@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
-import { StatCards } from "@/components/stat-cards"
+import { AnalyticsOverview } from "@/components/analytics-overview"
 import { RequestList } from "@/components/request-list"
 import { SideColumn } from "@/components/side-column"
 
@@ -12,7 +12,7 @@ export default function Page() {
         <TopBar />
         <main className="flex flex-1 flex-col gap-6 p-6">
           <PageHeader />
-          <StatCards />
+          <AnalyticsOverview />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="xl:col-span-2">
               <RequestList />
