@@ -1,3 +1,6 @@
+"use client"
+
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Package,
@@ -6,14 +9,14 @@ import {
   FileText,
   Box,
   ClipboardList,
-  Clock,
-  Check,
   X,
   Monitor,
   ShieldCheck,
   Building2,
   Landmark,
   Receipt,
+  ListChecks,
+  MessageSquare,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -24,9 +27,11 @@ import {
   type ProcurementRequest,
   type RequestKind,
   type RequestStatus,
-  type ApprovalState,
 } from "@/lib/dashboard-data"
 import { ApprovedRequestActions } from "@/components/convert-to-competition-dialog"
+import { RequestApprovalFlow } from "@/components/request-approval-flow"
+import { RequestDiscussion } from "@/components/request-discussion"
+import { useRequestActivity } from "@/lib/request-activity-store"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -44,12 +49,6 @@ const statusDot: Record<RequestStatus, string> = {
   Pending: "bg-chart-2",
   Approved: "bg-primary",
   Rejected: "bg-destructive",
-}
-
-const approvalBadge: Record<ApprovalState, { label: string; cls: string; icon: typeof Check }> = {
-  approved: { label: "Approved", cls: "bg-primary/12 text-primary", icon: Check },
-  pending: { label: "Pending", cls: "bg-chart-2/15 text-chart-2", icon: Clock },
-  rejected: { label: "Rejected", cls: "bg-destructive/12 text-destructive", icon: X },
 }
 
 function SectionCard({
@@ -96,12 +95,26 @@ function OverviewRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+type RequestTab = "details" | "discussion"
+
 export function RequestDetailView({ request }: { request: ProcurementRequest }) {
   const detail = getRequestDetail(request)
   const Icon = kindIcon[request.kind]
-  const completed = detail.approvals.filter((a) => a.state === "approved").length
-  const total = detail.approvals.length
-  const progressPct = Math.round((completed / total) * 100)
+  const [tab, setTab] = useState<RequestTab>("details")
+  const activity = useRequestActivity(request.id)
+
+  // Everyone who can be @mentioned: the requester plus each named approver.
+  const participants = useMemo(() => {
+    const names = [request.requester, ...detail.approvals.map((a) => a.name)]
+    return [...new Set(names)]
+  }, [request.requester, detail.approvals])
+
+  const commentCount = activity.filter((a) => a.kind === "comment").length
+
+  const tabs = [
+    { key: "details" as const, label: "Details", icon: ListChecks },
+    { key: "discussion" as const, label: "Discussion", icon: MessageSquare, count: commentCount },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -159,7 +172,59 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         )}
       </Card>
 
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {tabs.map((t) => {
+          const TabIcon = t.icon
+          const active = tab === t.key
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                active
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <TabIcon className="size-4" />
+              {t.label}
+              {"count" in t && t.count ? (
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  {t.count}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Discussion tab */}
+      {tab === "discussion" && (
+        <Card className="p-0">
+          <div className="flex items-center gap-2.5 border-b border-border p-5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <MessageSquare className="size-4" />
+            </span>
+            <div>
+              <h2 className="font-semibold text-foreground">Discussion</h2>
+              <p className="text-xs text-muted-foreground">
+                Internal thread for everyone on this request — comments, decisions, and @mentions.
+              </p>
+            </div>
+          </div>
+          <RequestDiscussion
+            requestId={request.id}
+            currentUser={request.requester}
+            participants={participants}
+          />
+        </Card>
+      )}
+
       {/* Two-column body */}
+      {tab === "details" && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(0,1fr)]">
         {/* Left column */}
         <div className="flex flex-col gap-6">
@@ -300,84 +365,9 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
 
         {/* Right column — approval flow */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Approval flow</h2>
-            <span className="text-sm font-medium text-muted-foreground">
-              {completed} of {total} completed
-            </span>
-          </div>
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-
-          <ol className="mt-6 flex flex-col">
-            {detail.approvals.map((step, i) => {
-              const badge = approvalBadge[step.state]
-              const BadgeIcon = badge.icon
-              const isLast = i === detail.approvals.length - 1
-              const done = step.state === "approved"
-              return (
-                <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
-                  {/* Timeline rail */}
-                  {!isLast && (
-                    <span
-                      className={cn(
-                        "absolute left-[15px] top-9 h-[calc(100%-1.5rem)] w-0.5",
-                        done ? "bg-primary" : "bg-border",
-                      )}
-                    />
-                  )}
-                  <span
-                    className={cn(
-                      "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
-                      done
-                        ? "border-primary text-primary"
-                        : step.state === "rejected"
-                          ? "border-destructive text-destructive"
-                          : "border-chart-2 text-chart-2",
-                    )}
-                  >
-                    <BadgeIcon className="size-4" />
-                  </span>
-
-                  <div className="flex-1 rounded-xl border border-border bg-muted/30 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground">
-                          {initials(step.name)}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-foreground">{step.name}</p>
-                          <p className="text-xs text-muted-foreground">{step.role}</p>
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                          badge.cls,
-                        )}
-                      >
-                        <BadgeIcon className="size-3" />
-                        {badge.label}
-                      </span>
-                    </div>
-                    <div className="mt-2.5 flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        {step.comment ?? "No comment yet"}
-                      </span>
-                      <span className="text-muted-foreground">{step.date}</span>
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
-        </Card>
+        <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
       </div>
+      )}
     </div>
   )
 }
