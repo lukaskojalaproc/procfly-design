@@ -104,7 +104,7 @@ export function Sidebar() {
           ))}
         </div>
         <div className="mt-auto flex flex-col gap-1">
-          <NavItem label="Settings" icon={Settings} href="/requests" />
+          <NavItem label="Settings" icon={Settings} href="/settings" active={isActive("/settings")} />
         </div>
       </nav>
 
