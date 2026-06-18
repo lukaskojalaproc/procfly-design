@@ -546,6 +546,64 @@ export const supplierStats = {
   total: suppliers.length,
 }
 
+// ---------------------------------------------------------------------------
+// Creation
+// ---------------------------------------------------------------------------
+
+export interface NewSupplierInput {
+  name: string
+  legalName: string
+  status: SupplierStatus
+  type: SupplierType
+  category: string
+  country: string
+  risk: RiskStatus
+  owner: string
+  website: string
+  preferred: boolean
+  contact: SupplierContact
+  banking: SupplierBanking
+  tax: SupplierTax
+}
+
+/**
+ * Build a supplier from the create-supplier form and prepend it to the live
+ * list so it appears immediately on the suppliers page and detail route.
+ */
+export function createSupplier(input: NewSupplierInput): Supplier {
+  const today = new Date().toISOString().slice(0, 10)
+  const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "supplier"
+  const supplier: Supplier = {
+    id: `sup-new-${Date.now().toString(36)}-${slug}`,
+    name: input.name.trim(),
+    legalName: input.legalName.trim() || input.name.trim(),
+    status: input.status,
+    type: input.type,
+    category: input.category,
+    country: input.country,
+    risk: input.risk,
+    owner: input.owner,
+    website: input.website,
+    preferred: input.preferred || input.status === "Preferred",
+    contact: input.contact,
+    banking: input.banking,
+    tax: input.tax,
+    onboardedOn: today,
+    documents: [
+      { label: "Registration certificate", fileName: "registration.pdf", status: "Missing" },
+      { label: "VAT certificate", fileName: "vat-certificate.pdf", status: "Missing" },
+      { label: "NDA", fileName: "nda-signed.pdf", status: "Missing" },
+      { label: "DPA", fileName: "dpa-signed.pdf", status: "Missing" },
+      { label: "Master agreement", fileName: "msa.pdf", status: "Missing" },
+    ],
+    activity: [
+      { kind: "created", title: "Supplier created", detail: `Added by ${input.owner}.`, when: today },
+    ],
+  }
+  suppliers.unshift(supplier)
+  return supplier
+}
+
 export const supplierCategories = Array.from(new Set(suppliers.map((s) => s.category))).sort()
 export const supplierCountries = Array.from(new Set(suppliers.map((s) => s.country))).sort()
 export const supplierOwners = Array.from(new Set(suppliers.map((s) => s.owner))).sort()

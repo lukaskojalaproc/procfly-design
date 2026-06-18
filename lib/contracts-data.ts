@@ -449,6 +449,87 @@ export function isAutoRenew(c: Contract): boolean {
   return c.renewalType === "Auto Renew"
 }
 
+// --- Creation ---------------------------------------------------------------
+
+/** Suggest the next sequential contract number (e.g. "CTR-2026-000111"). */
+export function nextContractNumber(): string {
+  const max = contracts.reduce((m, c) => {
+    const n = Number.parseInt(c.number.split("-").pop() ?? "0", 10)
+    return Number.isNaN(n) ? m : Math.max(m, n)
+  }, 100)
+  return `CTR-2026-${String(max + 1).padStart(6, "0")}`
+}
+
+export const contractTypes = [
+  "SaaS Subscription",
+  "Master Service Agreement",
+  "Framework Agreement",
+  "Purchase Agreement",
+  "Lease Agreement",
+  "Maintenance Agreement",
+  "Consulting Agreement",
+]
+
+export interface NewContractInput {
+  number: string
+  name: string
+  status: ContractStatus
+  category: string
+  contractType: string
+  owner: string
+  supplier: ContractSupplier
+  currency: string
+  value: number
+  signatureDate: string
+  startDate: string
+  endDate: string
+  renewalDate: string
+  noticePeriodDays: number
+  renewalType: RenewalType
+  billingFrequency: BillingFrequency
+  paymentTerms: string
+  requestRef?: string
+  competitionRef?: string
+  poRef?: string
+  documents: ContractDocument[]
+  notes?: string
+}
+
+/**
+ * Build a contract from the create-contract form and prepend it to the live
+ * list so it appears immediately on the contracts page and detail route.
+ */
+export function createContract(input: NewContractInput): Contract {
+  const slug = input.number.toLowerCase().replace(/[^a-z0-9]+/g, "")
+  const contract: Contract = {
+    id: `ctr-new-${Date.now().toString(36)}-${slug}`,
+    number: input.number,
+    name: input.name.trim(),
+    status: input.status,
+    category: input.category,
+    contractType: input.contractType,
+    owner: input.owner,
+    supplier: input.supplier,
+    currency: input.currency,
+    value: input.value,
+    signatureDate: input.signatureDate,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    renewalDate: input.renewalDate || input.endDate,
+    noticePeriodDays: input.noticePeriodDays,
+    renewalType: input.renewalType,
+    billingFrequency: input.billingFrequency,
+    paymentTerms: input.paymentTerms,
+    requestRef: input.requestRef,
+    competitionRef: input.competitionRef,
+    poRef: input.poRef,
+    documents: input.documents,
+    notes: input.notes,
+  }
+  contracts.unshift(contract)
+  return contract
+}
+
 // --- Lookups ----------------------------------------------------------------
 
 export function getContractById(id: string) {

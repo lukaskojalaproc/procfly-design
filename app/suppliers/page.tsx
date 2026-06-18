@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { SuppliersExplorer } from "@/components/suppliers-explorer"
+import { CreateSupplierButton } from "@/components/create-supplier-button"
 
 export default function SuppliersPage() {
   return (
@@ -13,6 +14,7 @@ export default function SuppliersPage() {
             crumb="Suppliers"
             title="Suppliers"
             description="Your supplier base — onboarding, risk, spend, and linked procurement records."
+            actions={<CreateSupplierButton />}
           />
           <SuppliersExplorer />
         </main>

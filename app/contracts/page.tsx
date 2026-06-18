@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { ContractsExplorer } from "@/components/contracts-explorer"
+import { CreateContractButton } from "@/components/create-contract-button"
 
 export default function ContractsPage() {
   return (
@@ -13,6 +14,7 @@ export default function ContractsPage() {
             crumb="Contracts"
             title="Contracts"
             description="Signed supplier agreements — track renewals, expiry, and obligations."
+            actions={<CreateContractButton />}
           />
           <ContractsExplorer />
         </main>
