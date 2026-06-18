@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { OrderDetailView } from "@/components/order-detail-view"
+import { OptionsMenu } from "@/components/options-menu"
 import { purchaseOrders, getOrderById } from "@/lib/orders-data"
 
 export function generateStaticParams() {
@@ -27,6 +28,7 @@ export default async function OrderDetailPage({
             crumbs={[{ label: "Orders", href: "/orders" }, { label: order.number }]}
             title={order.number}
             description="Purchase order detail — supplier, line items, delivery, and status."
+            actions={<OptionsMenu />}
           />
           <OrderDetailView po={order} />
         </main>
