@@ -36,6 +36,7 @@ import { ApprovedRequestActions } from "@/components/convert-to-competition-dial
 import { RequestApprovalFlow } from "@/components/request-approval-flow"
 import { RequestDiscussion } from "@/components/request-discussion"
 import { useRequestActivity } from "@/lib/request-activity-store"
+import { getApprovalTasks, formatWaiting } from "@/lib/approvals-data"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -78,6 +79,15 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   )
 }
 
+function BannerItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
+    </div>
+  )
+}
+
 function OverviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-4 text-sm">
@@ -101,6 +111,20 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   const searchParams = useSearchParams()
   const canReview = searchParams.get("review") === "1" && request.status === "Pending Approval"
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | "changes" | null>(null)
+
+  // The live approval task that this request is currently sitting on. Drives the
+  // Review banner context (step, assigned approver, due date, waiting time).
+  const reviewTask = useMemo(() => {
+    if (!canReview) return null
+    return (
+      getApprovalTasks().find(
+        (t) => t.requestId === request.id && (t.taskStatus === "Awaiting Action" || t.taskStatus === "Changes Requested"),
+      ) ?? null
+    )
+  }, [canReview, request.id])
+
+  // Approver assigned to the current step (from the approval flow).
+  const assignedApprover = reviewTask ? detail.approvals[reviewTask.stepNumber - 1]?.name ?? "—" : "—"
 
   // Everyone who can be @mentioned: the requester plus each named approver.
   const participants = useMemo(() => {
@@ -159,43 +183,61 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
     <div className="flex flex-col gap-6">
       {/* Approval Review Mode banner */}
       {canReview && (
-        <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <Gavel className="size-4" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">You are reviewing this request</p>
-              <p className="text-xs text-muted-foreground">
-                Make a decision below. Your action applies to the current approval step.
-              </p>
+        <div className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Gavel className="size-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Approval Review</p>
+                <p className="text-xs text-muted-foreground">
+                  Make a decision below. Your action applies to the current approval step.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewAction("approve")}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Check className="size-3.5" />
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewAction("changes")}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+              >
+                <CornerUpLeft className="size-3.5" />
+                Request changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewAction("reject")}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
+              >
+                <X className="size-3.5" />
+                Reject
+              </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setReviewAction("approve")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Check className="size-3.5" />
-              Approve
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewAction("changes")}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              <CornerUpLeft className="size-3.5" />
-              Request changes
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewAction("reject")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
-            >
-              <X className="size-3.5" />
-              Reject
-            </button>
+
+          {/* Approval context — the only approval-specific info shown here */}
+          <div className="grid grid-cols-2 gap-4 border-t border-primary/20 pt-3 sm:grid-cols-4">
+            <BannerItem
+              label="Current Approval Step"
+              value={
+                reviewTask ? `Step ${reviewTask.stepNumber} of ${reviewTask.totalSteps} · ${reviewTask.stepRole}` : "—"
+              }
+            />
+            <BannerItem label="Assigned Approver" value={assignedApprover} />
+            <BannerItem label="Due Date" value={reviewTask?.deadline ?? "No due date"} />
+            <BannerItem
+              label="Waiting Time"
+              value={reviewTask ? formatWaiting(reviewTask.activatedAt) : "—"}
+            />
           </div>
         </div>
       )}
