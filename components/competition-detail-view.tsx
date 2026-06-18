@@ -474,16 +474,22 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
                   <Users className="size-4" />
                   {competition.invitedSuppliers} invited
                 </span>
-                {linkedRequest && (
-                  <Link
-                    href={`/requests/${linkedRequest.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-                  >
-                    <FileText className="size-3.5" />
-                    View Request {competition.sourceRequestRef}
-                    <ArrowRight className="size-3.5" />
-                  </Link>
-                )}
+                {competition.sourceRequestRef &&
+                  (linkedRequest ? (
+                    <Link
+                      href={`/requests/${linkedRequest.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                    >
+                      <FileText className="size-3.5" />
+                      View Request {competition.sourceRequestRef}
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                      <FileText className="size-3.5" />
+                      Request {competition.sourceRequestRef}
+                    </span>
+                  ))}
               </div>
             </div>
 

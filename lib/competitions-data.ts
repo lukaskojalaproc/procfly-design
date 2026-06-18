@@ -132,7 +132,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 4,
     owner: "Aistė Navickas",
-    sourceRequestRef: "REQ-1038",
+    sourceRequestRef: "REQ-1028",
     bids: [
       { supplier: "Nordic Insights", amount: 6_900, submittedAgo: "22m ago", trend: "down" },
       { supplier: "BlueLab Research", amount: 7_250, submittedAgo: "2h ago", trend: "down" },
@@ -152,7 +152,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 5,
     owner: "Greta Jonaitis",
-    sourceRequestRef: "REQ-1029",
+    sourceRequestRef: "REQ-1034",
     bids: [
       { supplier: "StoreMax Systems", amount: 39_800, submittedAgo: "1h ago", trend: "down" },
       { supplier: "Baltic Racking", amount: 41_200, submittedAgo: "4h ago", trend: "down" },
@@ -173,7 +173,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 3,
     owner: "Aistė Navickas",
-    sourceRequestRef: "REQ-1024",
+    sourceRequestRef: "REQ-1031",
     bids: [],
   },
 
@@ -192,7 +192,7 @@ export const competitions: Competition[] = [
     invitedSuppliers: 1,
     owner: "Marius Kazlauskas",
     bids: [],
-    sourceRequestRef: "REQ-1031",
+    sourceRequestRef: "REQ-1022",
   },
   {
     id: "c6",
@@ -207,7 +207,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 0,
     owner: "Tomas Vasiliauskas",
-    sourceRequestRef: "REQ-1018",
+    sourceRequestRef: "REQ-1025",
     bids: [],
   },
 
@@ -225,7 +225,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 4,
     owner: "Tomas Vasiliauskas",
-    sourceRequestRef: "REQ-1005",
+    sourceRequestRef: "REQ-1015",
     awardedTo: "iDeal Baltics",
     awardedOn: "2026-06-08 01:53",
     bids: [
@@ -247,7 +247,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 5,
     owner: "Greta Jonaitis",
-    sourceRequestRef: "REQ-0992",
+    sourceRequestRef: "REQ-1039",
     awardedTo: "Baltic Auto Group",
     awardedOn: "2026-05-29 14:20",
     bids: [
@@ -268,7 +268,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 3,
     owner: "Marius Kazlauskas",
-    sourceRequestRef: "REQ-0985",
+    sourceRequestRef: "REQ-1036",
     bids: [],
   },
 ]
