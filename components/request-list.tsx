@@ -1,9 +1,15 @@
-import { Package, Briefcase, UserPlus, MoreVertical, Users } from "lucide-react"
+"use client"
+
+import { useMemo, useState } from "react"
+import Link from "next/link"
+import { Package, Briefcase, UserPlus, MoreVertical, Users, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { PriceTag } from "@/components/price-tag"
 import {
   requests,
+  myRequests,
+  currentUser,
   maxAmount,
   initials,
   type ProcurementRequest,
@@ -32,7 +38,10 @@ const accentByStatus: Record<RequestStatus, string> = {
 function RequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
   return (
-    <div className="group flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-muted/60">
+    <Link
+      href={`/requests/${request.id}`}
+      className="group flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-muted/60"
+    >
       <span className={cn("h-10 w-1 shrink-0 rounded-full", accentByStatus[request.status])} />
       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
         <Icon className="size-5" />
@@ -83,46 +92,99 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       <button
         className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
         aria-label="More options"
+        onClick={(e) => e.preventDefault()}
       >
         <MoreVertical className="size-4" />
       </button>
-    </div>
+    </Link>
   )
 }
 
+type Scope = "mine" | "all"
+
 export function RequestList() {
+  const isSuperAdmin = currentUser.role === "Super Admin"
+  const mine = useMemo(() => myRequests(), [])
+  const [scope, setScope] = useState<Scope>("mine")
+
+  // Non-admins only ever see their own requests.
+  const activeScope: Scope = isSuperAdmin ? scope : "mine"
+  const list = activeScope === "all" ? requests : mine
+
+  const tabs: { key: Scope; label: string; count: number }[] = [
+    { key: "mine", label: "My Requests", count: mine.length },
+    ...(isSuperAdmin ? [{ key: "all" as Scope, label: "All Requests", count: requests.length }] : []),
+  ]
+
   return (
     <Card className="p-5">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">My Requests</h2>
-        <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted">
-          View All My Requests
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground">Requests</h2>
+          {isSuperAdmin && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-xs font-semibold text-primary">
+              <ShieldCheck className="size-3" />
+              Super Admin
+            </span>
+          )}
+        </div>
+        <Link
+          href="/requests"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+        >
+          View all requests
+        </Link>
+      </div>
+
+      {/* Scope tabs */}
+      <div className="mb-2 flex items-center gap-1 border-b border-border">
+        {tabs.map((tab) => {
+          const active = activeScope === tab.key
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setScope(tab.key)}
+              className={cn(
+                "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                active
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab.label}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
+                  active ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground",
+                )}
+              >
+                {tab.count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex flex-col divide-y divide-border/60">
-        {requests.map((request) => (
-          <RequestRow key={request.id} request={request} />
-        ))}
+        {list.length === 0 ? (
+          <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+            You haven&apos;t created any requests yet.
+          </p>
+        ) : (
+          list.map((request) => <RequestRow key={request.id} request={request} />)
+        )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between pt-2">
-        <p className="text-sm text-muted-foreground">Showing 1-8 of 13 requests</p>
-        <div className="flex items-center gap-1">
-          <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted">
-            Previous
-          </button>
-          <button className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">
-            1
-          </button>
-          <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
-            2
-          </button>
-          <button className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
-            Next
-          </button>
+      {list.length > 0 && (
+        <div className="mt-4 pt-2">
+          <p className="text-sm text-muted-foreground">
+            {activeScope === "all"
+              ? `Showing all ${list.length} requests in the workspace`
+              : `Showing your ${list.length} request${list.length === 1 ? "" : "s"}`}
+          </p>
         </div>
-      </div>
+      )}
     </Card>
   )
 }

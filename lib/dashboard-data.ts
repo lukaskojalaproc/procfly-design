@@ -47,6 +47,28 @@ export const stats = {
   rejected: requests.filter((r) => r.status === "Rejected").length,
 }
 
+// ---------------------------------------------------------------------------
+// Current user / role.
+//
+// In this demo there is no auth, so the acting user is defined here. A
+// "Super Admin" can see every request in the workspace ("All Requests"), while
+// any user can always see the requests they personally created ("My Requests").
+// When a real backend is added, this is the single place to swap for the
+// authenticated session.
+// ---------------------------------------------------------------------------
+
+export type UserRole = "Super Admin" | "Requester" | "Approver"
+
+export const currentUser: { name: string; role: UserRole } = {
+  name: "Vaidas Petrauskas",
+  role: "Super Admin",
+}
+
+/** Requests created by the current user. */
+export function myRequests(): ProcurementRequest[] {
+  return requests.filter((r) => r.requester === currentUser.name)
+}
+
 export interface ActivityItem {
   id: string
   label: string
