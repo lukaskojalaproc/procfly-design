@@ -126,6 +126,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 4,
     owner: "Aistė Navickas",
+    sourceRequestRef: "REQ-1038",
     bids: [
       { supplier: "Nordic Insights", amount: 6_900, submittedAgo: "22m ago", trend: "down" },
       { supplier: "BlueLab Research", amount: 7_250, submittedAgo: "2h ago", trend: "down" },
@@ -145,6 +146,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 5,
     owner: "Greta Jonaitis",
+    sourceRequestRef: "REQ-1029",
     bids: [
       { supplier: "StoreMax Systems", amount: 39_800, submittedAgo: "1h ago", trend: "down" },
       { supplier: "Baltic Racking", amount: 41_200, submittedAgo: "4h ago", trend: "down" },
@@ -165,6 +167,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 3,
     owner: "Aistė Navickas",
+    sourceRequestRef: "REQ-1024",
     bids: [],
   },
 
@@ -198,6 +201,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 0,
     owner: "Tomas Vasiliauskas",
+    sourceRequestRef: "REQ-1018",
     bids: [],
   },
 
@@ -215,6 +219,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 4,
     owner: "Tomas Vasiliauskas",
+    sourceRequestRef: "REQ-1005",
     awardedTo: "iDeal Baltics",
     awardedOn: "2026-06-08 01:53",
     bids: [
@@ -236,6 +241,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 5,
     owner: "Greta Jonaitis",
+    sourceRequestRef: "REQ-0992",
     awardedTo: "Baltic Auto Group",
     awardedOn: "2026-05-29 14:20",
     bids: [
@@ -256,6 +262,7 @@ export const competitions: Competition[] = [
     currency: "EUR",
     invitedSuppliers: 3,
     owner: "Marius Kazlauskas",
+    sourceRequestRef: "REQ-0985",
     bids: [],
   },
 ]
