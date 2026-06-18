@@ -58,7 +58,7 @@ import {
   type CompetitionStatus,
   type SupplierBid,
 } from "@/lib/competitions-data"
-import { formatAmount, initials } from "@/lib/dashboard-data"
+import { formatAmount, initials, getRequestByRef } from "@/lib/dashboard-data"
 import { AwardCelebrationDialog } from "@/components/award-celebration-dialog"
 import { LaunchCompetitionDialog } from "@/components/launch-competition-dialog"
 import { EditTermsDialog, type TermsFocus } from "@/components/edit-terms-dialog"
@@ -386,6 +386,10 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     setTab("overview")
   }
 
+  // Source request this competition was created from — lets the user jump back
+  // to "what am I buying". Resolved to its route id when the ref exists.
+  const linkedRequest = competition.sourceRequestRef ? getRequestByRef(competition.sourceRequestRef) : undefined
+
   // Hero primary action: launch (pre-live) or award the winner (live).
   const onPrimaryAction =
     isActive && hasBids ? () => setCelebrate(true) : canStart ? () => setLaunchOpen(true) : undefined
@@ -447,6 +451,16 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
                   <Users className="size-4" />
                   {competition.invitedSuppliers} invited
                 </span>
+                {linkedRequest && (
+                  <Link
+                    href={`/requests/${linkedRequest.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <FileText className="size-3.5" />
+                    View Request {competition.sourceRequestRef}
+                    <ArrowRight className="size-3.5" />
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -729,6 +743,7 @@ function OverviewTab({
   const isDraft = competition.status === "Draft"
   const isReady = competition.status === "Ready to Start"
   const hasBids = competition.bids.length > 0
+  const linkedRequest = competition.sourceRequestRef ? getRequestByRef(competition.sourceRequestRef) : undefined
 
   // Draft & Ready: this is a setup/launch experience, not a results one.
   if (isDraft || isReady) {
@@ -871,6 +886,17 @@ function OverviewTab({
           <h3 className="text-sm font-semibold text-foreground">At a glance</h3>
           <dl className="mt-4 flex flex-col gap-3 text-sm">
             <GlanceRow label="Status" value={competition.status} />
+            {linkedRequest ? (
+              <GlanceLinkRow
+                label="Source request"
+                value={competition.sourceRequestRef!}
+                href={`/requests/${linkedRequest.id}`}
+              />
+            ) : (
+              competition.sourceRequestRef && (
+                <GlanceRow label="Source request" value={competition.sourceRequestRef} />
+              )
+            )}
             <GlanceRow label="Owner" value={competition.owner} />
             <GlanceRow label="Category" value={competition.category} />
             <GlanceRow
@@ -1156,6 +1182,23 @@ function GlanceRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-3">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium text-foreground">{value}</dd>
+    </div>
+  )
+}
+
+function GlanceLinkRow({ label, value, href }: { label: string; value: string; href: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd>
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1 font-semibold text-primary transition-colors hover:underline"
+        >
+          <FileText className="size-3.5" />
+          {value}
+        </Link>
+      </dd>
     </div>
   )
 }
