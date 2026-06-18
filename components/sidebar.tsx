@@ -32,7 +32,7 @@ const secondaryNav = [
 ]
 
 const tertiaryNav = [
-  { label: "Contracts", icon: FileSignature, href: "/requests" },
+  { label: "Contracts", icon: FileSignature, href: "/contracts" },
   { label: "Suppliers", icon: Network, href: "/requests" },
   { label: "Warehouse", icon: Warehouse, href: "/requests" },
 ]
@@ -100,7 +100,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col gap-1">
           {tertiaryNav.map((item) => (
-            <NavItem key={item.label} {...item} />
+            <NavItem key={item.label} {...item} active={isActive(item.href)} />
           ))}
         </div>
         <div className="mt-auto flex flex-col gap-1">

@@ -588,6 +588,11 @@ export function getOrderById(id: string) {
   return purchaseOrders.find((o) => o.id === id)
 }
 
+/** Look up a purchase order by its human number (e.g. "PRC-2026-000102"). */
+export function getOrderByNumber(number: string) {
+  return purchaseOrders.find((o) => o.number === number)
+}
+
 /**
  * Documents associated with an order. Availability is derived from how far
  * the order has progressed through its lifecycle.
