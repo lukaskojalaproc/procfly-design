@@ -9,7 +9,6 @@ import {
   UserPlus,
   FileText,
   Box,
-  ClipboardList,
   X,
   Monitor,
   ShieldCheck,
@@ -31,6 +30,7 @@ import {
   statusMeta,
   type ProcurementRequest,
   type RequestKind,
+  type DocumentStatus,
 } from "@/lib/dashboard-data"
 import { ApprovedRequestActions } from "@/components/convert-to-competition-dialog"
 import { RequestApprovalFlow } from "@/components/request-approval-flow"
@@ -205,14 +205,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             </Link>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-y-5 border-t border-border p-6 lg:grid-cols-4">
-          <MetaItem
-            label="Budget"
-            value={request.amount > 0 ? `${formatAmount(request.amount)} ${request.currency}` : "No cost"}
-          />
+        <div className="grid grid-cols-2 gap-y-5 border-t border-border p-6 lg:grid-cols-3">
+          <MetaItem label="Request ID" value={request.ref} />
           <MetaItem label="Department" value={request.department} />
-          <MetaItem label="Cost center" value="TEST-003 - Randominis" />
+          <MetaItem label="Cost center" value={detail.costCenter} />
+          <MetaItem label="Business priority" value={detail.businessPriority} />
           <MetaItem label="Created" value={request.date} />
+          <MetaItem label="Last updated" value={request.updated} />
         </div>
 
         {request.status === "Approved" && request.kind !== "Add New Supplier" && (
@@ -280,100 +279,145 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(0,1fr)]">
         {/* Left column */}
         <div className="flex flex-col gap-6">
-          <SectionCard icon={FileText} iconClass="bg-accent text-accent-foreground" title="Overview">
+          {/* General information — shown for every request type */}
+          <SectionCard icon={FileText} iconClass="bg-accent text-accent-foreground" title="General Information">
             <div className="flex flex-col gap-3.5">
-              <OverviewRow label="Name" value={detail.lineItems[0]?.name ?? request.title} />
               <OverviewRow label="Description" value={detail.description} />
-              <OverviewRow label="Category" value={request.kind} />
-              <OverviewRow label="Supplier" value={detail.supplier} />
-              <OverviewRow
-                label="Needed By"
-                value={detail.neededBy ?? "Not provided"}
-              />
+              <OverviewRow label="Department" value={request.department} />
+              <OverviewRow label="Cost Center" value={detail.costCenter} />
+              <OverviewRow label="Business Priority" value={detail.businessPriority} />
+              <OverviewRow label="Currency" value={request.currency} />
             </div>
           </SectionCard>
 
-          {detail.software ? (
+          {/* Type-specific information */}
+          {detail.product && (
+            <SectionCard icon={Package} iconClass="bg-chart-3/15 text-chart-3" title="Product Details">
+              <div className="grid grid-cols-2 gap-y-4">
+                <MetaItem label="Procurement Category" value={detail.product.procurementCategory} />
+                <MetaItem label="Preferred Supplier" value={detail.product.preferredSupplier} />
+                <MetaItem label="Needed By" value={detail.product.neededBy} />
+                <MetaItem label="Delivery Location" value={detail.product.deliveryLocation} />
+                <MetaItem label="Purchase Type" value={detail.product.purchaseType} />
+              </div>
+            </SectionCard>
+          )}
+
+          {detail.service && (
+            <SectionCard icon={Briefcase} iconClass="bg-chart-1/15 text-chart-1" title="Service Details">
+              <div className="grid grid-cols-2 gap-y-4">
+                <MetaItem label="Procurement Category" value={detail.service.procurementCategory} />
+                <MetaItem label="Preferred Supplier" value={detail.service.preferredSupplier} />
+                <MetaItem label="Service Start Date" value={detail.service.serviceStartDate} />
+                <MetaItem label="Service End Date" value={detail.service.serviceEndDate} />
+                <MetaItem label="Business Owner" value={detail.service.businessOwner} />
+                <MetaItem label="Contract Required" value={detail.service.contractRequired} />
+                <MetaItem label="Service Type" value={detail.service.serviceType} />
+              </div>
+            </SectionCard>
+          )}
+
+          {detail.software && (
             <>
-              <SectionCard icon={Monitor} iconClass="bg-chart-2/15 text-chart-2" title="License & renewal">
+              <SectionCard icon={Monitor} iconClass="bg-chart-2/15 text-chart-2" title="Software Details">
                 <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="License type" value={detail.software.licenseType} />
-                  <MetaItem label="Billing cycle" value={detail.software.billingCycle} />
-                  <MetaItem label="Renewal" value={detail.software.renewalType} />
-                  <MetaItem label="Renewal date" value={detail.software.renewalDate} />
-                  <MetaItem label="Users / seats" value={detail.software.users} />
+                  <MetaItem label="Procurement Category" value={detail.software.procurementCategory} />
+                  <MetaItem label="Software Name" value={detail.software.softwareName} />
+                  <MetaItem label="Preferred Supplier" value={detail.software.preferredSupplier} />
+                  <MetaItem label="Business Owner" value={detail.software.businessOwner} />
+                  <MetaItem label="IT Owner" value={detail.software.itOwner} />
+                  <MetaItem label="Number of Users" value={detail.software.users} />
+                  <MetaItem label="Billing Cycle" value={detail.software.billingCycle} />
+                  <MetaItem label="Subscription Start" value={detail.software.subscriptionStart} />
+                  <MetaItem label="Subscription End" value={detail.software.subscriptionEnd} />
+                  <MetaItem label="Contract Duration" value={detail.software.contractDuration} />
                 </div>
               </SectionCard>
 
               <SectionCard
                 icon={ShieldCheck}
                 iconClass="bg-destructive/12 text-destructive"
-                title="Data protection (GDPR)"
+                title="Data Protection"
               >
                 <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="Personal data" value={detail.software.dataProcessing} />
-                  <MetaItem label="Hosting region" value={detail.software.hostingRegion} />
-                  <MetaItem label="DPA required" value={detail.software.dpaRequired} />
-                  <MetaItem label="Internal owner" value={detail.software.owner} />
+                  <MetaItem label="Personal Data Processed" value={detail.software.dataProcessing} />
+                  <MetaItem label="Data Hosting Region" value={detail.software.hostingRegion} />
+                  <MetaItem label="DPA Required" value={detail.software.dpaRequired} />
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={Receipt} iconClass="bg-chart-4/15 text-chart-4" title="License Information">
+                <div className="grid grid-cols-2 gap-y-4">
+                  <MetaItem label="License Type" value={detail.software.licenseType} />
+                  <MetaItem label="Auto Renewal" value={detail.software.autoRenewal} />
+                  <MetaItem label="Renewal Date" value={detail.software.renewalDate} />
                 </div>
               </SectionCard>
             </>
-          ) : detail.supplierOnboarding ? (
+          )}
+
+          {detail.supplierOnboarding && (
             <>
-              <SectionCard icon={Building2} iconClass="bg-chart-1/15 text-chart-1" title="Company details">
+              <SectionCard icon={Building2} iconClass="bg-chart-1/15 text-chart-1" title="Supplier Information">
                 <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="Legal name" value={detail.supplierOnboarding.legalName} />
+                  <MetaItem label="Legal Entity Name" value={detail.supplierOnboarding.legalName} />
                   <MetaItem label="Country" value={detail.supplierOnboarding.country} />
-                  <MetaItem label="Registration no." value={detail.supplierOnboarding.registrationNumber} />
-                  <MetaItem label="VAT number" value={detail.supplierOnboarding.vatNumber} />
-                  <MetaItem label="Contact email" value={detail.supplierOnboarding.contactEmail} />
+                  <MetaItem label="Registration Number" value={detail.supplierOnboarding.registrationNumber} />
+                  <MetaItem label="VAT Number" value={detail.supplierOnboarding.vatNumber} />
+                  <MetaItem label="Website" value={detail.supplierOnboarding.website} />
+                  <MetaItem label="Contact Name" value={detail.supplierOnboarding.contactName} />
+                  <MetaItem label="Contact Email" value={detail.supplierOnboarding.contactEmail} />
+                  <MetaItem label="Supplier Category" value={detail.supplierOnboarding.supplierCategory} />
+                  <MetaItem label="Expected Annual Spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
                 </div>
               </SectionCard>
 
-              <SectionCard icon={Landmark} iconClass="bg-chart-2/15 text-chart-2" title="Bank & payment">
+              <SectionCard icon={Landmark} iconClass="bg-chart-2/15 text-chart-2" title="Finance">
                 <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="IBAN" value={detail.supplierOnboarding.iban} />
-                  <MetaItem label="Payment terms" value={detail.supplierOnboarding.paymentTerms} />
+                  <MetaItem label="Payment Terms" value={detail.supplierOnboarding.paymentTerms} />
+                  <MetaItem label="Invoicing Email" value={detail.supplierOnboarding.invoicingEmail} />
                 </div>
               </SectionCard>
 
-              <SectionCard icon={Receipt} iconClass="bg-chart-4/15 text-chart-4" title="Tax & accounting">
+              <SectionCard icon={ShieldCheck} iconClass="bg-destructive/12 text-destructive" title="Compliance">
                 <div className="grid grid-cols-2 gap-y-4">
-                  <MetaItem label="VAT treatment" value={detail.supplierOnboarding.vatTreatment} />
-                  <MetaItem label="Supplier type" value={detail.supplierOnboarding.supplierType} />
-                  <MetaItem label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
+                  <MetaItem label="VAT Verification Status" value={detail.supplierOnboarding.vatVerificationStatus} />
+                  <MetaItem label="Risk Status" value={detail.supplierOnboarding.riskStatus} />
                 </div>
               </SectionCard>
             </>
-          ) : (
-            <SectionCard icon={Box} iconClass="bg-chart-3/15 text-chart-3" title="Specifications">
-              {detail.lineItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No line items.</p>
-              ) : (
-                <div className="flex flex-col divide-y divide-border">
-                  {detail.lineItems.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                      <span className="font-medium text-foreground">{item.name}</span>
-                      <span className="text-sm text-muted-foreground">Qty {item.qty}</span>
-                    </div>
-                  ))}
+          )}
+
+          {/* Line items — product & service only */}
+          {(detail.product || detail.service) && detail.lineItems.length > 0 && (
+            <SectionCard icon={Box} iconClass="bg-chart-3/15 text-chart-3" title="Line Items">
+              <div className="flex flex-col">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-border pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>{detail.service ? "Deliverable" : "Item"}</span>
+                  <span className="text-right">Qty</span>
+                  <span className="text-right">{detail.service ? "Rate" : "Unit Price"}</span>
+                  <span className="text-right">Line Total</span>
                 </div>
-              )}
+                {detail.lineItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-border py-3 text-sm last:border-b-0"
+                  >
+                    <span className="font-medium text-foreground">{item.name}</span>
+                    <span className="text-right text-muted-foreground">{item.qty}</span>
+                    <span className="text-right text-muted-foreground">
+                      {formatAmount(item.unitPrice)} {request.currency}
+                    </span>
+                    <span className="text-right font-semibold text-foreground">
+                      {formatAmount(item.qty * item.unitPrice)} {request.currency}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </SectionCard>
           )}
 
-          <SectionCard
-            icon={ClipboardList}
-            iconClass="bg-chart-2/15 text-chart-2"
-            title="Custom Fields"
-          >
-            <div className="flex flex-col gap-3.5">
-              {detail.customFields.map((field, i) => (
-                <OverviewRow key={i} label={field.label} value={field.value} />
-              ))}
-            </div>
-          </SectionCard>
-
+          {/* Documents */}
           <SectionCard icon={FileText} iconClass="bg-chart-4/15 text-chart-4" title="Documents">
             {detail.documents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No documents attached.</p>
@@ -381,6 +425,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               <ul className="flex flex-col divide-y divide-border">
                 {detail.documents.map((doc, i) => {
                   const attached = doc.fileName !== "Awaiting upload"
+                  const status: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
+                  const statusClass =
+                    status === "Uploaded"
+                      ? "bg-primary/10 text-primary"
+                      : status === "Pending Review"
+                        ? "bg-chart-2/15 text-chart-2"
+                        : "bg-destructive/10 text-destructive"
                   return (
                     <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                       <div className="flex min-w-0 items-center gap-3">
@@ -392,27 +443,37 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                             {doc.label}
                             {doc.required && <span className="ml-1 text-destructive">*</span>}
                           </p>
-                          <p
-                            className={`truncate text-xs ${attached ? "text-muted-foreground" : "text-destructive"}`}
-                          >
-                            {doc.fileName}
+                          <p className={`truncate text-xs ${attached ? "text-muted-foreground" : "text-destructive"}`}>
+                            {attached
+                              ? `${doc.fileName}${doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}${doc.uploadDate ? ` · ${doc.uploadDate}` : ""}`
+                              : doc.fileName}
                           </p>
                         </div>
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          attached
-                            ? "bg-primary/10 text-primary"
-                            : "bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        {attached ? "Attached" : "Missing"}
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClass}`}>
+                        {status}
                       </span>
                     </li>
                   )
                 })}
               </ul>
             )}
+          </SectionCard>
+
+          {/* Financial summary */}
+          <SectionCard icon={Landmark} iconClass="bg-primary/12 text-primary" title="Financial Summary">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {detail.supplierOnboarding ? "Expected Annual Spend" : "Estimated Total"}
+              </span>
+              <span className="text-lg font-bold text-foreground">
+                {detail.supplierOnboarding
+                  ? detail.supplierOnboarding.expectedAnnualSpend
+                  : detail.estimatedTotal > 0
+                    ? `${formatAmount(detail.estimatedTotal)} ${request.currency}`
+                    : "No cost"}
+              </span>
+            </div>
           </SectionCard>
         </div>
 

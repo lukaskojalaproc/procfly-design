@@ -392,11 +392,38 @@ export interface ApprovalStep {
   date: string
 }
 
+export interface ProductDetail {
+  procurementCategory: string
+  preferredSupplier: string
+  neededBy: string
+  deliveryLocation: string
+  purchaseType: string
+}
+
+export interface ServiceDetail {
+  procurementCategory: string
+  preferredSupplier: string
+  serviceStartDate: string
+  serviceEndDate: string
+  businessOwner: string
+  contractRequired: string
+  serviceType: string
+}
+
 export interface SoftwareDetail {
+  procurementCategory: string
+  softwareName: string
+  preferredSupplier: string
+  businessOwner: string
+  itOwner: string
   licenseType: string
   users: string
   billingCycle: string
+  subscriptionStart: string
+  subscriptionEnd: string
+  contractDuration: string
   renewalType: string
+  autoRenewal: string
   renewalDate: string
   dataProcessing: string
   hostingRegion: string
@@ -409,30 +436,50 @@ export interface SupplierDetail {
   country: string
   registrationNumber: string
   vatNumber: string
+  website: string
+  contactName: string
   contactEmail: string
+  supplierCategory: string
+  expectedAnnualSpend: string
   iban: string
   paymentTerms: string
   vatTreatment: string
   supplierType: string
   invoicingEmail: string
+  vatVerificationStatus: string
+  riskStatus: string
 }
+
+export type DocumentStatus = "Uploaded" | "Missing" | "Pending Review"
 
 export interface RequestDocument {
   label: string
   fileName: string
   required: boolean
+  status?: DocumentStatus
+  uploadedBy?: string
+  uploadDate?: string
 }
 
 export interface RequestDetail {
+  /** Header / general */
+  costCenter: string
+  businessPriority: RequestPriority
+  /** Existing */
   supplier: string
   neededBy: string | null
   description: string
   lineItems: LineItem[]
   customFields: CustomField[]
   approvals: ApprovalStep[]
+  /** Type-specific blocks */
+  product?: ProductDetail
+  service?: ServiceDetail
   software?: SoftwareDetail
   supplierOnboarding?: SupplierDetail
   documents: RequestDocument[]
+  /** Financial summary — sum of line totals, or expected spend for onboarding. */
+  estimatedTotal: number
 }
 
 const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
@@ -447,98 +494,157 @@ const defaultFlow = (created: string, requester: string): ApprovalStep[] => [
 // for any request that does not have an explicit entry.
 const requestDetails: Record<string, RequestDetail> = {}
 
+/** Heuristic cost center derived from department (demo data has no real value). */
+function deriveCostCenter(request: ProcurementRequest): string {
+  const map: Record<Department, string> = {
+    IT: "CC-IT-001",
+    Operations: "CC-OPS-002",
+    Marketing: "CC-MKT-003",
+    Finance: "CC-FIN-004",
+    Facilities: "CC-FAC-005",
+    Legal: "CC-LEG-006",
+  }
+  return map[request.department] ?? "CC-GEN-000"
+}
+
 export function getRequestDetail(request: ProcurementRequest): RequestDetail {
   const explicit = requestDetails[request.id]
   if (explicit) return explicit
 
+  const costCenter = deriveCostCenter(request)
+  const businessPriority: RequestPriority = request.priority ?? "Normal"
+  const preferredSupplier = request.supplier ?? "To be selected"
   const isSoftware = ["Software", "Cloud", "IT & Software"].includes(request.category)
 
-  // Software / subscription requests don't carry physical line items — surface
-  // license, renewal, and GDPR detail instead.
+  const base = {
+    costCenter,
+    businessPriority,
+    description: request.description ?? request.title,
+    customFields: [] as CustomField[],
+    approvals: defaultFlow(request.date, request.requester),
+  }
+
+  // Software / subscription requests surface license, renewal, and GDPR detail.
   if (isSoftware) {
     return {
-      supplier: "To be selected",
-      neededBy: null,
-      description: request.title,
+      ...base,
+      supplier: preferredSupplier,
+      neededBy: request.neededBy ?? null,
       lineItems: [],
-      customFields: [
-        { label: "Category", value: request.category },
-        { label: "Request type", value: request.kind },
-      ],
       software: {
+        procurementCategory: request.category,
+        softwareName: request.title,
+        preferredSupplier,
+        businessOwner: request.requester,
+        itOwner: "Not provided",
         licenseType: "SaaS subscription",
         users: "Not provided",
         billingCycle: "Annual",
+        subscriptionStart: request.neededBy ?? "Not set",
+        subscriptionEnd: "Not set",
+        contractDuration: "12 months",
         renewalType: "Auto-renew",
+        autoRenewal: "Yes",
         renewalDate: "Not set",
         dataProcessing: "Not provided",
         hostingRegion: "EU / EEA",
         dpaRequired: "Not provided",
-        owner: "Not provided",
+        owner: request.requester,
       },
       documents: [
-        { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true },
-        { label: "Specification / scope", fileName: "Awaiting upload", required: false },
-        { label: "Data Processing Agreement (DPA)", fileName: "Awaiting upload", required: false },
+        { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true, status: "Missing" },
+        { label: "Specification / scope", fileName: "Awaiting upload", required: false, status: "Missing" },
+        { label: "Data Processing Agreement (DPA)", fileName: "Awaiting upload", required: false, status: "Missing" },
       ],
-      approvals: defaultFlow(request.date, request.requester),
+      estimatedTotal: request.amount,
     }
   }
 
   const isSupplierOnboarding =
     request.kind === "Add New Supplier" || request.category === "Supplier Onboarding"
 
-  // Supplier onboarding requests surface company, banking, and tax/accounting
-  // detail required for compliant vendor setup — not physical line items.
+  // Supplier onboarding requests surface company, finance, and compliance detail.
   if (isSupplierOnboarding) {
     return {
+      ...base,
       supplier: request.title,
       neededBy: null,
-      description: request.title,
       lineItems: [],
-      customFields: [
-        { label: "Category", value: request.category },
-        { label: "Request type", value: request.kind },
-      ],
       supplierOnboarding: {
         legalName: "Not provided",
         country: "Not provided",
         registrationNumber: "Not provided",
         vatNumber: "Not provided",
+        website: "Not provided",
+        contactName: "Not provided",
         contactEmail: "Not provided",
+        supplierCategory: request.category,
+        expectedAnnualSpend: "Not provided",
         iban: "Not provided",
         paymentTerms: "Net 30",
         vatTreatment: "Standard",
         supplierType: "Goods",
         invoicingEmail: "Not provided",
+        vatVerificationStatus: "Not checked",
+        riskStatus: "Low",
       },
       documents: [
-        { label: "Bank confirmation letter", fileName: "Awaiting upload", required: true },
-        { label: "Insurance certificate", fileName: "Awaiting upload", required: false },
-        { label: "Signed Code of Conduct / NDA", fileName: "Awaiting upload", required: false },
+        { label: "Bank confirmation letter", fileName: "Awaiting upload", required: true, status: "Missing" },
+        { label: "Insurance certificate", fileName: "Awaiting upload", required: false, status: "Missing" },
+        { label: "Signed Code of Conduct / NDA", fileName: "Awaiting upload", required: false, status: "Missing" },
       ],
-      approvals: defaultFlow(request.date, request.requester),
+      estimatedTotal: 0,
     }
   }
 
-  // Generate a sensible default for requests without bespoke detail.
-  const fallbackItems: LineItem[] =
+  // Product vs Service.
+  const isService = request.kind === "Buy Service"
+  const lineItems: LineItem[] =
     request.amount > 0 ? [{ name: request.title, qty: 1, unitPrice: request.amount }] : []
+
+  if (isService) {
+    return {
+      ...base,
+      supplier: preferredSupplier,
+      neededBy: request.neededBy ?? null,
+      lineItems,
+      service: {
+        procurementCategory: request.category,
+        preferredSupplier,
+        serviceStartDate: request.neededBy ?? "Not set",
+        serviceEndDate: "Not set",
+        businessOwner: request.requester,
+        contractRequired: request.amount >= 10000 ? "Yes" : "No",
+        serviceType: request.category,
+      },
+      documents: [
+        { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true, status: "Missing" },
+        { label: "Statement of work / scope", fileName: "Awaiting upload", required: true, status: "Missing" },
+        { label: "Pre-approval / budget proof", fileName: "Awaiting upload", required: false, status: "Missing" },
+      ],
+      estimatedTotal: request.amount,
+    }
+  }
+
+  // Default: Buy Product.
   return {
-    supplier: request.kind === "Add New Supplier" ? "Pending onboarding" : "To be selected",
-    neededBy: null,
-    description: request.title,
-    lineItems: fallbackItems,
-    customFields: [
-      { label: "category", value: request.category },
-      { label: "request type", value: request.kind },
-    ],
+    ...base,
+    supplier: preferredSupplier,
+    neededBy: request.neededBy ?? null,
+    lineItems,
+    product: {
+      procurementCategory: request.category,
+      preferredSupplier,
+      neededBy: request.neededBy ?? "Not provided",
+      deliveryLocation: "Not provided",
+      purchaseType: "One-time purchase",
+    },
     documents: [
-      { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true },
-      { label: "Specification / scope", fileName: "Awaiting upload", required: false },
-      { label: "Pre-approval / budget proof", fileName: "Awaiting upload", required: false },
+      { label: "Supplier quote / proforma", fileName: "Awaiting upload", required: true, status: "Missing" },
+      { label: "Specification / scope", fileName: "Awaiting upload", required: false, status: "Missing" },
+      { label: "Pre-approval / budget proof", fileName: "Awaiting upload", required: false, status: "Missing" },
     ],
-    approvals: defaultFlow(request.date, request.requester),
+    estimatedTotal: request.amount,
   }
 }
 
