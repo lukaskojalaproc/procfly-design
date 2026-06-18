@@ -496,6 +496,84 @@ export function requestToPurchaseOrder(r: ProcurementRequest): PurchaseOrder {
   }
 }
 
+// --- Creation ---------------------------------------------------------------
+
+/** Suggest the next sequential PO number (e.g. "PRC-2026-000142"). */
+export function nextOrderNumber(): string {
+  const max = purchaseOrders.reduce((m, o) => {
+    const n = Number.parseInt(o.number.split("-").pop() ?? "0", 10)
+    return Number.isNaN(n) ? m : Math.max(m, n)
+  }, 100)
+  return `PRC-2026-${String(max + 1).padStart(6, "0")}`
+}
+
+/** Distinct supplier names already on file, for quick selection. */
+export function knownSuppliers(): string[] {
+  return Array.from(new Set(purchaseOrders.map((o) => o.supplier.name)))
+    .filter((n) => n && n !== "To be selected")
+    .sort()
+}
+
+export interface NewOrderInput {
+  number: string
+  supplierName: string
+  owner: string
+  requestRef?: string
+  competitionRef?: string
+  expectedDelivery: string
+  deliveryAddress: string
+  currency: string
+  status: OrderStatus
+  lines: OrderLine[]
+  documents?: string[]
+}
+
+/**
+ * Build a purchase order from the create-PO form and prepend it to the live
+ * list so it shows up immediately on the orders page and detail route.
+ */
+export function createPurchaseOrder(input: NewOrderInput): PurchaseOrder {
+  const created = new Date().toISOString().slice(0, 16).replace("T", " ")
+  const id = `new-${Date.now().toString(36)}`
+  const docNote = input.documents?.length ? `Attached documents: ${input.documents.join(", ")}.` : undefined
+
+  const po: PurchaseOrder = {
+    id,
+    number: input.number,
+    created,
+    status: input.status,
+    deliveryStatus: input.status === "Draft" ? "Not Started" : "Awaiting Delivery",
+    supplierResponse: "Awaiting Confirmation",
+    currency: input.currency,
+    sourceRef: input.requestRef ?? input.competitionRef,
+    requestRef: input.requestRef,
+    competitionRef: input.competitionRef,
+    category: "General",
+    owner: input.owner,
+    supplier: {
+      name: input.supplierName || "To be selected",
+      contact: "Pending selection",
+      email: "",
+      phone: "",
+      address: input.deliveryAddress,
+    },
+    lines: input.lines,
+    paymentTerms: "Net 30",
+    expectedDelivery: input.expectedDelivery || "To be confirmed with supplier",
+    deliveryAddress: input.deliveryAddress,
+    notes: docNote,
+    timeline: [
+      { label: "Order drafted", date: created, done: true },
+      { label: "Sent to supplier", date: input.status === "Draft" ? "Pending" : created, done: input.status !== "Draft" },
+      { label: "Confirmed", date: "Pending", done: false },
+      { label: "Delivered", date: "Pending", done: false },
+    ],
+  }
+
+  purchaseOrders.unshift(po)
+  return po
+}
+
 // --- Derived helpers --------------------------------------------------------
 
 export function orderLineTotal(line: OrderLine) {
