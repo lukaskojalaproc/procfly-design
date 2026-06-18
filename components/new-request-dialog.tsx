@@ -35,6 +35,7 @@ import {
   ChevronDown,
   Save,
   Info,
+  CalendarClock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -114,6 +115,33 @@ const preferredSupplierStates = [
   "New supplier required",
 ]
 
+// Buy Service specific option sets
+const serviceProcurementCategories = [
+  "Consulting",
+  "Marketing",
+  "Legal",
+  "Accounting",
+  "Recruitment",
+  "Training",
+  "Logistics",
+  "Facility Management",
+  "Engineering",
+  "Other Services",
+]
+const serviceTypes = ["One-Time Service", "Recurring Service", "Project-Based Service", "Retainer Service"]
+const deliveryModels = ["Onsite", "Remote", "Hybrid"]
+const serviceUnits = ["Hour", "Day", "Week", "Month", "Project", "Deliverable", "Session", "Other"]
+const billingPeriods = ["One-time", "Per hour", "Per day", "Per week", "Per month", "Per quarter", "Per year"]
+const billingFrequencies = ["Monthly", "Quarterly", "Semi-Annual", "Annual"]
+const renewalNoticePeriods = ["30 days", "60 days", "90 days", "Custom"]
+const contractRequiredOptions = ["Yes", "No", "Not Sure"]
+const supplierStatusOptions = [
+  "Supplier selected",
+  "Supplier not selected",
+  "Supplier not known",
+  "Competitive sourcing required",
+]
+
 const fieldClass =
   "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
 
@@ -124,6 +152,8 @@ interface LineItem {
   qty: string
   uom: string
   price: string
+  // Service line items: how the rate is billed (Per hour, Per month, ...)
+  billingPeriod: string
   // Optional product details to help Procurement compare offers
   brand: string
   model: string
@@ -140,6 +170,7 @@ function emptyLine(id: number): LineItem {
     qty: "",
     uom: "Unit",
     price: "",
+    billingPeriod: "One-time",
     brand: "",
     model: "",
     equivalentAllowed: true,
@@ -183,6 +214,28 @@ const conditionalProductDocs: { doc: DocSlot; when: string }[] = [
   { doc: { id: "drawing", label: "Technical drawing", hint: "Engineering drawing or layout", required: false }, when: "Manufacturing equipment" },
   { doc: { id: "warranty", label: "Warranty information", hint: "Warranty terms for the product", required: false }, when: "Warranty requested on a line item" },
 ]
+
+// Buy Service documents are also rule-generated. A supplier proposal and scope
+// of work are always asked for; the rest depend on contract, value, SoW, and
+// supplier status.
+const baseServiceDocs: DocSlot[] = [
+  { id: "proposal", label: "Supplier proposal", hint: "Proposal or quote from the supplier", required: true },
+  { id: "scope", label: "Scope of work", hint: "What the service covers and the expected outcomes", required: true },
+]
+const conditionalServiceDocs: { doc: DocSlot; when: (ctx: ServiceDocContext) => boolean }[] = [
+  { doc: { id: "budget", label: "Budget approval", hint: "Proof the spend is budgeted", required: true }, when: (c) => c.highValue },
+  { doc: { id: "contract", label: "Contract draft", hint: "Draft service contract", required: true }, when: (c) => c.contractRequired },
+  { doc: { id: "agreement", label: "Service agreement", hint: "Signed or draft service agreement", required: true }, when: (c) => c.contractRequired },
+  { doc: { id: "sow", label: "Statement of work", hint: "Detailed statement of work", required: true }, when: (c) => c.sowRequired },
+  { doc: { id: "compliance", label: "Compliance documents", hint: "Required for legal / regulated services", required: false }, when: (c) => c.legalOrNewSupplier },
+]
+
+interface ServiceDocContext {
+  highValue: boolean
+  contractRequired: boolean
+  sowRequired: boolean
+  legalOrNewSupplier: boolean
+}
 
 const euCountries = [
   { code: "AT", name: "Austria" },
@@ -293,11 +346,13 @@ function Field({
   label,
   required,
   hint,
+  error,
   children,
 }: {
   label: string
   required?: boolean
   hint?: string
+  error?: string
   children: React.ReactNode
 }) {
   return (
@@ -307,7 +362,11 @@ function Field({
         {required && <span className="text-destructive"> *</span>}
       </Label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {error ? (
+        <p className="text-[11px] font-medium text-destructive">{error}</p>
+      ) : (
+        hint && <p className="text-[11px] text-muted-foreground">{hint}</p>
+      )}
     </div>
   )
 }
@@ -345,7 +404,15 @@ export function NewRequestDialog() {
   // Specific — service
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [contractRequired, setContractRequired] = useState("No")
+  const [contractRequired, setContractRequired] = useState("Not Sure")
+  const [serviceType, setServiceType] = useState("One-Time Service")
+  const [deliveryModel, setDeliveryModel] = useState("Remote")
+  const [sowRequired, setSowRequired] = useState("No")
+  // Recurring service details
+  const [billingFrequency, setBillingFrequency] = useState("Monthly")
+  const [contractDuration, setContractDuration] = useState("")
+  const [autoRenewal, setAutoRenewal] = useState("No")
+  const [renewalNotice, setRenewalNotice] = useState("30 days")
 
   // Custom — product
   const [productName, setProductName] = useState("")
@@ -405,15 +472,56 @@ export function NewRequestDialog() {
     (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.price) || 0),
     0,
   )
-  // For Buy Product the estimated total is always derived from line items (no
-  // manual amount). Other categories keep the manual amount fallback.
-  const reviewTotal = isProduct ? lineItemsTotal : Number(amount) || lineItemsTotal
+  // For Buy Product and Buy Service the estimated total is always derived from
+  // line items (no manual amount). Other categories keep the manual fallback.
+  const reviewTotal = isProduct || isService ? lineItemsTotal : Number(amount) || lineItemsTotal
   const fmt = (n: number) => n.toLocaleString("en-US")
 
   // High-value threshold drives extra document + quote requirements.
   const HIGH_VALUE = 25000
   const isHighValueProduct = isProduct && reviewTotal >= HIGH_VALUE
   const anyWarrantyRequested = lines.some((l) => l.warranty.trim() !== "")
+
+  // ---- Buy Service derivations ----
+  const isRecurring = serviceType === "Recurring Service" || serviceType === "Retainer Service"
+  const datesInvalid = !!startDate && !!endDate && new Date(endDate) < new Date(startDate)
+  // Service duration in whole months (approx) for recurring services.
+  const serviceDurationMonths =
+    startDate && endDate && !datesInvalid
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24 * 30),
+          ),
+        )
+      : 0
+  const isHighValueService = isService && reviewTotal >= HIGH_VALUE
+  // Procurement rules can auto-require a contract.
+  const contractAutoTriggered =
+    isService &&
+    (isHighValueService ||
+      serviceDurationMonths >= 12 ||
+      supplierState === "New supplier required" ||
+      ["Consulting", "Legal"].includes(procurementCategory))
+  const contractEffective = contractRequired === "Yes" || (contractRequired !== "No" && contractAutoTriggered)
+  const sowEffective = sowRequired === "Yes" || contractEffective
+
+  const serviceDocs: DocSlot[] = isService
+    ? [
+        ...baseServiceDocs,
+        ...conditionalServiceDocs
+          .filter(({ when }) =>
+            when({
+              highValue: isHighValueService,
+              contractRequired: contractEffective,
+              sowRequired: sowEffective,
+              legalOrNewSupplier:
+                procurementCategory === "Legal" || supplierState === "New supplier required",
+            }),
+          )
+          .map(({ doc }) => doc),
+      ]
+    : []
 
   // Generate the Buy Product document list from rules instead of a fixed list.
   const productDocs: DocSlot[] = isProduct
@@ -431,7 +539,13 @@ export function NewRequestDialog() {
       ]
     : []
 
-  const docSlots = isProduct ? productDocs : isSupplier ? supplierDocs : purchaseDocs
+  const docSlots = isProduct
+    ? productDocs
+    : isService
+      ? serviceDocs
+      : isSupplier
+        ? supplierDocs
+        : purchaseDocs
   const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
   const uploadedDocCount = Object.keys(docs).length + extraDocs.length
 
@@ -456,6 +570,29 @@ export function NewRequestDialog() {
       productErrors.push("Description must explain the justification, not repeat the title")
   }
 
+  // Buy Service validation
+  const serviceErrors: string[] = []
+  if (isService) {
+    if (!requestTitle.trim()) serviceErrors.push("Request Title is required")
+    if (!description.trim()) serviceErrors.push("Description / Business Justification is required")
+    if (!department) serviceErrors.push("Department is required")
+    if (!costCenter) serviceErrors.push("Cost Center is required")
+    if (!procurementCategory) serviceErrors.push("Procurement Category is required")
+    if (!businessOwner.trim()) serviceErrors.push("Business Owner is required")
+    if (!startDate) serviceErrors.push("Service Start Date is required")
+    if (!endDate) serviceErrors.push("Service End Date is required")
+    if (datesInvalid) serviceErrors.push("Service End Date cannot be before the Start Date")
+    if (filledLines.length === 0) serviceErrors.push("At least one line item is required")
+    if (filledLines.some((l) => !(Number(l.qty) > 0))) serviceErrors.push("Each line item needs a quantity greater than zero")
+    if (filledLines.some((l) => !(Number(l.price) > 0))) serviceErrors.push("Each line item needs a rate greater than zero")
+    if (
+      description.trim() &&
+      requestTitle.trim() &&
+      description.trim().toLowerCase() === requestTitle.trim().toLowerCase()
+    )
+      serviceErrors.push("Description must explain the justification, not repeat the title")
+  }
+
   function reset() {
     setStep(0)
     setCategory(null)
@@ -478,7 +615,14 @@ export function NewRequestDialog() {
     setDraftSavedAt(null)
     setStartDate("")
     setEndDate("")
-    setContractRequired("No")
+    setContractRequired("Not Sure")
+    setServiceType("One-Time Service")
+    setDeliveryModel("Remote")
+    setSowRequired("No")
+    setBillingFrequency("Monthly")
+    setContractDuration("")
+    setAutoRenewal("No")
+    setRenewalNotice("30 days")
     setProductName("")
     setPriority("Medium")
     setRequestName("")
@@ -574,8 +718,10 @@ export function NewRequestDialog() {
     (step === 1 &&
       (isProduct
         ? productErrors.length === 0
-        : department.trim() !== "" &&
-          (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
+        : isService
+          ? serviceErrors.length === 0
+          : department.trim() !== "" &&
+            (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
     (step === 2 && !requiredDocsMissing) ||
     step === 3
 
@@ -599,7 +745,8 @@ export function NewRequestDialog() {
           <DialogHeader className="shrink-0 px-6 pb-5 pt-6">
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
-              {step === 1 && (isProduct ? "Buy Product request" : "Create a purchase request")}
+              {step === 1 &&
+                (isProduct ? "Buy Product request" : isService ? "Buy Service request" : "Create a purchase request")}
               {step === 2 && "Upload supporting documents"}
               {step === 3 && "Review Request"}
             </DialogTitle>
@@ -1074,7 +1221,497 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 1 && !isProduct && (
+            {step === 1 && isService && (
+              <div className="flex flex-col gap-5">
+                {/* GENERAL */}
+                <Section
+                  icon={Layers}
+                  iconClass="bg-primary/12 text-primary"
+                  title="General"
+                  subtitle="The core details of the service and why it is needed."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field label="Request Title" required>
+                        <input
+                          value={requestTitle}
+                          onChange={(e) => setRequestTitle(e.target.value)}
+                          placeholder="e.g. Marketing Agency Retainer – Q3"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="Description / Business Justification"
+                        required
+                        hint="Explain why the service is needed, the problem it solves, and the expected outcome — don't repeat the title."
+                      >
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Why is this service needed? What outcome is expected?"
+                          rows={3}
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Department" required>
+                      <select
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose department...</option>
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Cost Center" required>
+                      <select
+                        value={costCenter}
+                        onChange={(e) => setCostCenter(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose cost center...</option>
+                        {costCenters.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Request Type" hint="Request type cannot be changed here.">
+                      <input
+                        readOnly
+                        value="Buy Service"
+                        className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <Field label="Procurement Category" required hint="Drives approval routing and reporting.">
+                      <select
+                        value={procurementCategory}
+                        onChange={(e) => setProcurementCategory(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose category...</option>
+                        {serviceProcurementCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Business Priority" required>
+                      <select
+                        value={businessPriority}
+                        onChange={(e) => setBusinessPriority(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {businessPriorities.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Currency">
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {["EUR", "USD", "GBP", "PLN"].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* SERVICE DETAILS */}
+                <Section
+                  icon={Briefcase}
+                  iconClass="bg-chart-2/15 text-chart-2"
+                  title="Service Details"
+                  subtitle="Sourcing, timing, ownership, and delivery of the service."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Preferred Supplier" hint="Optional — leave blank if not known yet.">
+                      <select
+                        value={supplierState === "Supplier selected" ? supplier : ""}
+                        onChange={(e) => {
+                          setSupplier(e.target.value)
+                          setSupplierState(e.target.value ? "Supplier selected" : "Supplier not selected")
+                        }}
+                        disabled={supplierState === "Competitive sourcing required" || supplierState === "Supplier not known"}
+                        className={cn(
+                          fieldClass,
+                          (supplierState === "Competitive sourcing required" || supplierState === "Supplier not known") &&
+                            "opacity-50",
+                        )}
+                      >
+                        <option value="">Not selected</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Supplier status">
+                      <select
+                        value={supplierState}
+                        onChange={(e) => {
+                          setSupplierState(e.target.value)
+                          if (e.target.value !== "Supplier selected") setSupplier("")
+                        }}
+                        className={fieldClass}
+                      >
+                        {supplierStatusOptions.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Service Start Date" required>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field
+                      label="Service End Date"
+                      required
+                      error={datesInvalid ? "End date cannot be before the start date." : undefined}
+                    >
+                      <input
+                        type="date"
+                        value={endDate}
+                        min={startDate || undefined}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className={cn(fieldClass, datesInvalid && "border-destructive focus:border-destructive focus:ring-destructive")}
+                      />
+                    </Field>
+                    {serviceDurationMonths > 0 && (
+                      <div className="sm:col-span-2">
+                        <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                          <CalendarClock className="size-3.5 text-primary" />
+                          Service Duration: <span className="font-semibold text-foreground">{serviceDurationMonths} month{serviceDurationMonths === 1 ? "" : "s"}</span>
+                        </div>
+                      </div>
+                    )}
+                    <Field label="Business Owner" required hint="Responsible for delivery, vendor, budget and renewals.">
+                      <input
+                        value={businessOwner}
+                        onChange={(e) => setBusinessOwner(e.target.value)}
+                        placeholder="e.g. Jane Doe"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Service Region" hint="Where the service is delivered.">
+                      <select
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose region...</option>
+                        {regions.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Service Type" required>
+                      <select
+                        value={serviceType}
+                        onChange={(e) => setServiceType(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {serviceTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Delivery Model">
+                      <select
+                        value={deliveryModel}
+                        onChange={(e) => setDeliveryModel(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {deliveryModels.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field
+                      label="Contract Required"
+                      hint={
+                        contractAutoTriggered && contractRequired !== "No"
+                          ? "Procurement rules suggest a contract for this request."
+                          : undefined
+                      }
+                    >
+                      <select
+                        value={contractRequired}
+                        onChange={(e) => setContractRequired(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {contractRequiredOptions.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Statement of Work Required">
+                      <select
+                        value={sowRequired}
+                        onChange={(e) => setSowRequired(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    </Field>
+                  </div>
+
+                  {(contractEffective || sowEffective) && (
+                    <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+                      <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <p className="text-xs text-muted-foreground">
+                        Based on this request, the Documents step will require{" "}
+                        {[contractEffective && "a contract draft & service agreement", sowEffective && "a statement of work"]
+                          .filter(Boolean)
+                          .join(" and ")}
+                        .
+                      </p>
+                    </div>
+                  )}
+                </Section>
+
+                {/* RECURRING DETAILS */}
+                {isRecurring && (
+                  <Section
+                    icon={CalendarClock}
+                    iconClass="bg-primary/12 text-primary"
+                    title="Recurring Service Details"
+                    subtitle="Billing and renewal terms for the recurring engagement."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field label="Billing Frequency">
+                        <select
+                          value={billingFrequency}
+                          onChange={(e) => setBillingFrequency(e.target.value)}
+                          className={fieldClass}
+                        >
+                          {billingFrequencies.map((f) => (
+                            <option key={f} value={f}>
+                              {f}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Contract Duration" hint="e.g. 12 months">
+                        <input
+                          value={contractDuration}
+                          onChange={(e) => setContractDuration(e.target.value)}
+                          placeholder="e.g. 12 months"
+                          className={fieldClass}
+                        />
+                      </Field>
+                      <Field label="Auto Renewal">
+                        <select
+                          value={autoRenewal}
+                          onChange={(e) => setAutoRenewal(e.target.value)}
+                          className={fieldClass}
+                        >
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </Field>
+                      {autoRenewal === "Yes" && (
+                        <Field label="Renewal Notice Period">
+                          <select
+                            value={renewalNotice}
+                            onChange={(e) => setRenewalNotice(e.target.value)}
+                            className={fieldClass}
+                          >
+                            {renewalNoticePeriods.map((n) => (
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      )}
+                    </div>
+                  </Section>
+                )}
+
+                {/* LINE ITEMS */}
+                <Section
+                  icon={ListChecks}
+                  iconClass="bg-primary/12 text-primary"
+                  title="Line Items"
+                  subtitle="Add a line for each service or deliverable. The estimated total is calculated automatically."
+                >
+                  <div className="flex flex-col gap-4">
+                    {lines.map((line, idx) => {
+                      const qty = Number(line.qty) || 0
+                      const rate = Number(line.price) || 0
+                      const lineTotal = qty * rate
+                      return (
+                        <div key={line.id} className="rounded-xl border border-border bg-background p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Item {idx + 1}
+                            </span>
+                            <button
+                              onClick={() => removeLine(line.id)}
+                              disabled={lines.length === 1}
+                              aria-label="Remove line item"
+                              className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                            <div className="sm:col-span-3">
+                              <Field label="Service / Deliverable" required>
+                                <input
+                                  value={line.name}
+                                  onChange={(e) => updateLine(line.id, "name", e.target.value)}
+                                  placeholder="e.g. Strategy Workshop"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-3">
+                              <Field label="Description">
+                                <input
+                                  value={line.description}
+                                  onChange={(e) => updateLine(line.id, "description", e.target.value)}
+                                  placeholder="Scope or notes"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Quantity" required>
+                                <input
+                                  value={line.qty}
+                                  onChange={(e) => updateLine(line.id, "qty", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="1"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Unit">
+                                <select
+                                  value={line.uom}
+                                  onChange={(e) => updateLine(line.id, "uom", e.target.value)}
+                                  className={fieldClass}
+                                >
+                                  {serviceUnits.map((u) => (
+                                    <option key={u} value={u}>
+                                      {u}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Rate" required>
+                                <input
+                                  value={line.price}
+                                  onChange={(e) => updateLine(line.id, "price", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="0.00"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Billing Period">
+                                <select
+                                  value={line.billingPeriod}
+                                  onChange={(e) => updateLine(line.id, "billingPeriod", e.target.value)}
+                                  className={fieldClass}
+                                >
+                                  {billingPeriods.map((b) => (
+                                    <option key={b} value={b}>
+                                      {b}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Line Total" hint="Calculated automatically">
+                                <input
+                                  readOnly
+                                  value={lineTotal ? `${fmt(lineTotal)} ${currency}` : "—"}
+                                  className={cn(fieldClass, "bg-muted/50 font-semibold text-foreground")}
+                                />
+                              </Field>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    <button
+                      onClick={addLine}
+                      className="flex w-fit items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                    >
+                      <Plus className="size-4" />
+                      Add Line Item
+                    </button>
+
+                    <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+                      <span className="text-sm font-medium text-muted-foreground">Estimated Total</span>
+                      <span className="text-lg font-bold text-foreground">
+                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : `0 ${currency}`}
+                      </span>
+                    </div>
+                  </div>
+                </Section>
+
+                {serviceErrors.length > 0 && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        Resolve the following before continuing
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {serviceErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 1 && !isProduct && !isService && (
               <div className="flex flex-col gap-5">
                 <Section
                   icon={Layers}
@@ -1734,17 +2371,18 @@ export function NewRequestDialog() {
                   subtitle={
                     isSupplier
                       ? "Required for vendor due-diligence and onboarding."
-                      : isProduct
+                      : isProduct || isService
                         ? "Requirements are generated automatically from this request."
                         : "Attach quotes and approvals to support this request."
                   }
                 >
-                  {isProduct && (
+                  {(isProduct || isService) && (
                     <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
                       <Info className="mt-0.5 size-4 shrink-0 text-primary" />
                       <p className="text-xs text-muted-foreground">
-                        Document requirements below are generated from the request value,
-                        procurement category, and line item details. They update as your request changes.
+                        {isService
+                          ? "Document requirements below are generated from the contract requirement, statement of work, service value, and supplier status. They update as your request changes."
+                          : "Document requirements below are generated from the request value, procurement category, and line item details. They update as your request changes."}
                       </p>
                     </div>
                   )}
@@ -2076,7 +2714,233 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 3 && !isProduct && (
+            {step === 3 && isService && (
+              <div className="flex flex-col gap-5">
+                {/* Validation summary */}
+                {serviceErrors.length > 0 ? (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        {serviceErrors.length} issue{serviceErrors.length === 1 ? "" : "s"} must be resolved before submitting
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {serviceErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <Check className="size-4 shrink-0 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      All required information is complete. Ready to submit for approval.
+                    </p>
+                  </div>
+                )}
+
+                {/* General */}
+                <ReviewBlock title="General" onEdit={() => setStep(1)}>
+                  <MetaCell label="Request Type" value="Buy Service" />
+                  <MetaCell label="Request Title" value={requestTitle || "Not provided"} />
+                  <MetaCell label="Department" value={department || "Not provided"} />
+                  <MetaCell label="Cost Center" value={costCenter || "Not provided"} />
+                  <MetaCell label="Procurement Category" value={procurementCategory || "Not provided"} />
+                  <MetaCell label="Business Priority" value={businessPriority} />
+                  <MetaCell label="Currency" value={currency} />
+                  <div className="col-span-2 sm:col-span-4">
+                    <MetaCell label="Description / Business Justification" value={description || "Not provided"} />
+                  </div>
+                </ReviewBlock>
+
+                {/* Service details */}
+                <ReviewBlock title="Service Details" onEdit={() => setStep(1)}>
+                  <MetaCell
+                    label="Preferred Supplier"
+                    value={supplier || (supplierState !== "Supplier selected" ? supplierState : "Not selected")}
+                  />
+                  <MetaCell label="Business Owner" value={businessOwner || "Not provided"} />
+                  <MetaCell
+                    label="Service Start"
+                    value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
+                  />
+                  <MetaCell
+                    label="Service End"
+                    value={endDate ? new Date(endDate).toLocaleDateString("en-GB") : "Not provided"}
+                  />
+                  <MetaCell label="Service Region" value={region || "Not set"} />
+                  <MetaCell label="Service Type" value={serviceType} />
+                  <MetaCell label="Delivery Model" value={deliveryModel} />
+                  <MetaCell label="Contract Required" value={contractEffective ? "Yes" : contractRequired} />
+                  {isRecurring && (
+                    <>
+                      <MetaCell label="Billing Frequency" value={billingFrequency} />
+                      <MetaCell label="Contract Duration" value={contractDuration || "Not set"} />
+                      <MetaCell label="Auto Renewal" value={autoRenewal} />
+                      {autoRenewal === "Yes" && <MetaCell label="Renewal Notice" value={renewalNotice} />}
+                    </>
+                  )}
+                </ReviewBlock>
+
+                {/* Line items */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Line Items</h3>
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <th className="px-5 py-3 text-left font-semibold">Service / Deliverable</th>
+                          <th className="px-5 py-3 text-center font-semibold">Qty</th>
+                          <th className="px-5 py-3 text-center font-semibold">Unit</th>
+                          <th className="px-5 py-3 text-right font-semibold">Rate</th>
+                          <th className="px-5 py-3 text-center font-semibold">Billing</th>
+                          <th className="px-5 py-3 text-right font-semibold">Line total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filledLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-5 py-6 text-center text-muted-foreground">
+                              No line items added.
+                            </td>
+                          </tr>
+                        ) : (
+                          filledLines.map((l) => {
+                            const qty = Number(l.qty) || 0
+                            const rate = Number(l.price) || 0
+                            return (
+                              <tr key={l.id}>
+                                <td className="px-5 py-3">
+                                  <p className="font-medium text-foreground">{l.name}</p>
+                                  {l.description && (
+                                    <p className="text-xs text-muted-foreground">{l.description}</p>
+                                  )}
+                                </td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{qty || "—"}</td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{l.uom}</td>
+                                <td className="px-5 py-3 text-right text-muted-foreground">
+                                  {rate ? `${fmt(rate)} ${currency}` : "—"}
+                                </td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{l.billingPeriod}</td>
+                                <td className="px-5 py-3 text-right font-semibold text-foreground">
+                                  {qty && rate ? `${fmt(qty * rate)} ${currency}` : "—"}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-muted/40">
+                          <td colSpan={5} className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Estimated Total
+                          </td>
+                          <td className="px-5 py-3 text-right text-base font-bold text-foreground">
+                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Documents</h3>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    {uploadedDocCount === 0 ? (
+                      <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    ) : (
+                      <>
+                        {docSlots
+                          .filter((d) => docs[d.id])
+                          .map((d) => (
+                            <div key={d.id} className="flex items-center gap-3 text-sm">
+                              <FileCheck2 className="size-4 shrink-0 text-primary" />
+                              <span className="font-medium text-foreground">{d.label}</span>
+                              <span className="truncate text-muted-foreground">{docs[d.id]}</span>
+                            </div>
+                          ))}
+                        {extraDocs.map((name, i) => (
+                          <div key={`x-${i}`} className="flex items-center gap-3 text-sm">
+                            <FileCheck2 className="size-4 shrink-0 text-primary" />
+                            <span className="truncate text-muted-foreground">{name}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {requiredDocsMissing && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertCircle className="size-3.5" />
+                        Mandatory documents are still missing.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval route preview */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border p-5">
+                    <Workflow className="size-4 text-primary" />
+                    <h3 className="font-semibold text-foreground">Generated Approval Route</h3>
+                  </div>
+                  <div className="flex flex-col gap-3 p-5">
+                    {[
+                      { role: "Requester", who: "You", note: "Submits the request" },
+                      { role: "Department Manager", who: department || "Department head", note: "Reviews need & budget" },
+                      { role: "Business Owner", who: businessOwner || "Service owner", note: "Confirms service scope" },
+                      ...(procurementCategory === "Legal"
+                        ? [{ role: "Legal", who: "Legal team", note: "Legal service review" }]
+                        : []),
+                      ...(procurementCategory === "Marketing"
+                        ? [{ role: "Marketing Director", who: "Marketing lead", note: "Marketing service review" }]
+                        : []),
+                      ...(isHighValueService
+                        ? [{ role: "Finance", who: "Finance team", note: "High-value approval" }]
+                        : []),
+                      { role: "Procurement", who: "Procurement team", note: "Sourcing & contract" },
+                    ].map((s, i, arr) => (
+                      <div key={s.role} className="flex items-center gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{s.role}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.who} · {s.note}
+                          </p>
+                        </div>
+                        {i < arr.length - 1 && <ChevronRight className="size-4 text-muted-foreground" />}
+                      </div>
+                    ))}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Approval steps are generated from procurement category, service value, and supplier status — not hard-coded.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && !isProduct && !isService && (
               <div className="flex flex-col gap-5">
                 {/* Summary card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -2368,7 +3232,7 @@ export function NewRequestDialog() {
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 3 ? (isProduct ? "Submit for Approval" : "Create") : "Next"}
+                {step === 3 ? (isProduct || isService ? "Submit for Approval" : "Create") : "Next"}
                 {step !== 3 && <ChevronRight className="size-4" />}
               </button>
             </div>
