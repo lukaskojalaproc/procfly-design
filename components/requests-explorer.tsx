@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Search,
   SlidersHorizontal,
@@ -190,6 +191,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
 function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; canSeeApproval: boolean }) {
   const Icon = kindIcon[request.kind]
   const status = statusMeta[request.status]
+  const router = useRouter()
   return (
     <Link
       href={`/requests/${request.id}`}
@@ -266,14 +268,18 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
           {status.label}
         </span>
         {request.status === "Pending Approval" && canSeeApproval && (
-          <Link
-            href="/approvals"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              router.push("/approvals")
+            }}
             className="inline-flex w-fit items-center gap-1 text-[11px] font-medium text-primary hover:underline"
           >
             View Approval Details
             <ChevronRight className="size-3" />
-          </Link>
+          </button>
         )}
       </div>
 
