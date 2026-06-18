@@ -28,6 +28,13 @@ import {
   FileCheck2,
   ShieldCheck,
   Receipt,
+  MapPin,
+  AlertCircle,
+  Pencil,
+  Workflow,
+  ChevronDown,
+  Save,
+  Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -71,7 +78,7 @@ const categories: {
 ]
 
 const steps = [
-  { id: "category", label: "Category", icon: Package },
+  { id: "type", label: "Request Type", icon: Package },
   { id: "details", label: "Details", icon: FileText },
   { id: "documents", label: "Documents", icon: UploadCloud },
   { id: "review", label: "Review", icon: ClipboardCheck },
@@ -83,14 +90,62 @@ const suppliers = ["ProcFly Logistics", "Office Supplies Baltics", "TechWare Sol
 const priorities = ["Low", "Medium", "High", "Critical"]
 const regions = ["EMEA", "North America", "APAC", "LATAM", "Baltics"]
 
+// Buy Product specific option sets
+const businessPriorities = ["Low", "Medium", "High", "Urgent"]
+const procurementCategories = [
+  "Hardware",
+  "IT Equipment",
+  "Furniture",
+  "Office Supplies",
+  "Manufacturing Equipment",
+  "Other",
+]
+const purchaseTypes = ["New Purchase", "Replacement", "Expansion", "Spare Part"]
+const unitsOfMeasure = ["Unit", "Pack", "Box", "Set", "Meter", "Kilogram", "Liter", "Other"]
+const deliveryLocationTypes = ["Office", "Warehouse", "Project Site", "Custom Address"]
+const predefinedLocations: Record<string, string[]> = {
+  Office: ["HQ · Vilnius", "Office · Kaunas", "Office · Riga", "Office · Tallinn"],
+  Warehouse: ["Central Warehouse · Vilnius", "Distribution Hub · Kaunas"],
+  "Project Site": ["Site A · Klaipėda Port", "Site B · Panevėžys Plant"],
+}
+const preferredSupplierStates = [
+  "Preferred supplier selected",
+  "Supplier not known yet",
+  "New supplier required",
+]
+
 const fieldClass =
   "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
 
 interface LineItem {
   id: number
   name: string
+  description: string
   qty: string
+  uom: string
   price: string
+  // Optional product details to help Procurement compare offers
+  brand: string
+  model: string
+  equivalentAllowed: boolean
+  warranty: string
+  detailsOpen: boolean
+}
+
+function emptyLine(id: number): LineItem {
+  return {
+    id,
+    name: "",
+    description: "",
+    qty: "",
+    uom: "Unit",
+    price: "",
+    brand: "",
+    model: "",
+    equivalentAllowed: true,
+    warranty: "",
+    detailsOpen: false,
+  }
 }
 
 interface DocSlot {
@@ -113,6 +168,20 @@ const purchaseDocs: DocSlot[] = [
   { id: "quote", label: "Supplier quote / proforma", hint: "Itemized quote or proforma invoice", required: true },
   { id: "spec", label: "Specification / scope", hint: "Product spec sheet or statement of work", required: false },
   { id: "approval", label: "Pre-approval / budget proof", hint: "Email or document approving the spend", required: false },
+]
+
+// Buy Product documents are generated from rules: the first two are always
+// mandatory; the rest are surfaced conditionally based on the request (value,
+// purchase type, supplier readiness).
+const baseProductDocs: DocSlot[] = [
+  { id: "quote", label: "Supplier quote / proforma", hint: "Itemized quote from the preferred supplier", required: true },
+  { id: "spec", label: "Product specification", hint: "Datasheet or technical specification of the product", required: true },
+]
+const conditionalProductDocs: { doc: DocSlot; when: string }[] = [
+  { doc: { id: "budget", label: "Budget approval", hint: "Proof the spend is budgeted", required: true }, when: "Estimated total is high value" },
+  { doc: { id: "quotes2", label: "Additional quotes", hint: "Competing quotes for comparison", required: true }, when: "High-value purchase requires 3 quotes" },
+  { doc: { id: "drawing", label: "Technical drawing", hint: "Engineering drawing or layout", required: false }, when: "Manufacturing equipment" },
+  { doc: { id: "warranty", label: "Warranty information", hint: "Warranty terms for the product", required: false }, when: "Warranty requested on a line item" },
 ]
 
 const euCountries = [
@@ -255,10 +324,23 @@ export function NewRequestDialog() {
   const [amount, setAmount] = useState("")
   const [currency, setCurrency] = useState("EUR")
 
+  // General — Buy Product
+  const [requestTitle, setRequestTitle] = useState("")
+  const [procurementCategory, setProcurementCategory] = useState("")
+  const [businessPriority, setBusinessPriority] = useState("Medium")
+
   // Specific — product
   const [supplier, setSupplier] = useState("")
+  const [supplierState, setSupplierState] = useState("Preferred supplier selected")
   const [neededBy, setNeededBy] = useState("")
   const [deliveryAddress, setDeliveryAddress] = useState("")
+  const [deliveryLocationType, setDeliveryLocationType] = useState("Office")
+  const [deliveryLocation, setDeliveryLocation] = useState("")
+  const [purchaseType, setPurchaseType] = useState("New Purchase")
+
+  // Draft / unsaved-changes handling
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null)
 
   // Specific — service
   const [startDate, setStartDate] = useState("")
@@ -306,7 +388,7 @@ export function NewRequestDialog() {
   const [invoicingEmail, setInvoicingEmail] = useState("")
 
   // Line items
-  const [lines, setLines] = useState<LineItem[]>([{ id: 1, name: "", qty: "", price: "" }])
+  const [lines, setLines] = useState<LineItem[]>([emptyLine(1)])
 
   // Documents — maps document slot id to an uploaded file name
   const [docs, setDocs] = useState<Record<string, string>>({})
@@ -316,18 +398,63 @@ export function NewRequestDialog() {
   const isService = category === "service"
   const isSupplier = category === "supplier"
   const isSoftware = category === "software"
-
-  const docSlots = isSupplier ? supplierDocs : purchaseDocs
-  const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
-  const uploadedDocCount = Object.keys(docs).length + extraDocs.length
+  const isProduct = category === "product"
 
   const filledLines = lines.filter((l) => l.name.trim() !== "")
   const lineItemsTotal = filledLines.reduce(
     (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.price) || 0),
     0,
   )
-  const reviewTotal = Number(amount) || lineItemsTotal
+  // For Buy Product the estimated total is always derived from line items (no
+  // manual amount). Other categories keep the manual amount fallback.
+  const reviewTotal = isProduct ? lineItemsTotal : Number(amount) || lineItemsTotal
   const fmt = (n: number) => n.toLocaleString("en-US")
+
+  // High-value threshold drives extra document + quote requirements.
+  const HIGH_VALUE = 25000
+  const isHighValueProduct = isProduct && reviewTotal >= HIGH_VALUE
+  const anyWarrantyRequested = lines.some((l) => l.warranty.trim() !== "")
+
+  // Generate the Buy Product document list from rules instead of a fixed list.
+  const productDocs: DocSlot[] = isProduct
+    ? [
+        ...baseProductDocs,
+        ...conditionalProductDocs
+          .filter(({ doc }) => {
+            if (doc.id === "budget") return isHighValueProduct
+            if (doc.id === "quotes2") return isHighValueProduct
+            if (doc.id === "drawing") return procurementCategory === "Manufacturing Equipment"
+            if (doc.id === "warranty") return anyWarrantyRequested
+            return false
+          })
+          .map(({ doc }) => doc),
+      ]
+    : []
+
+  const docSlots = isProduct ? productDocs : isSupplier ? supplierDocs : purchaseDocs
+  const requiredDocsMissing = docSlots.some((d) => d.required && !docs[d.id])
+  const uploadedDocCount = Object.keys(docs).length + extraDocs.length
+
+  // Buy Product validation — drives the disabled state of "Next" and the
+  // validation summary on the review step.
+  const productErrors: string[] = []
+  if (isProduct) {
+    if (!requestTitle.trim()) productErrors.push("Request Title is required")
+    if (!description.trim()) productErrors.push("Description / Business Justification is required")
+    if (!department) productErrors.push("Department is required")
+    if (!costCenter) productErrors.push("Cost Center is required")
+    if (!procurementCategory) productErrors.push("Procurement Category is required")
+    if (!neededBy) productErrors.push("Needed By date is required")
+    if (filledLines.length === 0) productErrors.push("At least one line item is required")
+    if (filledLines.some((l) => !(Number(l.qty) > 0))) productErrors.push("Each line item needs a quantity greater than zero")
+    if (filledLines.some((l) => !(Number(l.price) > 0))) productErrors.push("Each line item needs a unit price greater than zero")
+    if (
+      description.trim() &&
+      requestTitle.trim() &&
+      description.trim().toLowerCase() === requestTitle.trim().toLowerCase()
+    )
+      productErrors.push("Description must explain the justification, not repeat the title")
+  }
 
   function reset() {
     setStep(0)
@@ -337,9 +464,18 @@ export function NewRequestDialog() {
     setDescription("")
     setAmount("")
     setCurrency("EUR")
+    setRequestTitle("")
+    setProcurementCategory("")
+    setBusinessPriority("Medium")
     setSupplier("")
+    setSupplierState("Preferred supplier selected")
     setNeededBy("")
     setDeliveryAddress("")
+    setDeliveryLocationType("Office")
+    setDeliveryLocation("")
+    setPurchaseType("New Purchase")
+    setShowCloseConfirm(false)
+    setDraftSavedAt(null)
     setStartDate("")
     setEndDate("")
     setContractRequired("No")
@@ -372,14 +508,44 @@ export function NewRequestDialog() {
     setSupplierType("Goods")
     setTaxRate("21%")
     setInvoicingEmail("")
-    setLines([{ id: 1, name: "", qty: "", price: "" }])
+    setLines([emptyLine(1)])
     setDocs({})
     setExtraDocs([])
   }
 
+  // Has the user entered anything worth warning about on close?
+  const hasUnsavedChanges =
+    category !== null &&
+    (requestTitle.trim() !== "" ||
+      description.trim() !== "" ||
+      department !== "" ||
+      filledLines.length > 0)
+
   function handleOpenChange(next: boolean) {
+    // Intercept closing with unsaved changes to offer Save as Draft.
+    if (!next && open && hasUnsavedChanges) {
+      setShowCloseConfirm(true)
+      return
+    }
     setOpen(next)
     if (!next) setTimeout(reset, 200)
+  }
+
+  function saveDraft() {
+    setDraftSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
+  }
+
+  function saveDraftAndClose() {
+    saveDraft()
+    setShowCloseConfirm(false)
+    setOpen(false)
+    setTimeout(reset, 200)
+  }
+
+  function discardAndClose() {
+    setShowCloseConfirm(false)
+    setOpen(false)
+    setTimeout(reset, 200)
   }
 
   function selectDoc(slotId: string, name: string) {
@@ -393,11 +559,11 @@ export function NewRequestDialog() {
     })
   }
 
-  function updateLine(id: number, key: keyof LineItem, value: string) {
+  function updateLine(id: number, key: keyof LineItem, value: string | boolean) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, [key]: value } : l)))
   }
   function addLine() {
-    setLines((prev) => [...prev, { id: Date.now(), name: "", qty: "", price: "" }])
+    setLines((prev) => [...prev, emptyLine(Date.now())])
   }
   function removeLine(id: number) {
     setLines((prev) => (prev.length > 1 ? prev.filter((l) => l.id !== id) : prev))
@@ -406,8 +572,10 @@ export function NewRequestDialog() {
   const canContinue =
     (step === 0 && category !== null) ||
     (step === 1 &&
-      department.trim() !== "" &&
-      (isSupplier ? supplierName.trim() !== "" : description.trim() !== "")) ||
+      (isProduct
+        ? productErrors.length === 0
+        : department.trim() !== "" &&
+          (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
     (step === 2 && !requiredDocsMissing) ||
     step === 3
 
@@ -431,12 +599,12 @@ export function NewRequestDialog() {
           <DialogHeader className="shrink-0 px-6 pb-5 pt-6">
             <DialogTitle className="text-xl font-bold tracking-tight">
               {step === 0 && "What would you like to request?"}
-              {step === 1 && "Create a purchase request"}
+              {step === 1 && (isProduct ? "Buy Product request" : "Create a purchase request")}
               {step === 2 && "Upload supporting documents"}
               {step === 3 && "Review Request"}
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-              {step === 0 && "Choose a category to get started. Three quick steps to send for approval."}
+              {step === 0 && "Choose a request type to get started. Four quick steps to send for approval."}
               {step === 1 && "Fill in the details below. Required fields are marked with an asterisk."}
               {step === 2 && "Attach the documents required for compliance and approval."}
               {step === 3 && "Make sure everything looks right before submitting."}
@@ -494,7 +662,419 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 1 && (
+            {step === 1 && isProduct && (
+              <div className="flex flex-col gap-5">
+                {/* GENERAL */}
+                <Section
+                  icon={Layers}
+                  iconClass="bg-primary/12 text-primary"
+                  title="General"
+                  subtitle="The core details of what you want to buy and why."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field label="Request Title" required>
+                        <input
+                          value={requestTitle}
+                          onChange={(e) => setRequestTitle(e.target.value)}
+                          placeholder="e.g. Replacement laptops for design team"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="Description / Business Justification"
+                        required
+                        hint="Explain why the purchase is needed, the business impact, and the reason — don't just repeat the title."
+                      >
+                        <Textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Why is this purchase needed? What is the business impact?"
+                          rows={3}
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Department" required>
+                      <select
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose department...</option>
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Cost Center" required>
+                      <select
+                        value={costCenter}
+                        onChange={(e) => setCostCenter(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose cost center...</option>
+                        {costCenters.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Request Type" hint="Request type cannot be changed here.">
+                      <input
+                        readOnly
+                        value="Buy Product"
+                        className={cn(fieldClass, "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <Field label="Procurement Category" required hint="What is being purchased.">
+                      <select
+                        value={procurementCategory}
+                        onChange={(e) => setProcurementCategory(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose category...</option>
+                        {procurementCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Business Priority" required>
+                      <select
+                        value={businessPriority}
+                        onChange={(e) => setBusinessPriority(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {businessPriorities.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Currency">
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {["EUR", "USD", "GBP", "PLN"].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* PRODUCT DETAILS */}
+                <Section
+                  icon={Package}
+                  iconClass="bg-chart-2/15 text-chart-2"
+                  title="Product Details"
+                  subtitle="Sourcing, timing, and delivery information."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field
+                      label="Preferred Supplier"
+                      hint="Optional — leave blank if you don't know the supplier yet."
+                    >
+                      <select
+                        value={supplierState === "Preferred supplier selected" ? supplier : ""}
+                        onChange={(e) => {
+                          setSupplier(e.target.value)
+                          setSupplierState(e.target.value ? "Preferred supplier selected" : "Supplier not known yet")
+                        }}
+                        disabled={supplierState === "New supplier required"}
+                        className={cn(fieldClass, supplierState === "New supplier required" && "opacity-50")}
+                      >
+                        <option value="">Not selected</option>
+                        {suppliers.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Supplier status">
+                      <select
+                        value={supplierState}
+                        onChange={(e) => {
+                          setSupplierState(e.target.value)
+                          if (e.target.value !== "Preferred supplier selected") setSupplier("")
+                        }}
+                        className={fieldClass}
+                      >
+                        {preferredSupplierStates.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Needed By" required hint="Used for delivery and approval planning.">
+                      <input
+                        type="date"
+                        value={neededBy}
+                        onChange={(e) => setNeededBy(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Purchase Type">
+                      <select
+                        value={purchaseType}
+                        onChange={(e) => setPurchaseType(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {purchaseTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Delivery Location">
+                      <select
+                        value={deliveryLocationType}
+                        onChange={(e) => {
+                          setDeliveryLocationType(e.target.value)
+                          setDeliveryLocation("")
+                          setDeliveryAddress("")
+                        }}
+                        className={fieldClass}
+                      >
+                        {deliveryLocationTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    {deliveryLocationType === "Custom Address" ? (
+                      <Field label="Custom address">
+                        <input
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          placeholder="Street, city, postal code"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    ) : (
+                      <Field label="Select location">
+                        <select
+                          value={deliveryLocation}
+                          onChange={(e) => setDeliveryLocation(e.target.value)}
+                          className={fieldClass}
+                        >
+                          <option value="">Choose {deliveryLocationType.toLowerCase()}...</option>
+                          {(predefinedLocations[deliveryLocationType] ?? []).map((l) => (
+                            <option key={l} value={l}>
+                              {l}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    )}
+                  </div>
+                </Section>
+
+                {/* LINE ITEMS */}
+                <Section
+                  icon={ListChecks}
+                  iconClass="bg-primary/12 text-primary"
+                  title="Line Items"
+                  subtitle="Add a line for each product. The estimated total is calculated automatically."
+                >
+                  <div className="flex flex-col gap-4">
+                    {lines.map((line, idx) => {
+                      const qty = Number(line.qty) || 0
+                      const price = Number(line.price) || 0
+                      const lineTotal = qty * price
+                      return (
+                        <div
+                          key={line.id}
+                          className="rounded-xl border border-border bg-background p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Item {idx + 1}
+                            </span>
+                            <button
+                              onClick={() => removeLine(line.id)}
+                              disabled={lines.length === 1}
+                              aria-label="Remove line item"
+                              className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                            <div className="sm:col-span-3">
+                              <Field label="Item Name" required>
+                                <input
+                                  value={line.name}
+                                  onChange={(e) => updateLine(line.id, "name", e.target.value)}
+                                  placeholder="e.g. Dell Latitude 7440"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-3">
+                              <Field label="Item Description">
+                                <input
+                                  value={line.description}
+                                  onChange={(e) => updateLine(line.id, "description", e.target.value)}
+                                  placeholder="Configuration, spec, notes"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Quantity" required>
+                                <input
+                                  value={line.qty}
+                                  onChange={(e) => updateLine(line.id, "qty", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="1"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Unit of Measure">
+                                <select
+                                  value={line.uom}
+                                  onChange={(e) => updateLine(line.id, "uom", e.target.value)}
+                                  className={fieldClass}
+                                >
+                                  {unitsOfMeasure.map((u) => (
+                                    <option key={u} value={u}>
+                                      {u}
+                                    </option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Field label="Unit Price" required>
+                                <input
+                                  value={line.price}
+                                  onChange={(e) => updateLine(line.id, "price", e.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="0.00"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Field label="Line Total" hint="Calculated automatically">
+                                <input
+                                  readOnly
+                                  value={lineTotal ? `${fmt(lineTotal)} ${currency}` : "—"}
+                                  className={cn(fieldClass, "bg-muted/50 font-semibold text-foreground")}
+                                />
+                              </Field>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => updateLine(line.id, "detailsOpen", !line.detailsOpen)}
+                            className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-3.5 transition-transform",
+                                line.detailsOpen && "rotate-180",
+                              )}
+                            />
+                            {line.detailsOpen ? "Hide product details" : "Add product details (optional)"}
+                          </button>
+
+                          {line.detailsOpen && (
+                            <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-2">
+                              <Field label="Preferred Brand">
+                                <input
+                                  value={line.brand}
+                                  onChange={(e) => updateLine(line.id, "brand", e.target.value)}
+                                  placeholder="e.g. Dell"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                              <Field label="Preferred Model">
+                                <input
+                                  value={line.model}
+                                  onChange={(e) => updateLine(line.id, "model", e.target.value)}
+                                  placeholder="e.g. Latitude 7440"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                              <Field label="Warranty Requirement">
+                                <input
+                                  value={line.warranty}
+                                  onChange={(e) => updateLine(line.id, "warranty", e.target.value)}
+                                  placeholder="e.g. 3 years on-site"
+                                  className={fieldClass}
+                                />
+                              </Field>
+                              <label className="flex items-end gap-2 pb-2.5 text-sm text-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={line.equivalentAllowed}
+                                  onChange={(e) => updateLine(line.id, "equivalentAllowed", e.target.checked)}
+                                  className="size-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                                Equivalent products allowed
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    <button
+                      onClick={addLine}
+                      className="flex w-fit items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                    >
+                      <Plus className="size-4" />
+                      Add Line Item
+                    </button>
+
+                    <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+                      <span className="text-sm font-medium text-muted-foreground">Estimated Total</span>
+                      <span className="text-lg font-bold text-foreground">
+                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : `0 ${currency}`}
+                      </span>
+                    </div>
+                  </div>
+                </Section>
+
+                {productErrors.length > 0 && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        Resolve the following before continuing
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {productErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 1 && !isProduct && (
               <div className="flex flex-col gap-5">
                 <Section
                   icon={Layers}
@@ -1154,9 +1734,20 @@ export function NewRequestDialog() {
                   subtitle={
                     isSupplier
                       ? "Required for vendor due-diligence and onboarding."
-                      : "Attach quotes and approvals to support this request."
+                      : isProduct
+                        ? "Requirements are generated automatically from this request."
+                        : "Attach quotes and approvals to support this request."
                   }
                 >
+                  {isProduct && (
+                    <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+                      <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <p className="text-xs text-muted-foreground">
+                        Document requirements below are generated from the request value,
+                        procurement category, and line item details. They update as your request changes.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-3">
                     {docSlots.map((doc) => {
                       const uploaded = docs[doc.id]
@@ -1274,7 +1865,218 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 3 && (
+            {step === 3 && isProduct && (
+              <div className="flex flex-col gap-5">
+                {/* Validation summary */}
+                {productErrors.length > 0 ? (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        {productErrors.length} issue{productErrors.length === 1 ? "" : "s"} must be resolved before submitting
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {productErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <Check className="size-4 shrink-0 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      All required information is complete. Ready to submit for approval.
+                    </p>
+                  </div>
+                )}
+
+                {/* General */}
+                <ReviewBlock title="General" onEdit={() => setStep(1)}>
+                  <MetaCell label="Request Type" value="Buy Product" />
+                  <MetaCell label="Request Title" value={requestTitle || "Not provided"} />
+                  <MetaCell label="Department" value={department || "Not provided"} />
+                  <MetaCell label="Cost Center" value={costCenter || "Not provided"} />
+                  <MetaCell label="Procurement Category" value={procurementCategory || "Not provided"} />
+                  <MetaCell label="Business Priority" value={businessPriority} />
+                  <MetaCell label="Currency" value={currency} />
+                  <div className="col-span-2 sm:col-span-4">
+                    <MetaCell label="Description / Business Justification" value={description || "Not provided"} />
+                  </div>
+                </ReviewBlock>
+
+                {/* Product details */}
+                <ReviewBlock title="Product Details" onEdit={() => setStep(1)}>
+                  <MetaCell
+                    label="Preferred Supplier"
+                    value={supplier || (supplierState !== "Preferred supplier selected" ? supplierState : "Not selected")}
+                  />
+                  <MetaCell
+                    label="Needed By"
+                    value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
+                  />
+                  <MetaCell label="Purchase Type" value={purchaseType} />
+                  <MetaCell
+                    label="Delivery Location"
+                    value={
+                      deliveryLocationType === "Custom Address"
+                        ? deliveryAddress || "Custom address not set"
+                        : deliveryLocation || deliveryLocationType
+                    }
+                  />
+                </ReviewBlock>
+
+                {/* Line items */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Line Items</h3>
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <th className="px-5 py-3 text-left font-semibold">Item</th>
+                          <th className="px-5 py-3 text-center font-semibold">Qty</th>
+                          <th className="px-5 py-3 text-center font-semibold">UoM</th>
+                          <th className="px-5 py-3 text-right font-semibold">Unit price</th>
+                          <th className="px-5 py-3 text-right font-semibold">Line total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filledLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-5 py-6 text-center text-muted-foreground">
+                              No line items added.
+                            </td>
+                          </tr>
+                        ) : (
+                          filledLines.map((l) => {
+                            const qty = Number(l.qty) || 0
+                            const price = Number(l.price) || 0
+                            return (
+                              <tr key={l.id}>
+                                <td className="px-5 py-3">
+                                  <p className="font-medium text-foreground">{l.name}</p>
+                                  {l.description && (
+                                    <p className="text-xs text-muted-foreground">{l.description}</p>
+                                  )}
+                                </td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{qty || "—"}</td>
+                                <td className="px-5 py-3 text-center text-muted-foreground">{l.uom}</td>
+                                <td className="px-5 py-3 text-right text-muted-foreground">
+                                  {price ? `${fmt(price)} ${currency}` : "—"}
+                                </td>
+                                <td className="px-5 py-3 text-right font-semibold text-foreground">
+                                  {qty && price ? `${fmt(qty * price)} ${currency}` : "—"}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-muted/40">
+                          <td colSpan={4} className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Estimated Total
+                          </td>
+                          <td className="px-5 py-3 text-right text-base font-bold text-foreground">
+                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Documents</h3>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    {uploadedDocCount === 0 ? (
+                      <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    ) : (
+                      <>
+                        {docSlots
+                          .filter((d) => docs[d.id])
+                          .map((d) => (
+                            <div key={d.id} className="flex items-center gap-3 text-sm">
+                              <FileCheck2 className="size-4 shrink-0 text-primary" />
+                              <span className="font-medium text-foreground">{d.label}</span>
+                              <span className="truncate text-muted-foreground">{docs[d.id]}</span>
+                            </div>
+                          ))}
+                        {extraDocs.map((name, i) => (
+                          <div key={`x-${i}`} className="flex items-center gap-3 text-sm">
+                            <FileCheck2 className="size-4 shrink-0 text-primary" />
+                            <span className="truncate text-muted-foreground">{name}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {requiredDocsMissing && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertCircle className="size-3.5" />
+                        Mandatory documents are still missing.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval route preview */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border p-5">
+                    <Workflow className="size-4 text-primary" />
+                    <h3 className="font-semibold text-foreground">Generated Approval Route</h3>
+                  </div>
+                  <div className="flex flex-col gap-3 p-5">
+                    {[
+                      { role: "Requester", who: "You", note: "Submits the request" },
+                      { role: "Department Manager", who: department || "Department head", note: "Reviews need & budget" },
+                      ...(isHighValueProduct
+                        ? [{ role: "Finance", who: "Finance team", note: "High-value approval" }]
+                        : []),
+                      { role: "Procurement", who: "Procurement team", note: "Sourcing & PO" },
+                    ].map((s, i, arr) => (
+                      <div key={s.role} className="flex items-center gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{s.role}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.who} · {s.note}
+                          </p>
+                        </div>
+                        {i < arr.length - 1 && <ChevronRight className="size-4 text-muted-foreground" />}
+                      </div>
+                    ))}
+                    {isHighValueProduct && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        A Finance step was added automatically because the estimated total is high value.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && !isProduct && (
               <div className="flex flex-col gap-5">
                 {/* Summary card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -1529,16 +2331,8 @@ export function NewRequestDialog() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
-            {step === 3 ? (
-              <button
-                onClick={() => handleOpenChange(false)}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <FileText className="size-4" />
-                Save draft
-              </button>
-            ) : (
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-muted/20 px-6 py-4">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => (step === 0 ? handleOpenChange(false) : setStep((s) => s - 1))}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
@@ -1546,17 +2340,25 @@ export function NewRequestDialog() {
                 <ChevronLeft className="size-4" />
                 {step === 0 ? "Cancel" : "Back"}
               </button>
-            )}
-            <div className="flex items-center gap-3">
-              {step === 3 ? (
+              {/* Save as Draft is available on every step after type selection */}
+              {step > 0 && (
                 <button
-                  onClick={() => setStep((s) => s - 1)}
+                  onClick={saveDraft}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
-                  <ChevronLeft className="size-4" />
-                  Back
+                  <Save className="size-4" />
+                  Save as Draft
                 </button>
-              ) : (
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {draftSavedAt && (
+                <span className="hidden items-center gap-1 text-xs font-medium text-muted-foreground sm:flex">
+                  <Check className="size-3.5 text-primary" />
+                  Draft saved {draftSavedAt}
+                </span>
+              )}
+              {step !== 3 && (
                 <span className="hidden text-xs font-medium text-muted-foreground sm:block">
                   Step {step + 1} of {steps.length}
                 </span>
@@ -1566,10 +2368,45 @@ export function NewRequestDialog() {
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 3 ? "Create" : "Next"}
+                {step === 3 ? (isProduct ? "Submit for Approval" : "Create") : "Next"}
                 {step !== 3 && <ChevronRight className="size-4" />}
               </button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved changes confirmation */}
+      <Dialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Save your changes?</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              You have unsaved changes. Save this request as a draft so you can finish it later.
+            </p>
+          </DialogHeader>
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              onClick={() => setShowCloseConfirm(false)}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Pencil className="size-4" />
+              Continue editing
+            </button>
+            <button
+              onClick={saveDraftAndClose}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              <Save className="size-4" />
+              Save as draft
+            </button>
+            <button
+              onClick={discardAndClose}
+              className="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <Trash2 className="size-4" />
+              Discard changes
+            </button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1601,6 +2438,32 @@ function ReviewGroup({
     <div className={cn("p-5", !last && "border-b border-border")}>
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-primary">{title}</p>
       <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">{children}</div>
+    </div>
+  )
+}
+
+function ReviewBlock({
+  title,
+  onEdit,
+  children,
+}: {
+  title: string
+  onEdit: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border p-5">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <button
+          onClick={onEdit}
+          className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+        >
+          <Pencil className="size-3.5" />
+          Edit
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">{children}</div>
     </div>
   )
 }
