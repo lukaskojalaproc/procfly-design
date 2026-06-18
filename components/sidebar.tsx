@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
+import { NewRequestDialog } from "@/components/new-request-dialog"
 import {
   LayoutDashboard,
   FileText,
@@ -21,7 +23,6 @@ import { cn } from "@/lib/utils"
 const primaryNav = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Requests", icon: FileText, href: "/requests" },
-  { label: "New Request", icon: FilePlus2, href: "/requests" },
 ]
 
 const secondaryNav = [
@@ -65,6 +66,7 @@ function NavItem({
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [newRequestOpen, setNewRequestOpen] = useState(false)
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)
   return (
@@ -81,6 +83,15 @@ export function Sidebar() {
           {primaryNav.map((item) => (
             <NavItem key={item.label} {...item} active={isActive(item.href)} />
           ))}
+          <button
+            type="button"
+            onClick={() => setNewRequestOpen(true)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <FilePlus2 className="size-5 shrink-0" />
+            <span>New Request</span>
+          </button>
+          <NewRequestDialog open={newRequestOpen} onOpenChange={setNewRequestOpen} hideTrigger />
         </div>
         <div className="flex flex-col gap-1">
           {secondaryNav.map((item) => (

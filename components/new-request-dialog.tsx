@@ -555,8 +555,24 @@ function ChipMultiSelect({
   )
 }
 
-export function NewRequestDialog() {
-  const [open, setOpen] = useState(false)
+export function NewRequestDialog({
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
+}: {
+  /** Control the dialog from a parent (e.g. the sidebar nav item). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Hide the built-in "New Request" button when an external trigger is used. */
+  hideTrigger?: boolean
+} = {}) {
+  const isControlled = openProp !== undefined
+  const [openState, setOpenState] = useState(false)
+  const open = isControlled ? (openProp as boolean) : openState
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setOpenState(next)
+    onOpenChange?.(next)
+  }
   const [step, setStep] = useState(0)
   const [category, setCategory] = useState<CategoryId | null>(null)
 
@@ -1166,13 +1182,15 @@ export function NewRequestDialog() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-      >
-        <Plus className="size-4" />
-        New Request
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+        >
+          <Plus className="size-4" />
+          New Request
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
