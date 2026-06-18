@@ -13,11 +13,14 @@ import {
   Clock,
   Building2,
   AlertCircle,
+  HelpCircle,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { extractProposalFromFile } from "@/app/actions/extract-proposal"
 import { addProposal, type StoredDocument } from "@/lib/proposal-store"
 import { fileKind, formatFileSize, fileToDataUrl, MAX_INLINE_BYTES } from "@/lib/file-utils"
+import { MessageThread } from "@/components/message-thread"
 
 interface PickedFile {
   file: File
@@ -33,6 +36,7 @@ export function SupplierSubmissionForm({
   currency,
   requirements,
   paymentTerms,
+  questions,
   deadlineInHours,
 }: {
   competitionId: string
@@ -43,12 +47,15 @@ export function SupplierSubmissionForm({
   currency: string
   requirements: string
   paymentTerms: string
+  questions: string[]
   deadlineInHours: number | null
 }) {
   const [supplier, setSupplier] = useState("")
   const [contact, setContact] = useState("")
   const [amount, setAmount] = useState("")
   const [summary, setSummary] = useState("")
+  // Answers to the buyer's questionnaire, keyed by question text.
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [files, setFiles] = useState<PickedFile[]>([])
   const [analyzing, setAnalyzing] = useState(false)
   const [aiNote, setAiNote] = useState<string | null>(null)
@@ -83,6 +90,7 @@ export function SupplierSubmissionForm({
     try {
       const fd = new FormData()
       fd.append("file", file)
+      if (questions.length > 0) fd.append("questions", JSON.stringify(questions))
       const res = await extractProposalFromFile(fd)
       if (res.ok) {
         const p = res.proposal
@@ -102,6 +110,22 @@ export function SupplierSubmissionForm({
         if (p.contact && !contact) {
           setContact(p.contact)
           filled.push("contact")
+        }
+        // Pre-fill any questionnaire answers the AI found, without overwriting
+        // anything the supplier has already typed.
+        if (p.answers && p.answers.length > 0) {
+          let answeredCount = 0
+          setAnswers((prev) => {
+            const next = { ...prev }
+            for (const a of p.answers) {
+              if (a.answer?.trim() && !next[a.question]?.trim()) {
+                next[a.question] = a.answer.trim()
+                answeredCount++
+              }
+            }
+            return next
+          })
+          if (answeredCount > 0) filled.push(`${answeredCount} question${answeredCount > 1 ? "s" : ""}`)
         }
         setAiNote(
           filled.length > 0
@@ -130,12 +154,17 @@ export function SupplierSubmissionForm({
     if (!Number.isFinite(amountNum) || amountNum <= 0) return setError("Please enter a valid bid amount.")
     if (files.length === 0) return setError("Please attach at least one proposal document.")
 
+    const answerList = questions
+      .map((q) => ({ question: q, answer: (answers[q] ?? "").trim() }))
+      .filter((a) => a.answer)
+
     addProposal({
       competitionId,
       supplier: supplier.trim(),
       amount: amountNum,
       summary: summary.trim() || undefined,
       contact: contact.trim() || undefined,
+      answers: answerList.length > 0 ? answerList : undefined,
       documents: files.map((f) => f.doc),
     })
     setSubmitted(true)
@@ -143,30 +172,47 @@ export function SupplierSubmissionForm({
 
   if (submitted) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
-        <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-          <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
-            <CheckCircle2 className="size-8" />
-          </span>
-          <h1 className="mt-5 text-2xl font-bold text-foreground">Proposal submitted</h1>
-          <p className="mt-2 text-pretty text-sm text-muted-foreground">
-            Thank you, {supplier}. Your bid of{" "}
-            <span className="font-semibold text-foreground">
-              {new Intl.NumberFormat("en-US").format(Number.parseFloat(amount.replace(/[^0-9.]/g, "")))} {currency}
-            </span>{" "}
-            for <span className="font-medium text-foreground">{title}</span> has been received. The buyer will be in
-            touch with next steps.
-          </p>
-          <div className="mt-6 rounded-xl bg-muted/50 p-4 text-left">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Submitted documents</p>
-            <ul className="mt-2 flex flex-col gap-1.5">
-              {files.map((f, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-foreground">
-                  <FileText className="size-4 text-primary" />
-                  {f.doc.name}
-                </li>
-              ))}
-            </ul>
+      <main className="min-h-screen bg-muted/30 py-8">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+            <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
+              <CheckCircle2 className="size-8" />
+            </span>
+            <h1 className="mt-5 text-2xl font-bold text-foreground">Proposal submitted</h1>
+            <p className="mt-2 text-pretty text-sm text-muted-foreground">
+              Thank you, {supplier}. Your bid of{" "}
+              <span className="font-semibold text-foreground">
+                {new Intl.NumberFormat("en-US").format(Number.parseFloat(amount.replace(/[^0-9.]/g, "")))} {currency}
+              </span>{" "}
+              for <span className="font-medium text-foreground">{title}</span> has been received. The buyer will be in
+              touch with next steps.
+            </p>
+            <div className="mt-6 rounded-xl bg-muted/50 p-4 text-left">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Submitted documents</p>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {files.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-foreground">
+                    <FileText className="size-4 text-primary" />
+                    {f.doc.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Private chat with the buyer */}
+          <div className="flex flex-col rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border p-4">
+              <MessageSquare className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">Questions for the buyer</h2>
+            </div>
+            <MessageThread
+              competitionId={competitionId}
+              supplier={supplier}
+              role="supplier"
+              className="h-80"
+              emptyHint="Have a question about this competition? Message the buyer privately here."
+            />
           </div>
         </div>
       </main>
@@ -343,6 +389,27 @@ export function SupplierSubmissionForm({
               className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </Field>
+
+          {/* Buyer's questionnaire */}
+          {questions.length > 0 && (
+            <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="size-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Questions from the buyer</h3>
+              </div>
+              {questions.map((q, i) => (
+                <Field key={i} label={q}>
+                  <textarea
+                    value={answers[q] ?? ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                    rows={2}
+                    placeholder="Your answer"
+                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </Field>
+              ))}
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">

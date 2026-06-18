@@ -25,6 +25,7 @@ export default async function SubmitProposalPage({
       currency={competition.currency}
       requirements={competition.requirements ?? ""}
       paymentTerms={competition.paymentTerms ?? ""}
+      questions={competition.questions ?? []}
       deadlineInHours={competition.deadlineInHours}
     />
   )

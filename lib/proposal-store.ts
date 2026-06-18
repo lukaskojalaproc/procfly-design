@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useSyncExternalStore } from "react"
-import type { AttachmentKind } from "./competitions-data"
+import type { AttachmentKind, QuestionAnswer } from "./competitions-data"
 
 export interface StoredDocument {
   name: string
@@ -33,6 +33,8 @@ export interface SubmittedProposal {
   summary?: string
   /** Contact email captured on the form. */
   contact?: string
+  /** Answers to the buyer's questionnaire. */
+  answers?: QuestionAnswer[]
   documents: StoredDocument[]
   /** ISO timestamp of submission. */
   submittedAt: string

@@ -33,6 +33,8 @@ export interface SupplierBid {
   source?: "portal" | "buyer"
   /** Optional 1-2 sentence proposal summary. */
   summary?: string
+  /** Supplier's answers to the buyer's questionnaire. */
+  answers?: QuestionAnswer[]
 }
 
 export interface Competition {
@@ -69,6 +71,14 @@ export interface Competition {
   evaluationCriteria?: string
   /** Payment & contract terms communicated to bidders. */
   paymentTerms?: string
+  /** Buyer's questions that suppliers must answer in their proposal. */
+  questions?: string[]
+}
+
+/** A supplier's answer to one of the buyer's questions. */
+export interface QuestionAnswer {
+  question: string
+  answer: string
 }
 
 export const competitions: Competition[] = [

@@ -18,6 +18,7 @@ import {
   Plus,
   Trash2,
   Upload,
+  HelpCircle,
 } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,7 @@ export interface CompetitionTermsEdit {
   requirements: string
   evaluationCriteria: string
   paymentTerms: string
+  questions: string[]
 }
 
 interface EditTermsDialogProps {
@@ -77,6 +79,9 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
   const [requirements, setRequirements] = useState<string[]>(toLines(competition.requirements))
   const [evaluationCriteria, setEvaluationCriteria] = useState<string[]>(toLines(competition.evaluationCriteria))
   const [paymentTerms, setPaymentTerms] = useState(competition.paymentTerms ?? "")
+  const [questions, setQuestions] = useState<string[]>(
+    competition.questions && competition.questions.length > 0 ? competition.questions : [""],
+  )
   const [importError, setImportError] = useState<string | null>(null)
 
   // The budget is locked once it has been approved via a procurement request.
@@ -103,6 +108,7 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
       requirements: requirements.map((l) => l.trim()).filter(Boolean).join("\n"),
       evaluationCriteria: evaluationCriteria.map((l) => l.trim()).filter(Boolean).join("\n"),
       paymentTerms: paymentTerms.trim(),
+      questions: questions.map((q) => q.trim()).filter(Boolean),
     })
     onOpenChange(false)
   }
@@ -286,6 +292,19 @@ export function EditTermsDialog({ open, onOpenChange, competition, onSave, focus
               onImport={(file) => importFromExcel(file, setEvaluationCriteria)}
               placeholder="e.g. Price — 60%"
               addLabel="Add criterion"
+              importError={importError}
+            />
+          )}
+
+          {showRequirements && (
+            <LineItemsField
+              icon={HelpCircle}
+              label="Questions for suppliers"
+              items={questions}
+              onChange={setQuestions}
+              onImport={(file) => importFromExcel(file, setQuestions)}
+              placeholder="e.g. What is your typical onboarding timeline?"
+              addLabel="Add question"
               importError={importError}
             />
           )}

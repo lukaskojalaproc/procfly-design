@@ -45,6 +45,7 @@ import {
   Paperclip,
   RotateCcw,
   Minus,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -66,6 +67,8 @@ import type { ExtractedTerms } from "@/app/actions/extract-competition"
 import { useCountdown } from "@/components/use-countdown"
 import { ProposalIntake } from "@/components/proposal-intake"
 import { useSubmittedProposals, type SubmittedProposal } from "@/lib/proposal-store"
+import { MessageThread } from "@/components/message-thread"
+import { useCompetitionMessages } from "@/lib/message-store"
 
 // ---------------------------------------------------------------------------
 // Status pill
@@ -219,6 +222,7 @@ const TABS = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "suppliers", label: "Suppliers", icon: Users },
   { key: "proposals", label: "Proposals", icon: Gavel },
+  { key: "qa", label: "Q&A", icon: MessageSquare },
   { key: "evaluation", label: "Evaluation", icon: Star },
   { key: "award", label: "Award", icon: Trophy },
 ] as const
@@ -241,6 +245,7 @@ function submissionToBid(p: SubmittedProposal): SupplierBid {
     trend: "new",
     source: "portal",
     summary: p.summary,
+    answers: p.answers,
     attachments: p.documents.map((d) => ({
       name: d.name,
       kind: d.kind,
@@ -309,6 +314,8 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
   const visibleTabs = TABS.filter((t) => {
     if (t.key === "overview" || t.key === "suppliers") return true
     if (t.key === "proposals" || t.key === "evaluation") return hasBids
+    // Q&A is available once there are suppliers to talk to (invited or bidding).
+    if (t.key === "qa") return hasBids || competition.invitedSuppliers > 0
     if (t.key === "award") return isActive || isFinished
     return true
   })
@@ -341,6 +348,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
     requirements: string
     evaluationCriteria: string
     paymentTerms: string
+    questions: string[]
   }) {
     setCompetition((c) => ({ ...c, ...terms }))
   }
@@ -542,6 +550,7 @@ export function CompetitionDetailView({ competition: initialCompetition }: { com
       )}
       {activeTab === "suppliers" && <SuppliersTab competition={competition} roster={roster} />}
       {activeTab === "proposals" && <ProposalsTab competition={competition} best={best} />}
+      {activeTab === "qa" && <QaTab competition={competition} roster={roster} />}
       {activeTab === "evaluation" && <EvaluationTab competition={competition} best={best} />}
       {activeTab === "award" && (
         <AwardTab competition={competition} best={best} saving={saving} pct={pct} />
@@ -1334,6 +1343,98 @@ function TrendChip({ trend }: { trend: SupplierBid["trend"] }) {
 }
 
 // ===========================================================================
+// Q&A tab — private 1:1 conversations between the buyer and each supplier.
+// ===========================================================================
+function QaTab({ competition, roster }: { competition: Competition; roster: SupplierRow[] }) {
+  const messages = useCompetitionMessages(competition.id)
+  const [selected, setSelected] = useState<string>(roster[0]?.name ?? "")
+
+  if (roster.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <EmptyState
+          icon={MessageSquare}
+          title="No suppliers yet"
+          body="Once suppliers are invited or submit a proposal, you can message each of them privately here."
+        />
+      </div>
+    )
+  }
+
+  // Last message preview per supplier for the conversation list.
+  function lastMessage(name: string) {
+    const key = name.toLowerCase()
+    const thread = messages.filter((m) => m.supplier.toLowerCase() === key)
+    return thread[thread.length - 1]
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
+      {/* Conversation list */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-1.5 border-b border-border p-4">
+          <MessageSquare className="size-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Conversations</h3>
+        </div>
+        <ul className="flex max-h-[32rem] flex-col overflow-y-auto">
+          {roster.map((row) => {
+            const last = lastMessage(row.name)
+            const active = row.name === selected
+            return (
+              <li key={row.name}>
+                <button
+                  type="button"
+                  onClick={() => setSelected(row.name)}
+                  className={cn(
+                    "flex w-full items-center gap-3 border-b border-border p-3 text-left transition-colors",
+                    active ? "bg-primary/5" : "hover:bg-muted/50",
+                  )}
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    {initials(row.name)}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-medium text-foreground">{row.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {last ? `${last.sender === "buyer" ? "You: " : ""}${last.text}` : "No messages yet"}
+                    </span>
+                  </span>
+                  {row.state === "invited" && (
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Invited
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+
+      {/* Selected thread */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-2 border-b border-border p-4">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+            {initials(selected)}
+          </span>
+          <div className="flex flex-col">
+            <h3 className="text-sm font-semibold text-foreground">{selected}</h3>
+            <span className="text-xs text-muted-foreground">Private conversation · only you and this supplier</span>
+          </div>
+        </div>
+        <MessageThread
+          competitionId={competition.id}
+          supplier={selected}
+          role="buyer"
+          className="h-[28rem]"
+          emptyHint={`Start a private conversation with ${selected}. They'll see your messages on their proposal page.`}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ===========================================================================
 // Proposals tab
 // ===========================================================================
 function ProposalsTab({
@@ -1491,6 +1592,16 @@ function ProposalsTab({
                   <span className="text-sm font-medium text-foreground">{bid.supplier}</span>
                   <span className="text-xs text-muted-foreground">· {files.length} files</span>
                 </div>
+                {bid.answers && bid.answers.length > 0 && (
+                  <dl className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                    {bid.answers.map((qa, i) => (
+                      <div key={i} className="flex flex-col gap-0.5">
+                        <dt className="text-xs font-semibold text-foreground">{qa.question}</dt>
+                        <dd className="text-sm text-muted-foreground">{qa.answer}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {files.map((file) => (
                     <AttachmentChip key={file.name} file={file} />
@@ -1626,7 +1737,7 @@ function EvaluationTab({
         </div>
       </div>
 
-      {/* Scoring weights — adjustable */}
+      {/* Scoring weights ��� adjustable */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
