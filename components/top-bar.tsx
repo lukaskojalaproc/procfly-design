@@ -1,7 +1,8 @@
-import { Search, Globe, LogOut, MoreVertical, ChevronRight } from "lucide-react"
+import { Search, Globe, LogOut, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { NewRequestDialog } from "@/components/new-request-dialog"
 import { NotificationBell } from "@/components/notification-bell"
+import { OptionsMenu } from "@/components/options-menu"
 import { cn } from "@/lib/utils"
 
 export function TopBar() {
@@ -72,12 +73,7 @@ export function PageHeader({
         </div>
         <div className="flex items-center gap-2">
           <NewRequestDialog />
-          <button
-            className="flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted"
-            aria-label="More options"
-          >
-            <MoreVertical className="size-4" />
-          </button>
+          <OptionsMenu />
         </div>
       </div>
     </div>

@@ -9,13 +9,13 @@ import { PriceTag } from "@/components/price-tag"
 import {
   requests,
   myRequests,
-  currentUser,
   maxAmount,
   initials,
   type ProcurementRequest,
   type RequestKind,
   type RequestStatus,
 } from "@/lib/dashboard-data"
+import { useCurrentRole } from "@/lib/role-store"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -103,7 +103,8 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
 type Scope = "mine" | "all"
 
 export function RequestList() {
-  const isSuperAdmin = currentUser.role === "Super Admin"
+  const role = useCurrentRole()
+  const isSuperAdmin = role === "Super Admin"
   const mine = useMemo(() => myRequests(), [])
   const [scope, setScope] = useState<Scope>("mine")
 
