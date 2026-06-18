@@ -1,34 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Search,
   Clock,
+  Wallet,
+  AlertTriangle,
+  CalendarClock,
   CheckCircle2,
-  XCircle,
-  Layers,
-  Check,
-  X,
   Package,
   Briefcase,
   UserPlus,
   ShieldCheck,
-  Wallet,
-  TrendingUp,
-  Users,
+  ArrowUpRight,
+  Layers,
+  X,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { PriceTag } from "@/components/price-tag"
+import { initials, type RequestKind } from "@/lib/dashboard-data"
 import {
-  requests,
-  maxAmount,
-  initials,
-  type ProcurementRequest,
-  type RequestKind,
-} from "@/lib/dashboard-data"
-import { ConvertToCompetitionButton } from "@/components/convert-to-competition-dialog"
+  getApprovalTasks,
+  getApprovalSummary,
+  getTaskFacets,
+  tabMatchesTask,
+  matchesDueFilter,
+  matchesAmountFilter,
+  matchesSearch,
+  sortTasks,
+  formatTaskAmount,
+  formatCompactEur,
+  formatWaiting,
+  dueStatusMeta,
+  taskStatusMeta,
+  priorityMeta,
+  APPROVAL_TABS,
+  DUE_FILTERS,
+  AMOUNT_FILTERS,
+  SORT_KEYS,
+  type ApprovalTab,
+  type DueFilter,
+  type AmountFilter,
+  type SortKey,
+  type ResolvedApprovalTask,
+} from "@/lib/approvals-data"
+import { useApprovalPrefs } from "@/lib/approvals-prefs"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -36,355 +55,498 @@ const kindIcon: Record<RequestKind, typeof Package> = {
   "Add New Supplier": UserPlus,
 }
 
-// Local decision state layered on top of the seed data so the reviewer can
-// action items without a backend. Keyed by request id.
-type Decision = "Pending" | "Approved" | "Rejected"
+const PAGE_SIZE = 8
 
-type FilterTab = "Pending" | "Approved" | "Rejected" | "All"
+// --- Summary cards ----------------------------------------------------------
 
-const tabs: { key: FilterTab; label: string; icon: typeof Clock }[] = [
-  { key: "Pending", label: "Pending", icon: Clock },
-  { key: "Approved", label: "Approved", icon: CheckCircle2 },
-  { key: "Rejected", label: "Rejected", icon: XCircle },
-  { key: "All", label: "All", icon: Layers },
-]
-
-const decisionStyles: Record<Decision, string> = {
-  Pending: "bg-chart-2/15 text-chart-2",
-  Approved: "bg-primary/12 text-primary",
-  Rejected: "bg-destructive/12 text-destructive",
-}
-
-function HeroStat({
+function SummaryCard({
   icon: Icon,
   label,
   value,
+  tone = "default",
 }: {
   icon: typeof Wallet
   label: string
   value: string
+  tone?: "default" | "warn" | "danger" | "good"
 }) {
+  const toneCls = {
+    default: "bg-muted text-muted-foreground",
+    warn: "bg-chart-2/15 text-chart-2",
+    danger: "bg-destructive/12 text-destructive",
+    good: "bg-primary/12 text-primary",
+  }[tone]
   return (
-    <div className="flex flex-col gap-2 bg-card p-4">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon className="size-3.5" />
-        {label}
+    <Card className="flex flex-col gap-2 p-4">
+      <span className={cn("flex size-8 items-center justify-center rounded-lg", toneCls)}>
+        <Icon className="size-4" />
       </span>
-      <span className="text-xl font-semibold tracking-tight text-foreground">{value}</span>
-    </div>
+      <span className="mt-1 text-2xl font-bold tracking-tight text-foreground">{value}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    </Card>
   )
 }
 
-const accentByDecision: Record<Decision, string> = {
-  Pending: "bg-chart-2",
-  Approved: "bg-primary",
-  Rejected: "bg-destructive",
+// --- Filter select ----------------------------------------------------------
+
+function FilterSelect<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: readonly T[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 }
 
-// The reviewer is the current user — they sit at the "Manager" approval step.
-const APPROVER_ROLE = "Manager"
+// --- Row --------------------------------------------------------------------
 
-function ApprovalRow({
-  request,
-  decision,
-  actedByYou,
-  onApprove,
-  onReject,
-}: {
-  request: ProcurementRequest
-  decision: Decision
-  actedByYou: boolean
-  onApprove: () => void
-  onReject: () => void
-}) {
-  const Icon = kindIcon[request.kind]
-  const actionable = decision === "Pending"
+function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<typeof useApprovalPrefs>["columns"] }) {
+  const r = task.request
+  const Icon = kindIcon[r.kind]
+  const due = dueStatusMeta[task.dueStatus]
+  const isActive = task.taskStatus === "Awaiting Action" || task.taskStatus === "Changes Requested"
+  const reviewHref = `/requests/${r.id}?review=1`
 
   return (
-    <Card className="flex flex-col gap-4 p-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center">
-      <span className={cn("hidden h-12 w-1 shrink-0 rounded-full sm:block", accentByDecision[decision])} />
-
-      <Link
-        href={`/requests/${request.id}`}
-        className="flex min-w-0 flex-1 items-center gap-4"
-      >
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
+    <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-primary/40 lg:flex-row lg:items-center">
+      {/* Identity */}
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
           <Icon className="size-5" />
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              {request.ref}
+              {r.ref}
             </span>
-            <p className="truncate font-semibold text-foreground">{request.title}</p>
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                decisionStyles[decision],
-              )}
-            >
-              {decision}
-            </span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
-                {initials(request.requester)}
+            {cols.highValue && task.highValue && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[11px] font-semibold text-chart-2">
+                <AlertTriangle className="size-3" />
+                High Value
               </span>
-              {request.requester}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-border" />
-              {request.kind} · {request.category}
-            </span>
-            <span className="hidden items-center gap-1 md:inline-flex">
-              <span className="size-1 rounded-full bg-border" />
-              <ShieldCheck className="size-3.5" />
-              Step · {APPROVER_ROLE}
-            </span>
-          </div>
-        </div>
-      </Link>
-
-      <div className="hidden flex-col items-end lg:flex">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Total
-        </span>
-        <PriceTag amount={request.amount} currency={request.currency} max={maxAmount} />
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2 border-t border-border pt-3 sm:border-0 sm:pt-0">
-        {actionable ? (
-          <>
-            <button
-              onClick={onReject}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive sm:flex-none"
-            >
-              <X className="size-4" />
-              Reject
-            </button>
-            <button
-              onClick={onApprove}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:flex-none"
-            >
-              <Check className="size-4" />
-              Approve
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-end gap-2 sm:flex-none sm:flex-row sm:items-center">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-              {decision === "Approved" ? (
-                <CheckCircle2 className="size-4 text-primary" />
-              ) : (
-                <XCircle className="size-4 text-destructive" />
-              )}
-              {decision} {actedByYou ? "by you" : ""}
-            </span>
-            {decision === "Approved" && (
-              <ConvertToCompetitionButton request={request} className="w-full sm:w-auto" />
+            )}
+            {cols.taskStatus && (
+              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", taskStatusMeta[task.taskStatus].badge)}>
+                {taskStatusMeta[task.taskStatus].label}
+              </span>
+            )}
+            {cols.priority && task.priority !== "Normal" && (
+              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityMeta[task.priority].badge)}>
+                {priorityMeta[task.priority].label}
+              </span>
             )}
           </div>
-        )}
+          <p className="mt-1 truncate font-semibold text-foreground">{r.title}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {cols.requester && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
+                  {initials(r.requester)}
+                </span>
+                {r.requester}
+              </span>
+            )}
+            {(cols.type || cols.category) && (
+              <span className="inline-flex items-center gap-1">
+                <span className="size-1 rounded-full bg-border" />
+                {[cols.type ? r.kind : null, cols.category ? r.category : null].filter(Boolean).join(" · ")}
+              </span>
+            )}
+            {cols.department && (
+              <span className="hidden items-center gap-1 md:inline-flex">
+                <span className="size-1 rounded-full bg-border" />
+                {r.department}
+              </span>
+            )}
+            {cols.step && (
+              <span className="inline-flex items-center gap-1">
+                <span className="size-1 rounded-full bg-border" />
+                <ShieldCheck className="size-3.5" />
+                {task.stepRole} · Step {task.stepNumber} of {task.totalSteps}
+              </span>
+            )}
+            {cols.waiting && isActive && (
+              <span className="inline-flex items-center gap-1">
+                <span className="size-1 rounded-full bg-border" />
+                <Clock className="size-3.5" />
+                {formatWaiting(task.activatedAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Due */}
+      {cols.due && (
+        <div className="flex shrink-0 items-center gap-2 lg:w-36 lg:flex-col lg:items-start">
+          {isActive ? (
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", due.badge)}>
+              <span className={cn("size-1.5 rounded-full", due.dot)} />
+              {due.label}
+              {task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Amount */}
+      {cols.amount && (
+        <div className="flex shrink-0 flex-col lg:w-28 lg:items-end">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Amount</span>
+          <span className="font-semibold text-foreground">{formatTaskAmount(r.amount, r.currency)}</span>
+        </div>
+      )}
+
+      {/* Primary action */}
+      <div className="flex shrink-0 items-center border-t border-border pt-3 lg:border-0 lg:pt-0">
+        <Link
+          href={reviewHref}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 lg:w-auto"
+        >
+          {isActive ? "Review" : "View"}
+          <ArrowUpRight className="size-4" />
+        </Link>
       </div>
     </Card>
   )
 }
 
+// --- Skeletons --------------------------------------------------------------
+
+function RowSkeleton() {
+  return (
+    <Card className="flex items-center gap-3 p-4">
+      <div className="size-11 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+      </div>
+      <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />
+    </Card>
+  )
+}
+
+// --- Main -------------------------------------------------------------------
+
 export function ApprovalsExplorer() {
-  // The reviewer's queue only spans requests that go through approval:
-  // "Pending Approval" items are actionable, while Approved / Rejected ones form
-  // the decision history. Drafts, cancelled and archived requests never appear.
-  const queue = requests.filter(
-    (r) => r.status === "Pending Approval" || r.status === "Approved" || r.status === "Rejected",
-  )
+  const { columns, refreshToken } = useApprovalPrefs()
 
-  const [decisions, setDecisions] = useState<Record<string, Decision>>(() =>
-    Object.fromEntries(
-      queue.map((r) => [r.id, (r.status === "Pending Approval" ? "Pending" : r.status) as Decision]),
-    ),
-  )
-  // Ids the reviewer actioned during this session (vs. seeded history).
-  const [actedByYou, setActedByYou] = useState<Record<string, boolean>>({})
-  const [tab, setTab] = useState<FilterTab>("Pending")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [tasks, setTasks] = useState<ResolvedApprovalTask[]>([])
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const [tab, setTab] = useState<ApprovalTab>("Awaiting My Action")
   const [query, setQuery] = useState("")
+  const [due, setDue] = useState<DueFilter>("All")
+  const [category, setCategory] = useState("All")
+  const [requester, setRequester] = useState("All")
+  const [step, setStep] = useState("All")
+  const [amount, setAmount] = useState<AmountFilter>("Any")
+  const [priority, setPriority] = useState("All")
+  const [sort, setSort] = useState<SortKey>("Most Urgent")
+  const [page, setPage] = useState(1)
 
-  const pendingCount = queue.filter((r) => decisions[r.id] === "Pending").length
+  // Simulate loading the approver's queue from the server.
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+    const t = setTimeout(() => {
+      if (cancelled) return
+      try {
+        setTasks(getApprovalTasks())
+        setLoading(false)
+      } catch {
+        setError(true)
+        setLoading(false)
+      }
+    }, 600)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [refreshToken, reloadKey])
 
-  const counts = {
-    Pending: pendingCount,
-    Approved: queue.filter((r) => decisions[r.id] === "Approved").length,
-    Rejected: queue.filter((r) => decisions[r.id] === "Rejected").length,
-    All: queue.length,
+  const facets = useMemo(() => getTaskFacets(tasks), [tasks])
+  const summary = useMemo(() => getApprovalSummary(tasks), [tasks])
+
+  const counts = useMemo(() => {
+    const c = {} as Record<ApprovalTab, number>
+    for (const t of APPROVAL_TABS) c[t] = tasks.filter((task) => tabMatchesTask(t, task)).length
+    return c
+  }, [tasks])
+
+  const filtered = useMemo(() => {
+    const list = tasks.filter(
+      (t) =>
+        tabMatchesTask(tab, t) &&
+        matchesSearch(query, t) &&
+        matchesDueFilter(due, t) &&
+        matchesAmountFilter(amount, t.request.amount) &&
+        (category === "All" || t.request.category === category) &&
+        (requester === "All" || t.request.requester === requester) &&
+        (step === "All" || t.stepRole === step) &&
+        (priority === "All" || t.priority === priority),
+    )
+    return sortTasks(list, sort)
+  }, [tasks, tab, query, due, amount, category, requester, step, priority, sort])
+
+  // Reset to first page whenever the result set changes.
+  useEffect(() => {
+    setPage(1)
+  }, [tab, query, due, amount, category, requester, step, priority, sort])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const activeChips: { label: string; clear: () => void }[] = []
+  if (due !== "All") activeChips.push({ label: `Due: ${due}`, clear: () => setDue("All") })
+  if (category !== "All") activeChips.push({ label: `Category: ${category}`, clear: () => setCategory("All") })
+  if (requester !== "All") activeChips.push({ label: `Requester: ${requester}`, clear: () => setRequester("All") })
+  if (step !== "All") activeChips.push({ label: `Step: ${step}`, clear: () => setStep("All") })
+  if (amount !== "Any") activeChips.push({ label: `Amount: ${amount}`, clear: () => setAmount("Any") })
+  if (priority !== "All") activeChips.push({ label: `Priority: ${priority}`, clear: () => setPriority("All") })
+  if (sort !== "Most Urgent") activeChips.push({ label: `Sort: ${sort}`, clear: () => setSort("Most Urgent") })
+
+  const hasActiveFilters = activeChips.length > 0 || query.trim() !== ""
+
+  function clearFilters() {
+    setQuery("")
+    setDue("All")
+    setCategory("All")
+    setRequester("All")
+    setStep("All")
+    setAmount("Any")
+    setPriority("All")
+    setSort("Most Urgent")
   }
 
-  // Hero metrics — value at stake and reviewer throughput.
-  const pendingRequests = queue.filter((r) => decisions[r.id] === "Pending")
-  const pendingValue = pendingRequests.reduce((sum, r) => sum + r.amount, 0)
-  const highestPending = pendingRequests.reduce((max, r) => Math.max(max, r.amount), 0)
-  const uniqueRequesters = new Set(pendingRequests.map((r) => r.requester)).size
-  const actionedCount = Object.keys(actedByYou).length
-  const fmtEur = (n: number) => {
-    if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 2)}M`
-    if (n >= 1000) return `€${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}k`
-    return `€${n}`
-  }
-
-  const filtered = queue.filter((r) => {
-    const decision = decisions[r.id]
-    const matchesTab = tab === "All" || decision === tab
-    const matchesQuery =
-      query.trim() === "" ||
-      r.title.toLowerCase().includes(query.toLowerCase()) ||
-      r.ref.toLowerCase().includes(query.toLowerCase()) ||
-      r.requester.toLowerCase().includes(query.toLowerCase())
-    return matchesTab && matchesQuery
-  })
-
-  const setDecision = (id: string, value: Decision) => {
-    setDecisions((prev) => ({ ...prev, [id]: value }))
-    setActedByYou((prev) => ({ ...prev, [id]: true }))
+  // --- Error state ---
+  if (error) {
+    return (
+      <Card className="flex flex-col items-center gap-3 p-12 text-center">
+        <span className="flex size-12 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
+          <AlertCircle className="size-6" />
+        </span>
+        <p className="font-semibold text-foreground">We couldn&apos;t load your approval tasks</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Something went wrong while fetching your queue. Your decisions were not affected.
+        </p>
+        <button
+          type="button"
+          onClick={() => setReloadKey((k) => k + 1)}
+          className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          <RotateCcw className="size-4" />
+          Try Again
+        </button>
+      </Card>
+    )
   }
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Command-center hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
-        {/* white surface that softly fades into brand green in the corner */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-32 size-96 rounded-full bg-primary/20 blur-3xl"
-        />
-        <div className="relative flex flex-col gap-8 p-6 md:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-chart-2/15 px-3 py-1 text-xs font-medium text-chart-2 ring-1 ring-inset ring-chart-2/30">
-                <Clock className="size-3.5" />
-                Awaiting your action
-              </span>
-              <div className="mt-4 flex items-end gap-3">
-                <span className="text-6xl font-bold leading-none tracking-tight text-foreground md:text-7xl">
-                  {pendingCount}
-                </span>
-                <span className="mb-1 text-lg font-medium text-muted-foreground">
-                  {pendingCount === 1 ? "approval" : "approvals"} pending
-                </span>
-              </div>
-              <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                {pendingValue > 0
-                  ? `${fmtEur(pendingValue)} in spend is waiting on your decision across ${uniqueRequesters} ${uniqueRequesters === 1 ? "requester" : "requesters"}.`
-                  : "You're all caught up — new approval requests will appear here."}
-              </p>
-            </div>
-
-            {actionedCount > 0 && (
-              <div className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5 text-sm ring-1 ring-inset ring-primary/20">
-                <CheckCircle2 className="size-4 text-primary" />
-                <span className="font-semibold text-foreground">{actionedCount}</span>
-                <span className="text-muted-foreground">actioned today</span>
-              </div>
-            )}
-          </div>
-
-          {/* Metric tiles */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border lg:grid-cols-4">
-            <HeroStat
-              icon={Wallet}
-              label="Value at stake"
-              value={pendingValue > 0 ? fmtEur(pendingValue) : "—"}
-            />
-            <HeroStat
-              icon={TrendingUp}
-              label="Largest request"
-              value={highestPending > 0 ? fmtEur(highestPending) : "—"}
-            />
-            <HeroStat icon={Users} label="Requesters waiting" value={`${uniqueRequesters}`} />
-            <HeroStat icon={Check} label="Cleared by you" value={`${actionedCount}`} />
-          </div>
-        </div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="flex flex-col gap-2 p-4">
+              <div className="size-8 animate-pulse rounded-lg bg-muted" />
+              <div className="mt-1 h-6 w-12 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+            </Card>
+          ))
+        ) : (
+          <>
+            <SummaryCard icon={Clock} label="Awaiting My Action" value={`${summary.awaiting}`} tone="warn" />
+            <SummaryCard icon={Wallet} label="Value at Stake" value={formatCompactEur(summary.valueAtStake)} />
+            <SummaryCard icon={AlertTriangle} label="Overdue" value={`${summary.overdue}`} tone="danger" />
+            <SummaryCard icon={CalendarClock} label="Due Soon" value={`${summary.dueSoon}`} tone="warn" />
+            <SummaryCard icon={CheckCircle2} label="Completed by Me" value={`${summary.completedByMe}`} tone="good" />
+          </>
+        )}
       </div>
 
+      {/* Tabs + search + filters */}
       <Card className="flex flex-col gap-4 p-4">
+        {/* Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          {loading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+              ))
+            : APPROVAL_TABS.map((key) => {
+                const isActive = tab === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setTab(key)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {key === "All" && <Layers className="size-4" />}
+                    {key}
+                    <span
+                      className={cn(
+                        "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
+                        isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {counts[key] ?? 0}
+                    </span>
+                  </button>
+                )
+              })}
+        </div>
+
+        {/* Search */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search approvals..."
-            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+            disabled={loading}
+            placeholder="Search by request ID, title, requester, supplier, or category…"
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {tabs.map(({ key, label, icon: Icon }) => {
-            const isActive = tab === key
-            const isPending = key === "Pending"
-            return (
+
+        {/* Filters */}
+        {loading ? (
+          <div className="h-10 w-full animate-pulse rounded-lg bg-muted" />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+            <FilterSelect label="Due Status" value={due} options={DUE_FILTERS} onChange={setDue} />
+            <FilterSelect label="Category" value={category} options={["All", ...facets.categories]} onChange={setCategory} />
+            <FilterSelect label="Requester" value={requester} options={["All", ...facets.requesters]} onChange={setRequester} />
+            <FilterSelect label="Approval Step" value={step} options={["All", ...facets.steps]} onChange={setStep} />
+            <FilterSelect label="Amount" value={amount} options={AMOUNT_FILTERS} onChange={setAmount} />
+            <FilterSelect label="Priority" value={priority} options={["All", "Urgent", "High", "Normal"]} onChange={setPriority} />
+            <FilterSelect label="Sort By" value={sort} options={SORT_KEYS} onChange={setSort} />
+          </div>
+        )}
+
+        {/* Active filter chips */}
+        {!loading && activeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {activeChips.map((chip) => (
               <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? isPending
-                      ? "border-chart-2 bg-chart-2/15 text-chart-2"
-                      : "border-primary bg-primary/10 text-primary"
-                    : "border-border text-foreground hover:bg-muted",
-                )}
+                key={chip.label}
+                onClick={chip.clear}
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted/70"
               >
-                <Icon className="size-4" />
-                {label}
-                <span
-                  className={cn(
-                    "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
-                    isActive
-                      ? isPending
-                        ? "bg-chart-2/25 text-chart-2"
-                        : "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {counts[key]}
-                </span>
+                {chip.label}
+                <X className="size-3" />
               </button>
-            )
-          })}
-        </div>
+            ))}
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
       </Card>
 
-      <p className="text-sm text-muted-foreground">
-        {filtered.length} of {queue.length} requests
-      </p>
+      {/* Result count */}
+      {!loading && (
+        <p className="text-sm text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "approval task" : "approval tasks"}
+        </p>
+      )}
 
+      {/* List */}
       <div className="flex flex-col gap-3">
-        {filtered.length === 0 ? (
-          <Card className="flex flex-col items-center gap-2 p-12 text-center">
-            <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ShieldCheck className="size-6" />
-            </span>
-            <p className="font-semibold text-foreground">
-              {tab === "Pending" ? "No approvals to review" : `No ${tab.toLowerCase()} requests`}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {tab === "Pending"
-                ? "You're all caught up — new approval requests will appear here."
-                : query.trim() !== ""
-                  ? "No requests match your search."
-                  : `Requests you ${tab === "Approved" ? "approve" : "reject"} will appear here.`}
-            </p>
-          </Card>
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <RowSkeleton key={i} />)
+        ) : filtered.length === 0 ? (
+          hasActiveFilters ? (
+            <Card className="flex flex-col items-center gap-2 p-12 text-center">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                <Search className="size-6" />
+              </span>
+              <p className="font-semibold text-foreground">No approval tasks match your filters.</p>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                <RotateCcw className="size-4" />
+                Clear Filters
+              </button>
+            </Card>
+          ) : (
+            <Card className="flex flex-col items-center gap-2 p-12 text-center">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <CheckCircle2 className="size-6" />
+              </span>
+              <p className="font-semibold text-foreground">You are all caught up.</p>
+              <p className="text-sm text-muted-foreground">No approval tasks currently require your action.</p>
+            </Card>
+          )
         ) : (
-          filtered.map((request) => (
-            <ApprovalRow
-              key={request.id}
-              request={request}
-              decision={decisions[request.id]}
-              actedByYou={!!actedByYou[request.id]}
-              onApprove={() => setDecision(request.id, "Approved")}
-              onReject={() => setDecision(request.id, "Rejected")}
-            />
-          ))
+          pageItems.map((task) => <TaskRow key={task.id} task={task} cols={columns} />)
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

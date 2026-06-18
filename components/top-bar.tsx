@@ -36,11 +36,14 @@ export function PageHeader({
   crumbs,
   title = "Overview",
   description = "Manage procurement requests, approvals, and suppliers in one place.",
+  actions,
 }: {
   crumb?: string
   crumbs?: { label: string; href?: string }[]
   title?: string
   description?: string
+  /** Overrides the default header actions (New Request + options menu). */
+  actions?: React.ReactNode
 }) {
   const trail = crumbs ?? [{ label: crumb }]
   return (
@@ -72,8 +75,12 @@ export function PageHeader({
           <p className="mt-1 text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center gap-2">
-          <NewRequestDialog />
-          <OptionsMenu />
+          {actions ?? (
+            <>
+              <NewRequestDialog />
+              <OptionsMenu />
+            </>
+          )}
         </div>
       </div>
     </div>

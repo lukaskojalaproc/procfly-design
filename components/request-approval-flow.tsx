@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, X, Clock, CornerUpLeft } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -36,11 +36,19 @@ export function RequestApprovalFlow({
   approvals,
   requestRef,
   requestTitle,
+  reviewMode = false,
+  requestedAction = null,
+  onActionHandled,
 }: {
   requestId: string
   approvals: ApprovalStep[]
   requestRef: string
   requestTitle: string
+  /** When true, the current approver can act on the active step. */
+  reviewMode?: boolean
+  /** External trigger (from the review banner) to open a decision panel. */
+  requestedAction?: ActionKind | null
+  onActionHandled?: () => void
 }) {
   const decisions = useStepDecisions(requestId)
   const [activeAction, setActiveAction] = useState<{ index: number; kind: ActionKind } | null>(null)

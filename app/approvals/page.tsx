@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/sidebar"
 import { TopBar, PageHeader } from "@/components/top-bar"
 import { ApprovalsExplorer } from "@/components/approvals-explorer"
+import { ApprovalsMenu } from "@/components/approvals-menu"
 
 export default function ApprovalsPage() {
   return (
@@ -12,7 +13,8 @@ export default function ApprovalsPage() {
           <PageHeader
             crumb="Approvals"
             title="Approvals"
-            description="Review and action approval steps assigned to you."
+            description="Review and decide approval tasks assigned to you."
+            actions={<ApprovalsMenu />}
           />
           <ApprovalsExplorer />
         </main>
