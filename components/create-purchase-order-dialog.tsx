@@ -108,7 +108,10 @@ export function CreatePurchaseOrderDialog({ open, onOpenChange }: CreatePurchase
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0" showCloseButton={false}>
+      <DialogContent
+        className="w-full max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-3xl lg:max-w-4xl"
+        showCloseButton={false}
+      >
         <DialogHeader className="flex-row items-center justify-between border-b border-border p-5">
           <DialogTitle className="flex items-center gap-2 text-base">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -125,9 +128,9 @@ export function CreatePurchaseOrderDialog({ open, onOpenChange }: CreatePurchase
           </button>
         </DialogHeader>
 
-        <div className="max-h-[70vh] overflow-y-auto p-5">
+        <div className="max-h-[78vh] overflow-y-auto p-6">
           {/* Details grid */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="PO number" icon={Hash}>
               <input
                 value={number}
