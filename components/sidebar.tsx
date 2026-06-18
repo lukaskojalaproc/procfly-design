@@ -33,7 +33,7 @@ const secondaryNav = [
 
 const tertiaryNav = [
   { label: "Contracts", icon: FileSignature, href: "/contracts" },
-  { label: "Suppliers", icon: Network, href: "/requests" },
+  { label: "Suppliers", icon: Network, href: "/suppliers" },
   { label: "Warehouse", icon: Warehouse, href: "/requests" },
 ]
 
