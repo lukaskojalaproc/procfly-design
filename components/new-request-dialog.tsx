@@ -36,6 +36,7 @@ import {
   Save,
   Info,
   CalendarClock,
+  Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -247,15 +248,6 @@ interface DocSlot {
   required: boolean
 }
 
-// Document checklist per category. Most supplier data (registration no., VAT,
-// bank details) is entered as fields and verified automatically, so we only
-// ask to upload what can't be validated digitally.
-const supplierDocs: DocSlot[] = [
-  { id: "bank", label: "Bank confirmation letter", hint: "Bank-issued letter or statement confirming the IBAN holder (anti-fraud)", required: true },
-  { id: "insurance", label: "Insurance certificate", hint: "Liability or professional indemnity, if applicable", required: false },
-  { id: "compliance", label: "Signed Code of Conduct / NDA", hint: "Anti-bribery or confidentiality agreement", required: false },
-]
-
 const purchaseDocs: DocSlot[] = [
   { id: "quote", label: "Supplier quote / proforma", hint: "Itemized quote or proforma invoice", required: true },
   { id: "spec", label: "Specification / scope", hint: "Product spec sheet or statement of work", required: false },
@@ -326,6 +318,103 @@ const euCountries = [
   { code: "SI", name: "Slovenia" },
   { code: "ES", name: "Spain" },
   { code: "SE", name: "Sweden" },
+]
+
+// ---- Supplier onboarding option sets ----
+const supplierCategories = [
+  "Hardware",
+  "Software",
+  "Marketing",
+  "Consulting",
+  "Logistics",
+  "Manufacturing",
+  "Office Supplies",
+  "Recruitment",
+  "Legal",
+  "Other",
+]
+const supplierTypeOptions = [
+  "Product Supplier",
+  "Service Supplier",
+  "Software Supplier",
+  "Distributor",
+  "Manufacturer",
+  "Consultant",
+  "Contractor",
+  "Other",
+]
+const expectedSpendBands = [
+  "Under 5,000 EUR",
+  "5,000–25,000 EUR",
+  "25,000–100,000 EUR",
+  "Over 100,000 EUR",
+]
+const vatVerificationStatuses = [
+  "Not Checked",
+  "Verification in Progress",
+  "Verified",
+  "Failed",
+  "Manual Review Required",
+  "Not VAT Registered",
+]
+const countryRiskOptions = ["Low", "Medium", "High"]
+const paymentTermsOptions = ["Net 14", "Net 30", "Net 45", "Net 60", "Net 90"]
+const vatTreatmentOptions = ["Standard", "Reverse charge (intra-EU)", "Exempt", "Non-EU / Import"]
+
+// Mock directory of existing suppliers used for the duplicate check. In a real
+// app this would be a backend lookup against the vendor master.
+const existingSupplierDirectory = [
+  {
+    legalName: "TechWare Solutions UAB",
+    registrationNumber: "302536500",
+    vatNumber: "LT100012345678",
+    website: "techware.com",
+  },
+  {
+    legalName: "Office Supplies Baltics",
+    registrationNumber: "111222333",
+    vatNumber: "LV40003123456",
+    website: "officesupplies.eu",
+  },
+  {
+    legalName: "Nordic Consulting AB",
+    registrationNumber: "556677-8899",
+    vatNumber: "SE556677889901",
+    website: "nordicconsulting.se",
+  },
+]
+
+const normalizeDomain = (url: string) =>
+  url
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+
+// Base supplier onboarding documents (always relevant). Conditional docs are
+// generated from category, country, spend, and risk in the component.
+const baseSupplierDocs: DocSlot[] = [
+  { id: "registration", label: "Company Registration Certificate", hint: "Proof the legal entity is registered", required: true },
+  { id: "bank", label: "Bank Verification Document", hint: "Bank letter / statement confirming the IBAN holder", required: true },
+]
+
+interface SupplierDocContext {
+  vatRegistered: boolean
+  insurance: boolean
+  taxForm: boolean
+  compliance: boolean
+  nda: boolean
+  codeOfConduct: boolean
+}
+
+const conditionalSupplierDocs: { doc: DocSlot; when: (ctx: SupplierDocContext) => boolean }[] = [
+  { doc: { id: "vatcert", label: "VAT Registration Certificate", hint: "Required for VAT-registered suppliers", required: true }, when: (c) => c.vatRegistered },
+  { doc: { id: "insurance", label: "Insurance Certificate", hint: "Liability / professional indemnity cover", required: true }, when: (c) => c.insurance },
+  { doc: { id: "taxform", label: "W-8 / W-9 Form", hint: "Required for tax reporting on non-EU / US suppliers", required: true }, when: (c) => c.taxForm },
+  { doc: { id: "compliance", label: "Compliance Documents", hint: "Sanctions / due-diligence evidence for higher-risk suppliers", required: true }, when: (c) => c.compliance },
+  { doc: { id: "nda", label: "Non-Disclosure Agreement (NDA)", hint: "Confidentiality agreement", required: true }, when: (c) => c.nda },
+  { doc: { id: "conduct", label: "Supplier Code of Conduct", hint: "Signed code of conduct", required: false }, when: (c) => c.codeOfConduct },
 ]
 
 function Stepper({ current }: { current: number }) {
@@ -556,22 +645,40 @@ export function NewRequestDialog() {
   const [dataExportAvailable, setDataExportAvailable] = useState("Unknown")
   const [softwareOwner, setSoftwareOwner] = useState("")
 
-  // Specific — supplier onboarding
+  // Specific — supplier onboarding (General)
+  const [supplierRequestTitle, setSupplierRequestTitle] = useState("")
+  const [businessReason, setBusinessReason] = useState("")
+  const [supplierCategory, setSupplierCategory] = useState("")
+  const [expectedSpend, setExpectedSpend] = useState("")
+  const [expectedStartDate, setExpectedStartDate] = useState("")
+  const [relatedProject, setRelatedProject] = useState("")
+  const [relatedPurchaseRequest, setRelatedPurchaseRequest] = useState("")
+  // Supplier information
   const [supplierName, setSupplierName] = useState("")
   const [country, setCountry] = useState("")
   const [registrationNumber, setRegistrationNumber] = useState("")
   const [vatNumber, setVatNumber] = useState("")
+  const [notVatRegistered, setNotVatRegistered] = useState(false)
+  const [vatStatus, setVatStatus] = useState("Not Checked")
+  const [website, setWebsite] = useState("")
+  const [supplierType, setSupplierType] = useState("Product Supplier")
+  const [contactName, setContactName] = useState("")
   const [contactEmail, setContactEmail] = useState("")
+  const [contactPhone, setContactPhone] = useState("")
   // Bank & payment
   const [accountHolder, setAccountHolder] = useState("")
   const [iban, setIban] = useState("")
   const [bic, setBic] = useState("")
+  // Finance information
   const [paymentTerms, setPaymentTerms] = useState("Net 30")
-  // Tax & accounting
   const [vatTreatment, setVatTreatment] = useState("Standard")
-  const [supplierType, setSupplierType] = useState("Goods")
-  const [taxRate, setTaxRate] = useState("21%")
   const [invoicingEmail, setInvoicingEmail] = useState("")
+  // Risk & compliance
+  const [countryRisk, setCountryRisk] = useState("Low")
+  const [sanctionsCheckRequired, setSanctionsCheckRequired] = useState("No")
+  const [strategicSupplier, setStrategicSupplier] = useState("No")
+  const [existingRelationship, setExistingRelationship] = useState("No")
+  const [singleSourceSupplier, setSingleSourceSupplier] = useState("No")
 
   // Line items
   const [lines, setLines] = useState<LineItem[]>([emptyLine(1)])
@@ -696,6 +803,55 @@ export function NewRequestDialog() {
       ]
     : []
 
+  // ---- Supplier onboarding derivations ----
+  const supplierCountryName = euCountries.find((c) => c.code === country)?.name || ""
+  const isHighSpendSupplier = expectedSpend === "Over 100,000 EUR" || expectedSpend === "25,000–100,000 EUR"
+  const isHighRiskSupplier =
+    countryRisk === "High" ||
+    sanctionsCheckRequired === "Yes" ||
+    singleSourceSupplier === "Yes" ||
+    expectedSpend === "Over 100,000 EUR"
+  const ibanValid = !iban || /^[A-Z]{2}[0-9A-Z]{13,32}$/.test(iban.replace(/\s/g, ""))
+  const bicValid = !bic || /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(bic.replace(/\s/g, ""))
+  const accountHolderMatches = !accountHolder || !supplierName || accountHolder.trim().toLowerCase() === supplierName.trim().toLowerCase()
+  const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+  const contactEmailValid = !contactEmail || emailValid(contactEmail)
+  // Invoicing email supports multiple comma/semicolon separated addresses.
+  const invoicingEmailValid =
+    !invoicingEmail ||
+    invoicingEmail
+      .split(/[,;]/)
+      .map((e) => e.trim())
+      .filter(Boolean)
+      .every(emailValid)
+
+  // Duplicate supplier check across legal name, registration, VAT, website.
+  const duplicateSupplier = existingSupplierDirectory.find((s) => {
+    const nameMatch = supplierName.trim() !== "" && s.legalName.trim().toLowerCase() === supplierName.trim().toLowerCase()
+    const regMatch = registrationNumber.trim() !== "" && s.registrationNumber.replace(/\s/g, "").toLowerCase() === registrationNumber.replace(/\s/g, "").toLowerCase()
+    const vatMatch = vatNumber.trim() !== "" && s.vatNumber.replace(/\s/g, "").toLowerCase() === vatNumber.replace(/\s/g, "").toLowerCase()
+    const domainMatch = website.trim() !== "" && normalizeDomain(s.website) === normalizeDomain(website)
+    return nameMatch || regMatch || vatMatch || domainMatch
+  })
+
+  const supplierDocs: DocSlot[] = isSupplier
+    ? [
+        ...baseSupplierDocs,
+        ...conditionalSupplierDocs
+          .filter(({ when }) =>
+            when({
+              vatRegistered: !notVatRegistered && vatNumber.trim() !== "",
+              insurance: supplierCategory === "Logistics" || supplierCategory === "Manufacturing" || supplierCategory === "Consulting" || isHighSpendSupplier,
+              taxForm: country !== "" && !euCountries.some((c) => c.code === country),
+              compliance: isHighRiskSupplier,
+              nda: supplierCategory === "Software" || supplierCategory === "Consulting" || supplierCategory === "Legal" || strategicSupplier === "Yes",
+              codeOfConduct: true,
+            }),
+          )
+          .map(({ doc }) => doc),
+      ]
+    : []
+
   // Generate the Buy Product document list from rules instead of a fixed list.
   const productDocs: DocSlot[] = isProduct
     ? [
@@ -806,6 +962,30 @@ export function NewRequestDialog() {
       softwareErrors.push("Description must explain the justification, not repeat the title")
   }
 
+  // Supplier onboarding validation
+  const supplierErrors: string[] = []
+  if (isSupplier) {
+    if (!supplierRequestTitle.trim()) supplierErrors.push("Request Title is required")
+    if (!businessReason.trim()) supplierErrors.push("Business Reason is required")
+    if (!businessOwner.trim()) supplierErrors.push("Business Owner is required")
+    if (!department) supplierErrors.push("Department is required")
+    if (!supplierCategory) supplierErrors.push("Supplier Category is required")
+    if (!expectedSpend) supplierErrors.push("Expected Annual Spend is required")
+    if (!supplierName.trim()) supplierErrors.push("Legal Entity Name is required")
+    if (!country) supplierErrors.push("Country is required")
+    if (!contactEmail.trim()) supplierErrors.push("Contact Email is required")
+    if (contactEmail.trim() && !contactEmailValid) supplierErrors.push("Contact Email format is invalid")
+    if (invoicingEmail.trim() && !invoicingEmailValid) supplierErrors.push("Invoicing Email format is invalid")
+    if (!notVatRegistered && !vatNumber.trim()) supplierErrors.push("VAT Number is required (or mark as Not VAT Registered)")
+    // Duplicate supplier blocks creation.
+    if (duplicateSupplier) supplierErrors.push(`A supplier matching "${duplicateSupplier.legalName}" already exists`)
+    // Bank detail validation (only when bank details are provided).
+    if (iban.trim() && !ibanValid) supplierErrors.push("IBAN format is invalid")
+    if (bic.trim() && !bicValid) supplierErrors.push("SWIFT / BIC format is invalid")
+    if (accountHolder.trim() && !accountHolderMatches)
+      supplierErrors.push("Account Holder must match the Legal Entity Name")
+  }
+
   function reset() {
     setStep(0)
     setCategory(null)
@@ -874,19 +1054,35 @@ export function NewRequestDialog() {
     setIso27001Available("Unknown")
     setDataExportAvailable("Unknown")
     setSoftwareOwner("")
+    setSupplierRequestTitle("")
+    setBusinessReason("")
+    setSupplierCategory("")
+    setExpectedSpend("")
+    setExpectedStartDate("")
+    setRelatedProject("")
+    setRelatedPurchaseRequest("")
     setSupplierName("")
     setCountry("")
     setVatNumber("")
+    setNotVatRegistered(false)
+    setVatStatus("Not Checked")
+    setWebsite("")
+    setSupplierType("Product Supplier")
+    setContactName("")
     setContactEmail("")
+    setContactPhone("")
     setRegistrationNumber("")
     setAccountHolder("")
     setIban("")
     setBic("")
     setPaymentTerms("Net 30")
     setVatTreatment("Standard")
-    setSupplierType("Goods")
-    setTaxRate("21%")
     setInvoicingEmail("")
+    setCountryRisk("Low")
+    setSanctionsCheckRequired("No")
+    setStrategicSupplier("No")
+    setExistingRelationship("No")
+    setSingleSourceSupplier("No")
     setLines([emptyLine(1)])
     setDocs({})
     setExtraDocs([])
@@ -957,8 +1153,9 @@ export function NewRequestDialog() {
           ? serviceErrors.length === 0
           : isSoftware
             ? softwareErrors.length === 0
-            : department.trim() !== "" &&
-              (isSupplier ? supplierName.trim() !== "" : description.trim() !== ""))) ||
+            : isSupplier
+              ? supplierErrors.length === 0
+              : department.trim() !== "" && description.trim() !== "")) ||
     (step === 2 && !requiredDocsMissing) ||
     step === 3
 
@@ -989,7 +1186,9 @@ export function NewRequestDialog() {
                     ? "Buy Service request"
                     : isSoftware
                       ? "Buy Software request"
-                      : "Create a purchase request")}
+                      : isSupplier
+                        ? "Supplier Onboarding Request"
+                        : "Create a purchase request")}
               {step === 2 && "Upload supporting documents"}
               {step === 3 && "Review Request"}
             </DialogTitle>
@@ -2609,7 +2808,423 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 1 && !isProduct && !isService && !isSoftware && (
+            {step === 1 && isSupplier && (
+              <div className="flex flex-col gap-5">
+                {/* Onboarding note */}
+                <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+                  <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <p className="text-xs text-muted-foreground">
+                    This is a <span className="font-semibold text-foreground">Supplier Onboarding Request</span>, not a
+                    purchase. Provide supplier identity, contact, and risk information — Finance verifies bank and tax
+                    details before the supplier is activated.
+                  </p>
+                </div>
+
+                {/* GENERAL */}
+                <Section
+                  icon={Layers}
+                  iconClass="bg-primary/12 text-primary"
+                  title="General"
+                  subtitle="Why this supplier is being onboarded and who owns the relationship."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field label="Request Title" required>
+                        <input
+                          value={supplierRequestTitle}
+                          onChange={(e) => setSupplierRequestTitle(e.target.value)}
+                          placeholder="e.g. Add ABC Logistics as New Supplier"
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="Business Reason"
+                        required
+                        hint="Why is this supplier needed? e.g. New supplier required for Poland, better pricing available."
+                      >
+                        <Textarea
+                          value={businessReason}
+                          onChange={(e) => setBusinessReason(e.target.value)}
+                          placeholder="Explain why the supplier is being added"
+                          rows={3}
+                          className={fieldClass}
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Department" required>
+                      <select value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldClass}>
+                        <option value="">Choose department...</option>
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Business Owner" required hint="Responsible for the supplier relationship & performance.">
+                      <input
+                        value={businessOwner}
+                        onChange={(e) => setBusinessOwner(e.target.value)}
+                        placeholder="e.g. Jane Doe"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Supplier Category" required>
+                      <select
+                        value={supplierCategory}
+                        onChange={(e) => setSupplierCategory(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="">Choose category...</option>
+                        {supplierCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Expected Annual Spend" required hint="Drives approval level and risk checks.">
+                      <select value={expectedSpend} onChange={(e) => setExpectedSpend(e.target.value)} className={fieldClass}>
+                        <option value="">Choose range...</option>
+                        {expectedSpendBands.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Expected Start Date" hint="When the supplier is needed.">
+                      <input
+                        type="date"
+                        value={expectedStartDate}
+                        onChange={(e) => setExpectedStartDate(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Related Project" hint="Optional — for reporting.">
+                      <input
+                        value={relatedProject}
+                        onChange={(e) => setRelatedProject(e.target.value)}
+                        placeholder="e.g. Poland Office Setup"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Related Purchase Request" hint="Optional — link to a future request.">
+                      <input
+                        value={relatedPurchaseRequest}
+                        onChange={(e) => setRelatedPurchaseRequest(e.target.value)}
+                        placeholder="e.g. REQ-1042"
+                        className={fieldClass}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* SUPPLIER INFORMATION */}
+                <Section
+                  icon={Building2}
+                  iconClass="bg-chart-2/15 text-chart-2"
+                  title="Supplier Information"
+                  subtitle="Legal identity and primary contact for the supplier."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Legal Entity Name" required>
+                      <input
+                        value={supplierName}
+                        onChange={(e) => setSupplierName(e.target.value)}
+                        placeholder="e.g. ABC Logistics UAB"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Country" required>
+                      <select value={country} onChange={(e) => setCountry(e.target.value)} className={fieldClass}>
+                        <option value="">Choose country...</option>
+                        {euCountries.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Company Registration Number">
+                      <input
+                        value={registrationNumber}
+                        onChange={(e) => setRegistrationNumber(e.target.value)}
+                        placeholder="e.g. 302536500"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field
+                      label="VAT Number"
+                      required={!notVatRegistered}
+                      hint="VAT is verified via VIES — status shown below."
+                    >
+                      <input
+                        value={vatNumber}
+                        onChange={(e) => setVatNumber(e.target.value.toUpperCase())}
+                        disabled={notVatRegistered}
+                        placeholder="LT100012345678"
+                        className={cn(fieldClass, notVatRegistered && "bg-muted/50 text-muted-foreground")}
+                      />
+                    </Field>
+                    <div className="flex flex-col gap-2 sm:col-span-1">
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={notVatRegistered}
+                          onChange={(e) => {
+                            setNotVatRegistered(e.target.checked)
+                            if (e.target.checked) {
+                              setVatNumber("")
+                              setVatStatus("Not VAT Registered")
+                            } else {
+                              setVatStatus("Not Checked")
+                            }
+                          }}
+                          className="size-4 rounded border-border"
+                        />
+                        Not VAT Registered
+                      </label>
+                    </div>
+                    <Field label="VAT Verification Status">
+                      <select
+                        value={vatStatus}
+                        onChange={(e) => setVatStatus(e.target.value)}
+                        disabled={notVatRegistered}
+                        className={cn(fieldClass, notVatRegistered && "bg-muted/50 text-muted-foreground")}
+                      >
+                        {vatVerificationStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Website" hint="Used for procurement, compliance, and risk checks.">
+                      <input
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        placeholder="https://supplier.com"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field label="Supplier Type">
+                      <select value={supplierType} onChange={(e) => setSupplierType(e.target.value)} className={fieldClass}>
+                        {supplierTypeOptions.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Primary Contact Name">
+                      <input
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        placeholder="e.g. John Smith"
+                        className={fieldClass}
+                      />
+                    </Field>
+                    <Field
+                      label="Contact Email"
+                      required
+                      error={contactEmail.trim() && !contactEmailValid ? "Enter a valid email address." : undefined}
+                    >
+                      <input
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="supplier@example.com"
+                        className={cn(
+                          fieldClass,
+                          contactEmail.trim() && !contactEmailValid && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                    <Field label="Contact Phone">
+                      <input
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        placeholder="+370 600 00000"
+                        className={fieldClass}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Duplicate supplier check */}
+                  {duplicateSupplier && (
+                    <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                      <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                      <div>
+                        <p className="text-sm font-semibold text-destructive">Possible duplicate supplier</p>
+                        <p className="mt-0.5 text-xs text-destructive/90">
+                          A supplier matching <span className="font-semibold">{duplicateSupplier.legalName}</span> already
+                          exists (matched on legal name, registration number, VAT number, or website domain). Creating a
+                          duplicate is blocked.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </Section>
+
+                {/* BANK INFORMATION */}
+                <Section
+                  icon={ShieldCheck}
+                  iconClass="bg-chart-4/15 text-chart-4"
+                  title="Bank Information"
+                  subtitle="Optional at request stage — Finance verifies and confirms bank details before activation."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field
+                      label="Account Holder"
+                      error={accountHolder.trim() && !accountHolderMatches ? "Must match the legal entity name." : undefined}
+                    >
+                      <input
+                        value={accountHolder}
+                        onChange={(e) => setAccountHolder(e.target.value)}
+                        placeholder="Must match the legal entity name"
+                        className={cn(
+                          fieldClass,
+                          accountHolder.trim() && !accountHolderMatches && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                    <Field
+                      label="IBAN"
+                      error={iban.trim() && !ibanValid ? "Invalid IBAN format." : undefined}
+                    >
+                      <input
+                        value={iban}
+                        onChange={(e) => setIban(e.target.value.toUpperCase())}
+                        placeholder="LT12 1000 0111 0100 1000"
+                        className={cn(
+                          fieldClass,
+                          iban.trim() && !ibanValid && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                    <Field
+                      label="SWIFT / BIC"
+                      error={bic.trim() && !bicValid ? "Invalid SWIFT/BIC format." : undefined}
+                    >
+                      <input
+                        value={bic}
+                        onChange={(e) => setBic(e.target.value.toUpperCase())}
+                        placeholder="CBVILT2X"
+                        className={cn(
+                          fieldClass,
+                          bic.trim() && !bicValid && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* FINANCE INFORMATION */}
+                <Section
+                  icon={Receipt}
+                  iconClass="bg-primary/12 text-primary"
+                  title="Finance Information"
+                  subtitle="Suggested values — Finance validates accounting configuration during review."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Field label="Payment Terms">
+                      <select value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} className={fieldClass}>
+                        {paymentTermsOptions.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="VAT Treatment">
+                      <select value={vatTreatment} onChange={(e) => setVatTreatment(e.target.value)} className={fieldClass}>
+                        {vatTreatmentOptions.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field
+                      label="Invoicing Email"
+                      hint="Separate multiple addresses with commas."
+                      error={invoicingEmail.trim() && !invoicingEmailValid ? "One or more emails are invalid." : undefined}
+                    >
+                      <input
+                        value={invoicingEmail}
+                        onChange={(e) => setInvoicingEmail(e.target.value)}
+                        placeholder="invoices@supplier.com"
+                        className={cn(
+                          fieldClass,
+                          invoicingEmail.trim() && !invoicingEmailValid && "border-destructive focus:border-destructive focus:ring-destructive",
+                        )}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* RISK & COMPLIANCE */}
+                <Section
+                  icon={ShieldCheck}
+                  iconClass="bg-destructive/12 text-destructive"
+                  title="Risk & Compliance"
+                  subtitle="These answers help generate the correct approval route."
+                >
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Country Risk">
+                      <select value={countryRisk} onChange={(e) => setCountryRisk(e.target.value)} className={fieldClass}>
+                        {countryRiskOptions.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    {[
+                      { label: "Sanctions Check Required", value: sanctionsCheckRequired, set: setSanctionsCheckRequired },
+                      { label: "Strategic Supplier", value: strategicSupplier, set: setStrategicSupplier },
+                      { label: "Existing Relationship", value: existingRelationship, set: setExistingRelationship },
+                      { label: "Single Source Supplier", value: singleSourceSupplier, set: setSingleSourceSupplier },
+                    ].map((f) => (
+                      <Field key={f.label} label={f.label}>
+                        <select value={f.value} onChange={(e) => f.set(e.target.value)} className={fieldClass}>
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </Field>
+                    ))}
+                  </div>
+                  {isHighRiskSupplier && (
+                    <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+                      <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <p className="text-xs text-muted-foreground">
+                        This supplier is flagged <span className="font-semibold text-foreground">higher risk</span>, so
+                        Finance and Compliance approvals plus additional documents will be required.
+                      </p>
+                    </div>
+                  )}
+                </Section>
+
+                {supplierErrors.length > 0 && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">Resolve the following before continuing</p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {supplierErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 1 && !isProduct && !isService && !isSoftware && !isSupplier && (
               <div className="flex flex-col gap-5">
                 <Section
                   icon={Layers}
@@ -2870,108 +3485,6 @@ export function NewRequestDialog() {
                   </div>
                 </Section>
 
-                {isSupplier && (
-                  <Section
-                    icon={ShieldCheck}
-                    iconClass="bg-chart-2/15 text-chart-2"
-                    title="Bank details"
-                    subtitle="Used for payments. Changes are verified to prevent fraud."
-                  >
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <Field label="Account holder">
-                        <input
-                          value={accountHolder}
-                          onChange={(e) => setAccountHolder(e.target.value)}
-                          placeholder="Must match the legal entity name"
-                          className={fieldClass}
-                        />
-                      </Field>
-                      <Field label="IBAN">
-                        <input
-                          value={iban}
-                          onChange={(e) => setIban(e.target.value.toUpperCase())}
-                          placeholder="LT12 1000 0111 0100 1000"
-                          className={fieldClass}
-                        />
-                      </Field>
-                      <Field label="BIC / SWIFT">
-                        <input
-                          value={bic}
-                          onChange={(e) => setBic(e.target.value.toUpperCase())}
-                          placeholder="CBVILT2X"
-                          className={fieldClass}
-                        />
-                      </Field>
-                    </div>
-                  </Section>
-                )}
-
-                {isSupplier && (
-                  <Section
-                    icon={Receipt}
-                    iconClass="bg-chart-4/15 text-chart-4"
-                    title="Tax & accounting"
-                    subtitle="Helps accounting post invoices and report VAT correctly."
-                  >
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field label="VAT treatment" hint="Determines how VAT is reported">
-                        <select
-                          value={vatTreatment}
-                          onChange={(e) => setVatTreatment(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {[
-                            "Standard",
-                            "Reverse charge (intra-EU)",
-                            "Exempt",
-                            "Non-EU / Import",
-                          ].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Supplier type" hint="Affects place-of-supply rules">
-                        <select
-                          value={supplierType}
-                          onChange={(e) => setSupplierType(e.target.value)}
-                          className={fieldClass}
-                        >
-                          {["Goods", "Services", "Goods & Services"].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Default tax rate">
-                        <select
-                          value={taxRate}
-                          onChange={(e) => setTaxRate(e.target.value)}
-                          disabled={vatTreatment !== "Standard"}
-                          className={cn(fieldClass, vatTreatment !== "Standard" && "opacity-50")}
-                        >
-                          {["21%", "9%", "5%", "0%", "No VAT"].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Invoicing email" hint="Where invoices are sent (if different)">
-                        <input
-                          type="email"
-                          value={invoicingEmail}
-                          onChange={(e) => setInvoicingEmail(e.target.value)}
-                          placeholder="invoices@supplier.com"
-                          className={fieldClass}
-                        />
-                      </Field>
-                    </div>
-                  </Section>
-                )}
-
                 {!isSupplier && (
                   <Section
                     icon={Settings2}
@@ -3133,24 +3646,26 @@ export function NewRequestDialog() {
                 <Section
                   icon={ShieldCheck}
                   iconClass="bg-primary/12 text-primary"
-                  title={isSupplier ? "Compliance documents" : "Supporting documents"}
+                  title={isSupplier ? "Onboarding documents" : "Supporting documents"}
                   subtitle={
                     isSupplier
-                      ? "Required for vendor due-diligence and onboarding."
+                      ? "Generated automatically from supplier category, country, spend, and risk."
                       : isProduct || isService || isSoftware
                         ? "Requirements are generated automatically from this request."
                         : "Attach quotes and approvals to support this request."
                   }
                 >
-                  {(isProduct || isService || isSoftware) && (
+                  {(isProduct || isService || isSoftware || isSupplier) && (
                     <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
                       <Info className="mt-0.5 size-4 shrink-0 text-primary" />
                       <p className="text-xs text-muted-foreground">
-                        {isSoftware
-                          ? "Document requirements below are generated from data protection, security, certification, and contract rules. They update as your request changes."
-                          : isService
-                            ? "Document requirements below are generated from the contract requirement, statement of work, service value, and supplier status. They update as your request changes."
-                            : "Document requirements below are generated from the request value, procurement category, and line item details. They update as your request changes."}
+                        {isSupplier
+                          ? "Document requirements below are generated from the supplier category, country, expected spend, VAT registration, and risk level. They update as your request changes."
+                          : isSoftware
+                            ? "Document requirements below are generated from data protection, security, certification, and contract rules. They update as your request changes."
+                            : isService
+                              ? "Document requirements below are generated from the contract requirement, statement of work, service value, and supplier status. They update as your request changes."
+                              : "Document requirements below are generated from the request value, procurement category, and line item details. They update as your request changes."}
                       </p>
                     </div>
                   )}
@@ -3981,7 +4496,171 @@ export function NewRequestDialog() {
               </div>
             )}
 
-            {step === 3 && !isProduct && !isService && !isSoftware && (
+            {step === 3 && isSupplier && (
+              <div className="flex flex-col gap-5">
+                {/* Validation summary */}
+                {supplierErrors.length > 0 || requiredDocsMissing ? (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">
+                        Resolve the following before submitting
+                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-destructive/90">
+                        {supplierErrors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                        {requiredDocsMissing && <li>Mandatory onboarding documents are missing</li>}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <Check className="size-4 shrink-0 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      All required supplier information is complete. Ready to submit for approval.
+                    </p>
+                  </div>
+                )}
+
+                {/* Supplier information */}
+                <ReviewBlock title="Supplier Information" onEdit={() => setStep(1)}>
+                  <MetaCell label="Request Title" value={supplierRequestTitle || "Not provided"} />
+                  <MetaCell label="Legal Entity Name" value={supplierName || "Not provided"} />
+                  <MetaCell label="Country" value={supplierCountryName || "Not provided"} />
+                  <MetaCell label="Registration Number" value={registrationNumber || "Not provided"} />
+                  <MetaCell label="Supplier Category" value={supplierCategory || "Not provided"} />
+                  <MetaCell label="Supplier Type" value={supplierType} />
+                  <MetaCell label="Expected Annual Spend" value={expectedSpend || "Not provided"} />
+                  <MetaCell label="Business Owner" value={businessOwner || "Not provided"} />
+                  <MetaCell label="Department" value={department || "Not provided"} />
+                  <MetaCell label="Website" value={website || "Not provided"} />
+                  <MetaCell
+                    label="Expected Start Date"
+                    value={expectedStartDate ? new Date(expectedStartDate).toLocaleDateString("en-GB") : "Not set"}
+                  />
+                  <MetaCell label="Related Project" value={relatedProject || "—"} />
+                  <div className="col-span-2 sm:col-span-4">
+                    <MetaCell label="Business Reason" value={businessReason || "Not provided"} />
+                  </div>
+                </ReviewBlock>
+
+                {/* Contact information */}
+                <ReviewBlock title="Contact Information" onEdit={() => setStep(1)}>
+                  <MetaCell label="Primary Contact Name" value={contactName || "Not provided"} />
+                  <MetaCell label="Contact Email" value={contactEmail || "Not provided"} />
+                  <MetaCell label="Contact Phone" value={contactPhone || "Not provided"} />
+                </ReviewBlock>
+
+                {/* Tax information */}
+                <ReviewBlock title="Tax Information" onEdit={() => setStep(1)}>
+                  <MetaCell label="VAT Number" value={notVatRegistered ? "Not VAT Registered" : vatNumber || "Not provided"} />
+                  <MetaCell label="VAT Status" value={vatStatus} />
+                  <MetaCell label="VAT Treatment" value={vatTreatment} />
+                  <MetaCell label="Payment Terms" value={paymentTerms} />
+                  <MetaCell label="Invoicing Email" value={invoicingEmail || contactEmail || "Not provided"} />
+                </ReviewBlock>
+
+                {/* Bank information */}
+                <ReviewBlock title="Bank Information" onEdit={() => setStep(1)}>
+                  <MetaCell label="Account Holder" value={accountHolder || "To be verified by Finance"} />
+                  <MetaCell label="IBAN" value={iban || "To be verified by Finance"} />
+                  <MetaCell label="SWIFT / BIC" value={bic || "To be verified by Finance"} />
+                </ReviewBlock>
+
+                {/* Risk & compliance */}
+                <ReviewBlock title="Risk & Compliance" onEdit={() => setStep(1)}>
+                  <MetaCell label="Country Risk" value={countryRisk} />
+                  <MetaCell label="Sanctions Check" value={sanctionsCheckRequired} />
+                  <MetaCell label="Strategic Supplier" value={strategicSupplier} />
+                  <MetaCell label="Existing Relationship" value={existingRelationship} />
+                  <MetaCell label="Single Source" value={singleSourceSupplier} />
+                  <MetaCell label="Overall Risk" value={isHighRiskSupplier ? "Higher risk" : "Standard"} />
+                </ReviewBlock>
+
+                {/* Documents */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border p-5">
+                    <h3 className="font-semibold text-foreground">Documents</h3>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    {uploadedDocCount === 0 ? (
+                      <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    ) : (
+                      <>
+                        {docSlots
+                          .filter((d) => docs[d.id])
+                          .map((d) => (
+                            <div key={d.id} className="flex items-center gap-3 text-sm">
+                              <FileCheck2 className="size-4 shrink-0 text-primary" />
+                              <span className="font-medium text-foreground">{d.label}</span>
+                              <span className="truncate text-muted-foreground">{docs[d.id]}</span>
+                            </div>
+                          ))}
+                        {extraDocs.map((name, i) => (
+                          <div key={`x-${i}`} className="flex items-center gap-3 text-sm">
+                            <FileCheck2 className="size-4 shrink-0 text-primary" />
+                            <span className="truncate text-muted-foreground">{name}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {requiredDocsMissing && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertCircle className="size-3.5" />
+                        Mandatory onboarding documents are still missing.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Approval route preview */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border p-5">
+                    <Workflow className="size-4 text-primary" />
+                    <h3 className="font-semibold text-foreground">Generated Approval Route</h3>
+                  </div>
+                  <div className="flex flex-col gap-3 p-5">
+                    {[
+                      { role: "Business Owner", who: businessOwner || "Relationship owner", note: "Confirms supplier need" },
+                      { role: "Department Manager", who: department || "Department head", note: "Reviews business case" },
+                      ...(isHighSpendSupplier
+                        ? [{ role: "Finance", who: "Finance team", note: "Verifies bank & tax details" }]
+                        : []),
+                      ...(isHighRiskSupplier
+                        ? [{ role: "Compliance", who: "Compliance team", note: "Sanctions & due-diligence review" }]
+                        : []),
+                      { role: "Procurement", who: "Procurement team", note: "Creates & activates the supplier" },
+                    ].map((s, i, arr) => (
+                      <div key={s.role} className="flex items-center gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{s.role}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.who} · {s.note}
+                          </p>
+                        </div>
+                        {i < arr.length - 1 && <ChevronRight className="size-4 text-muted-foreground" />}
+                      </div>
+                    ))}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Approval steps are generated from supplier category, expected spend, country, and risk — not hard-coded.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && !isProduct && !isService && !isSoftware && !isSupplier && (
               <div className="flex flex-col gap-5">
                 {/* Summary card */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -4002,94 +4681,39 @@ export function NewRequestDialog() {
                           {selectedCategory?.title ?? "Request"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {(isSupplier ? supplierName : description) || "No description"}
+                          {description || "No description"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      {isSupplier ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                          <UserPlus className="size-3.5" />
-                          New supplier
-                        </span>
-                      ) : (
-                        <>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            Amount
-                          </p>
-                          <p className="text-xl font-bold text-foreground">
-                            {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
-                          </p>
-                        </>
-                      )}
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Amount
+                      </p>
+                      <p className="text-xl font-bold text-foreground">
+                        {reviewTotal ? `${fmt(reviewTotal)} ${currency}` : "No cost"}
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-y-4 p-5 sm:grid-cols-4">
-                    {isSupplier ? (
-                      <>
-                        <MetaCell label="Department" value={department || "Not provided"} />
-                        <MetaCell label="Cost center" value={costCenter || "Not provided"} />
-                        <MetaCell label="Contact email" value={contactEmail || "Not provided"} />
-                        <MetaCell label="Payment terms" value={paymentTerms} />
-                      </>
+                    <MetaCell label="Department" value={department || "Not provided"} />
+                    <MetaCell label="Cost center" value={costCenter || "Not provided"} />
+                    <MetaCell label="Supplier" value={supplier || "Not provided"} />
+                    {isService ? (
+                      <MetaCell
+                        label="Start date"
+                        value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
+                      />
                     ) : (
-                      <>
-                        <MetaCell label="Department" value={department || "Not provided"} />
-                        <MetaCell label="Cost center" value={costCenter || "Not provided"} />
-                        <MetaCell label="Supplier" value={supplier || "Not provided"} />
-                        {isService ? (
-                          <MetaCell
-                            label="Start date"
-                            value={startDate ? new Date(startDate).toLocaleDateString("en-GB") : "Not provided"}
-                          />
-                        ) : isSoftware ? (
-                          <MetaCell label="Users / seats" value={numberOfUsers || "Not provided"} />
-                        ) : (
-                          <MetaCell
-                            label="Needed by"
-                            value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
-                          />
-                        )}
-                      </>
+                      <MetaCell
+                        label="Needed by"
+                        value={neededBy ? new Date(neededBy).toLocaleDateString("en-GB") : "Not provided"}
+                      />
                     )}
                   </div>
                 </div>
 
                 {/* Line items card */}
-                {isSupplier ? (
-                  <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <div className="border-b border-border p-5">
-                      <h3 className="font-semibold text-foreground">Supplier Onboarding Details</h3>
-                    </div>
-
-                    <ReviewGroup title="Identity & registration">
-                      <MetaCell label="Legal entity" value={supplierName || "Not provided"} />
-                      <MetaCell
-                        label="Country"
-                        value={euCountries.find((c) => c.code === country)?.name || "Not provided"}
-                      />
-                      <MetaCell label="Registration no." value={registrationNumber || "Not provided"} />
-                      <MetaCell label="VAT number" value={vatNumber || "Not provided"} />
-                    </ReviewGroup>
-
-                    <ReviewGroup title="Banking">
-                      <MetaCell label="Account holder" value={accountHolder || "Not provided"} />
-                      <MetaCell label="IBAN" value={iban || "Not provided"} />
-                      <MetaCell label="BIC / SWIFT" value={bic || "Not provided"} />
-                      <MetaCell label="Payment terms" value={paymentTerms} />
-                    </ReviewGroup>
-
-                    <ReviewGroup title="Tax & accounting" last>
-                      <MetaCell label="VAT treatment" value={vatTreatment} />
-                      <MetaCell label="Supplier type" value={supplierType} />
-                      <MetaCell
-                        label="Tax rate"
-                        value={vatTreatment === "Standard" ? taxRate : "—"}
-                      />
-                      <MetaCell label="Invoicing email" value={invoicingEmail || contactEmail || "Not provided"} />
-                    </ReviewGroup>
-                  </div>
-                ) : isSoftware ? null : (
+                {(
                   <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="border-b border-border p-5">
                     <h3 className="font-semibold text-foreground">Supplier, Budget &amp; Specifications</h3>
@@ -4221,7 +4845,7 @@ export function NewRequestDialog() {
                 disabled={!canContinue}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {step === 3 ? (isProduct || isService || isSoftware ? "Submit for Approval" : "Create") : "Next"}
+                {step === 3 ? (isProduct || isService || isSoftware || isSupplier ? "Submit for Approval" : "Create") : "Next"}
                 {step !== 3 && <ChevronRight className="size-4" />}
               </button>
             </div>
