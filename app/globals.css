@@ -50,39 +50,39 @@
 
 :root {
   color-scheme: light;
-  /* Background — pure white */
-  --background: oklch(1 0 0);
-  /* Primary text — near-black */
-  --foreground: oklch(0.13 0.006 250);
-  /* Cards — white with the faintest separation */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.006 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.006 250);
-  /* Primary accent — aqua/teal #0AAFA0 */
-  --primary: oklch(0.64 0.13 192);
-  --primary-foreground: oklch(0.99 0 0);
-  /* Secondary / Muted — very light gray */
-  --secondary: oklch(0.966 0.002 250);
-  --secondary-foreground: oklch(0.22 0.006 250);
-  --muted: oklch(0.964 0.002 250);
-  /* Secondary text — neutral gray */
-  --muted-foreground: oklch(0.50 0.008 250);
-  /* Accent — whisper aqua tint */
-  --accent: oklch(0.960 0.020 192);
-  --accent-foreground: oklch(0.40 0.10 192);
-  /* Destructive — muted red */
-  --destructive: oklch(0.55 0.16 22);
-  /* Borders — very soft gray */
-  --border: oklch(0.926 0.003 250);
-  --input: oklch(0.926 0.003 250);
-  --ring: oklch(0.64 0.13 192);
-  /* Charts: aqua spend line, lime secondary, grays for rest */
-  --chart-1: oklch(0.64 0.13 192);
-  --chart-2: oklch(0.82 0.18 130);
-  --chart-3: oklch(0.75 0.08 192);
-  --chart-4: oklch(0.55 0.16 22);
-  --chart-5: oklch(0.70 0.04 95);
+  /* Page background — #F8FAFC */
+  --background: #F8FAFC;
+  /* Primary text — #0F172A */
+  --foreground: #0F172A;
+  /* Cards — white */
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  /* Primary — ProcFly green #029F74 */
+  --primary: #029F74;
+  --primary-foreground: #FFFFFF;
+  /* Secondary — light neutral surface */
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  /* Muted — subtle section bg + muted text #64748B */
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  /* Accent — light green bg #EAF7F2 with dark green text */
+  --accent: #EAF7F2;
+  --accent-foreground: #1F5A43;
+  /* Destructive — danger #B42318 */
+  --destructive: #B42318;
+  /* Borders — #E2E8F0 */
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #029F74;
+  /* Charts: main line green, secondary gray, rest neutral */
+  --chart-1: #029F74;
+  --chart-2: #98A2B3;
+  --chart-3: #98A2B3;
+  --chart-4: #B42318;
+  --chart-5: #E2E8F0;
   /* Radius — slightly larger for modern premium feel */
   --radius: 0.875rem;
   /* Sidebar — #1F5A43 exactly */
@@ -191,7 +191,7 @@
     box-shadow:
       0 1px 2px 0 oklch(0 0 0 / 0.03),
       0 2px 8px -2px oklch(0 0 0 / 0.04),
-      0 0 0 1px oklch(0.952 0.003 240);
+      0 0 0 1px #E2E8F0;
   }
   /* Progress bar track/fill globals */
   .progress-track {
@@ -202,7 +202,7 @@
   }
   /* Table row hover — very light gray */
   .table-row-hover:hover {
-    background-color: oklch(0.966 0.002 250 / 0.8);
+    background-color: #F7FAF8;
   }
   /* Secondary button style */
   .btn-secondary {
