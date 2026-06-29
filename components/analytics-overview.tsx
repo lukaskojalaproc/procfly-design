@@ -8,8 +8,8 @@ import {
   Timer,
   Clock,
   Gavel,
-  ArrowUpRight,
-  ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 import {
   Area,
@@ -56,47 +56,36 @@ const categoryChartConfig: ChartConfig = {
 }
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
-  const Icon = kpiIcon[kpi.key]
   const isGood = kpi.trend === kpi.goodWhen
-  const isBad = kpi.trend !== kpi.goodWhen
-  const DeltaIcon = kpi.trend === "up" ? ArrowUpRight : ArrowDownRight
+  const DeltaIcon = kpi.trend === "up" ? ArrowUp : ArrowDown
+  const sign = kpi.trend === "up" ? "+" : "−"
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
-      ? `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}`
-      : `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}%`
+      ? `${sign}${kpi.delta}`
+      : `${sign}${kpi.delta}%`
 
-  // Badge: soft outline, white bg, colored text only — premium minimal style
-  const badgeStyle = isGood
-    ? { color: "#15803D", background: "#F5FBF7", border: "1px solid #DCEFE3" }
-    : isBad
-    ? { color: "#B42318", background: "#FEF6F5", border: "1px solid #F3D6D2" }
-    : { color: "#667085", background: "#F8FAFC", border: "1px solid #EAEEF3" }
+  // Delta text color only — no background, no border
+  const deltaColor = isGood ? "#16A34A" : "#DC2626"
 
   return (
-    <Card className="card-shadow flex flex-col gap-3 px-5 py-5">
-      <div className="flex items-center justify-between">
-        {/* Icon — near-invisible neutral gray, no color */}
-        <span className="flex size-6 items-center justify-center text-[#CBD5E1]">
-          <Icon className="size-3" />
-        </span>
-        {/* Badge — small, subtle, secondary. Not a CTA. */}
+    <Card className="card-shadow flex items-center justify-between gap-3 px-4 py-3.5">
+      {/* Left: label stack */}
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-[#64748B]">{kpi.label}</p>
+        <p className="truncate text-[10px] text-[#94A3B8]">{kpi.sub}</p>
+      </div>
+      {/* Right: number + delta */}
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <p className="text-xl font-bold leading-none tabular-nums text-[#0F172A]">
+          {kpi.value}
+        </p>
         <span
-          className="inline-flex items-center gap-px rounded text-[11px] font-medium leading-none tabular-nums"
-          style={{ ...badgeStyle, padding: "3px 6px" }}
+          className="inline-flex items-center gap-px text-[10px] font-medium leading-none tabular-nums"
+          style={{ color: deltaColor }}
         >
           <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
-      </div>
-      <div>
-        {/* 1. Big number — black for all */}
-        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-[#0F172A]">
-          {kpi.value}
-        </p>
-        {/* 2. KPI label */}
-        <p className="mt-2 text-sm font-medium text-[#0F172A]/80">{kpi.label}</p>
-        {/* 3. Helper text — darker, clearly readable */}
-        <p className="mt-0.5 text-xs font-normal text-[#475569]">{kpi.sub}</p>
       </div>
     </Card>
   )
