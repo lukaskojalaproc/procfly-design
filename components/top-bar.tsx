@@ -9,11 +9,11 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/95 px-6 py-2.5 backdrop-blur">
       <div className="relative flex-1 max-w-lg">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           placeholder="Ieškoti užklausų, tiekėjų, patvirtinimų..."
-          className="h-9 w-full rounded-lg border border-[#94A3B8] bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-[#94A3B8] hover:border-[#64748B] focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="h-9 w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-[#475569] focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </div>
       <button className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">

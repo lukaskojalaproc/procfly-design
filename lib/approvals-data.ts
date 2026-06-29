@@ -177,13 +177,13 @@ export function formatWaiting(activatedAt: string): string {
   return remHours > 0 ? `${days}d ${remHours}h waiting` : `${days}d waiting`
 }
 
-const pill = "inline-flex w-fit items-center rounded-full bg-[#f3f4f6] px-2.5 py-0.5 text-[11px]"
+const pill = "inline-flex w-fit items-center rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px]"
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
   overdue: { label: "Overdue",    badge: `${pill} text-[#dc2626] font-semibold`, dot: "" },
   today:   { label: "Due today",  badge: `${pill} text-[#d97706] font-semibold`, dot: "" },
   soon:    { label: "Due soon",   badge: `${pill} text-[#d97706]`,               dot: "" },
-  later:   { label: "Due later",  badge: `${pill} text-[#6b7280]`,               dot: "" },
-  none:    { label: "No due date",badge: `${pill} text-[#9ca3af]`,               dot: "" },
+  later:   { label: "Due later",  badge: `${pill} text-[#64748B]`,               dot: "" },
+  none:    { label: "No due date",badge: `${pill} text-[#94A3B8]`,               dot: "" },
 }
 
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {
@@ -196,7 +196,7 @@ export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: 
 export const priorityMeta: Record<RequestPriority, { label: string; badge: string }> = {
   Urgent: { label: "Urgent", badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b] font-semibold" },
   High:   { label: "High",   badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]" },
-  Normal: { label: "Normal", badge: "border border-[#e5e7eb] bg-[#f9fafb] text-[#6b7280]" },
+  Normal: { label: "Normal", badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]" },
 }
 
 // --- Tabs, filters, sorting -------------------------------------------------

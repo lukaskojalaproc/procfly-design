@@ -28,20 +28,20 @@ const stateStyles: Record<DisplayState, {
     labelCls: "text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0]",
     icon: Check,
   },
-  // Dark/neutral — In Progress
+  // Slate-dark — In Progress
   in_progress: {
     card: "border-border bg-card",
-    dot: "bg-[#374151] ring-[#d1d5db]",
+    dot: "bg-[#475569] ring-[#CBD5E1]",
     label: "In Progress",
-    labelCls: "text-[#111827] bg-[#f3f4f6] border border-[#d1d5db]",
+    labelCls: "text-[#0F172A] bg-[#F1F5F9] border border-[#CBD5E1]",
     icon: Clock,
   },
-  // Dark/neutral — Not Started
+  // Slate-muted — Not Started
   not_started: {
     card: "border-border/60 bg-card",
-    dot: "bg-[#d1d5db] ring-[#e5e7eb]",
+    dot: "bg-[#CBD5E1] ring-[#E2E8F0]",
     label: "Not Started",
-    labelCls: "text-[#6b7280] bg-[#f9fafb] border border-[#e5e7eb]",
+    labelCls: "text-[#64748B] bg-[#F8FAFC] border border-[#E2E8F0]",
     icon: Clock,
   },
   // Red — only Rejected
@@ -139,16 +139,16 @@ export function RequestApprovalFlow({
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      // Creator step — bold black
+                      // Creator step — bold slate-900
                       isCreator
-                        ? "text-[#111827] bg-[#f3f4f6] border border-[#d1d5db] font-bold"
+                        ? "text-[#0F172A] bg-[#F1F5F9] border border-[#CBD5E1] font-bold"
                         : s.labelCls,
                     )}>
                       <Icon className="size-2.5" />
                       {isCreator ? "Created" : s.label}
                     </span>
                     <span className={cn("size-2 rounded-full ring-2",
-                      isCreator ? "bg-[#111827] ring-[#d1d5db]" : s.dot
+                      isCreator ? "bg-[#0F172A] ring-[#CBD5E1]" : s.dot
                     )} />
                   </div>
 

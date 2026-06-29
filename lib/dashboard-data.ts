@@ -83,11 +83,11 @@ export const stats = {
 // Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
 // Keep fills very light so badges read as metadata, not primary information.
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  // Grey — neutral, no action needed
-  Draft:              { label: "Draft",     badge: "border border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]", dot: "bg-[#9ca3af]" },
-  Archived:           { label: "Archived",  badge: "border border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]", dot: "bg-[#9ca3af]" },
-  // Dark/neutral — in motion, no colour distraction
-  "Pending Approval": { label: "Pending",   badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#374151]", dot: "bg-[#374151]" },
+  // Slate-neutral — no action needed
+  Draft:              { label: "Draft",     badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]", dot: "bg-[#94A3B8]" },
+  Archived:           { label: "Archived",  badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]", dot: "bg-[#94A3B8]" },
+  // Slate-dark — in motion
+  "Pending Approval": { label: "Pending",   badge: "border border-[#CBD5E1] bg-[#F1F5F9] text-[#475569]", dot: "bg-[#475569]" },
   // Green — only Approved
   Approved:           { label: "Approved",  badge: "border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]", dot: "bg-[#16a34a]" },
   // Red — only Rejected
