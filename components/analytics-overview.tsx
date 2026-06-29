@@ -112,7 +112,7 @@ export function AnalyticsOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           {/* Title: font-bold (700) */}
-          <h2 className="text-lg font-bold text-foreground">This month</h2>
+          <h2 className="text-lg font-bold text-foreground">{periodLabels[period]}</h2>
           <p className="text-sm text-muted-foreground">
             {periodLabels[period]} · all figures {compare}
           </p>
