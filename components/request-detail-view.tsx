@@ -189,7 +189,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
       {/* ── Approval Review Bar — fixed bottom footer ─────────────────────── */}
       {canReview && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-6 py-2.5 shadow-[0_-1px_8px_rgba(0,0,0,0.06)] backdrop-blur-sm lg:left-64">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white px-6 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.10)] lg:left-64">
           <div className="flex items-center gap-3">
             {/* Context — minimal: step info + waiting time */}
             <div className="flex min-w-0 flex-1 items-center gap-2">
