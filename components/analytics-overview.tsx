@@ -234,12 +234,11 @@ export function AnalyticsOverview() {
                   />
                 }
               />
-              {/* Item 5: first bar muted green, rest very light gray */}
               <Bar dataKey="spend" radius={4} barSize={18}>
                 {categories.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "oklch(0.58 0.08 162)" : "oklch(0.91 0.003 240)"}
+                    fill={index === 0 ? "#4F46E5" : "oklch(0.91 0.003 240)"}
                   />
                 ))}
               </Bar>
