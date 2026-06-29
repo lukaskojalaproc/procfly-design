@@ -189,66 +189,69 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
       {/* ── Approval Review Bar — fixed bottom footer ─────────────────────── */}
       {canReview && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-40 px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:left-64"
-          style={{ background: "var(--color-sidebar)" }}
-        >
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
-                <Gavel className="size-3.5" />
-              </span>
-              <span className="text-sm font-semibold text-white">Approval Review</span>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-6 py-2.5 shadow-[0_-1px_8px_rgba(0,0,0,0.06)] backdrop-blur-sm lg:left-64">
+          <div className="flex items-center gap-3">
+            {/* Context — minimal: step info + waiting time */}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Gavel className="size-3.5 shrink-0 text-muted-foreground/60" />
+              <span className="text-xs font-semibold text-foreground">Approval Review</span>
               {reviewTask && (
                 <>
-                  <span className="text-white/30">·</span>
-                  <span className="text-sm text-white/65">
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="text-xs text-muted-foreground">
                     Step {reviewTask.stepNumber} of {reviewTask.totalSteps} · {reviewTask.stepRole}
                   </span>
                   {reviewTask.deadline && (
                     <>
-                      <span className="text-white/30">·</span>
-                      <span className="text-xs text-white/55">{reviewTask.deadline}</span>
+                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-xs text-muted-foreground/70">{reviewTask.deadline}</span>
                     </>
                   )}
-                  <span className="text-white/30">·</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-white/55">
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60">
                     <Clock className="size-3" />
-                    {formatWaiting(reviewTask.activatedAt)} waiting
+                    {formatWaiting(reviewTask.activatedAt)}
                   </span>
                 </>
               )}
             </div>
+
+            {/* Note input */}
             <input
               type="text"
               placeholder="Note (required to reject or request changes)"
               value={decisionComment}
               onChange={(e) => setDecisionComment(e.target.value)}
-              className="h-8 w-56 shrink rounded-lg border border-white/20 bg-white/10 px-3 text-xs text-white outline-none placeholder:text-white/40 focus:border-white/40"
+              className="h-8 w-60 shrink rounded-lg border border-border bg-muted/40 px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/10 transition-all"
             />
+
+            {/* Actions */}
             <div className="flex shrink-0 items-center gap-2">
+              {/* Approve — only green button */}
               <button
                 type="button"
                 onClick={() => submitDecision("approve")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a3d2a] hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#16a34a] px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
                 <Check className="size-3.5" />
                 Approve
               </button>
+              {/* Request Changes — neutral outline */}
               <button
                 type="button"
                 onClick={() => submitDecision("changes")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-transparent px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <CornerUpLeft className="size-3.5" />
                 Request Changes
               </button>
+              {/* Reject — neutral outline, no red */}
               <button
                 type="button"
                 onClick={() => submitDecision("reject")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-transparent px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <X className="size-3.5" />
                 Reject
