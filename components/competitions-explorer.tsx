@@ -56,12 +56,12 @@ function closingLabel(hours: number | null): { text: string; urgent: boolean } |
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
-  Draft: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  "Ready to Start": { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  Active: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
-  Evaluation: { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
-  Awarded: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
-  Cancelled: { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
+  Draft:          { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
+  "Ready to Start": { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
+  Active:         { dot: "bg-foreground",           text: "text-foreground",       bg: "border border-foreground/20 bg-foreground/[0.06]" },
+  Evaluation:     { dot: "bg-foreground/60",        text: "text-foreground",       bg: "border border-foreground/15 bg-foreground/[0.04]" },
+  Awarded:        { dot: "bg-foreground",           text: "text-foreground",       bg: "border border-foreground/20 bg-foreground/[0.06]" },
+  Cancelled:      { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
 }
 
 function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolean }) {
@@ -93,16 +93,10 @@ function StatBar({ stats }: { stats: { label: string; value: string; sub?: strin
     <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map((s, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
-          <span className={cn(
-            "text-[11px] font-medium uppercase tracking-widest",
-            s.accent ? "text-[#B42318]" : "text-muted-foreground",
-          )}>
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             {s.label}
           </span>
-          <span className={cn(
-            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
-            s.accent ? "text-[#B42318]" : "text-foreground",
-          )}>
+          <span className="text-[1.6rem] font-bold leading-none tracking-tight tabular-nums text-foreground">
             {s.value}
           </span>
           {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
@@ -133,7 +127,7 @@ function FilterSelect({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-medium text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-medium text-foreground outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
         >
           {options.map((o) => (
             <option key={o} value={o}>
@@ -163,7 +157,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
   return (
     <Link
       href={`/competitions/${competition.id}`}
-      className="group grid rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group grid rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-foreground/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
       style={{ gridTemplateColumns: "minmax(0,2fr) minmax(120px,1fr) minmax(160px,1fr) auto" }}
     >
       {/* Identity — col 1 */}
@@ -192,7 +186,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
             )}
           </span>
           {closing && (
-            <span className={cn("inline-flex items-center gap-1 font-medium", closing.urgent ? "text-destructive" : "text-foreground")}>
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
               <Clock className="size-3" />
               {closing.text}
             </span>
@@ -222,7 +216,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
             <span className="ml-1 text-xs font-medium text-muted-foreground">{competition.currency}</span>
           </p>
           {isAwarded && competition.awardedTo && (
-            <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-[#15803D]">
+            <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
               <Trophy className="size-3" />
               {competition.awardedTo}
             </p>
@@ -230,7 +224,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
         </div>
         {saving > 0 && (
           <div className="flex flex-col items-end gap-0.5">
-            <p className="text-base font-bold tabular-nums text-primary">{fmtEur(saving)} saved</p>
+            <p className="text-base font-bold tabular-nums text-foreground">{fmtEur(saving)} saved</p>
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
               <TrendingDown className="size-3" />
               {Math.round(pct * 100)}% vs baseline
@@ -241,7 +235,7 @@ function CompetitionRow({ competition }: { competition: Competition }) {
 
       {/* Action — col 4 */}
       <div className="flex items-center pl-4">
-        <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground whitespace-nowrap">
+        <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors group-hover:bg-foreground group-hover:text-background whitespace-nowrap">
           Open Competition
           <ChevronRight className="size-3.5" />
         </span>
@@ -422,7 +416,7 @@ export function CompetitionsExplorer() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search competitions by title, ID, owner, category, or request..."
-          className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
         />
       </div>
 
