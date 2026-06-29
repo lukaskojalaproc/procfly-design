@@ -142,6 +142,19 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
   const commentCount = activity.filter((a) => a.kind === "comment").length
 
+  // Which "Details" sub-section exists for this request kind
+  const detailsLabel = detail.product
+    ? "Product Details"
+    : detail.service
+      ? "Service Details"
+      : detail.software
+        ? "Software Details"
+        : detail.supplierOnboarding
+          ? "Supplier Details"
+          : "Details"
+
+  const [tab, setTab] = useState<"overview" | "details" | "financial" | "documents" | "activity">("overview")
+
   const amountDisplay = request.currency === "EUR"
     ? `€${formatAmount(request.amount)}`
     : `${formatAmount(request.amount)} ${request.currency}`
@@ -309,318 +322,356 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
       </div>
 
-      {/* ── Main layout: left detail + right chat panel ──────────────────── */}
-      <div className="flex min-h-0 flex-1 gap-6 pt-6">
+      {/* ── Approval Flow — full width ───────────────────────────────────── */}
+      <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
 
-        {/* ── Left: approval flow + fields ─────────────────────────────────── */}
-        <div className="flex min-w-0 flex-1 flex-col gap-0">
+      {/* ── Main layout: left tabbed content + right discussion panel ────── */}
+      <div className="flex min-h-0 flex-1 items-start gap-6 pt-8">
 
-          {/* Approval Flow */}
-          <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
+        {/* ── Left: tabs + tab content ─────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-1 flex-col">
 
-          {/* Fields + Key Numbers sidebar */}
-          <div className="grid grid-cols-1 gap-8 pt-6 lg:grid-cols-[1fr_260px]">
-
-          {/* ── Left: scrollable content ─────────────────────────────────── */}
-          <div className="min-w-0 max-w-2xl">
-
-            {/* General */}
-            <Section title="General" />
-            <FieldGroup>
-              <Field label="Description"          value={detail.description} />
-              <Field label="Procurement category" value={request.category} />
-              <Field label="Department"           value={request.department} />
-              <Field label="Cost center"          value={detail.costCenter} />
-              <Field label="Business priority"    value={detail.businessPriority} />
-              <Field label="Currency"             value={request.currency} />
-              <Field label="Created"              value={request.date} />
-              <Field label="Last updated"         value={request.updated} />
-            </FieldGroup>
-
-            {/* Product Details */}
-            {detail.product && (
-              <>
-                <Section title="Product Details" />
-                <FieldGroup>
-                  <Field label="Procurement category" value={detail.product.procurementCategory} />
-                  <Field label="Preferred supplier"   value={detail.product.preferredSupplier} />
-                  <Field label="Needed by"            value={detail.product.neededBy} />
-                  <Field label="Delivery location"    value={detail.product.deliveryLocation} />
-                  <Field label="Purchase type"        value={detail.product.purchaseType} />
-                </FieldGroup>
-              </>
-            )}
-
-            {/* Service Details */}
-            {detail.service && (
-              <>
-                <Section title="Service Details" />
-                <FieldGroup>
-                  <Field label="Procurement category" value={detail.service.procurementCategory} />
-                  <Field label="Preferred supplier"   value={detail.service.preferredSupplier} />
-                  <Field label="Service start"        value={detail.service.serviceStartDate} />
-                  <Field label="Service end"          value={detail.service.serviceEndDate} />
-                  <Field label="Business owner"       value={detail.service.businessOwner} />
-                  <Field label="Contract required"    value={detail.service.contractRequired} />
-                  <Field label="Service type"         value={detail.service.serviceType} />
-                </FieldGroup>
-              </>
-            )}
-
-            {/* Software Details */}
-            {detail.software && (
-              <>
-                <Section title="Software Details" />
-                <FieldGroup>
-                  <Field label="Software name"      value={detail.software.softwareName} />
-                  <Field label="Preferred supplier" value={detail.software.preferredSupplier} />
-                  <Field label="Business owner"     value={detail.software.businessOwner} />
-                  <Field label="IT owner"           value={detail.software.itOwner} />
-                  <Field label="Number of users"    value={detail.software.users} />
-                  <Field label="Billing cycle"      value={detail.software.billingCycle} />
-                  <Field label="Subscription start" value={detail.software.subscriptionStart} />
-                  <Field label="Subscription end"   value={detail.software.subscriptionEnd} />
-                  <Field label="Contract duration"  value={detail.software.contractDuration} />
-                  <Field label="License type"       value={detail.software.licenseType} />
-                  <Field label="Auto renewal"       value={detail.software.autoRenewal} />
-                </FieldGroup>
-
-                <Section title="Data Protection" />
-                <FieldGroup>
-                  <Field label="Personal data processed" value={detail.software.dataProcessing} />
-                  {detail.software.dataProcessing !== "No" && (
-                    <>
-                      <Field label="Data hosting region" value={detail.software.hostingRegion} />
-                      <Field label="DPA required"        value={detail.software.dpaRequired} />
-                    </>
-                  )}
-                </FieldGroup>
-              </>
-            )}
-
-            {/* Supplier Onboarding */}
-            {detail.supplierOnboarding && (
-              <>
-                <Section title="Supplier Information" />
-                <FieldGroup>
-                  <Field label="Legal entity name"     value={detail.supplierOnboarding.legalName} />
-                  <Field label="Country"               value={detail.supplierOnboarding.country} />
-                  <Field label="Registration number"   value={detail.supplierOnboarding.registrationNumber} />
-                  <Field label="VAT number"            value={detail.supplierOnboarding.vatNumber} />
-                  <Field label="Website"               value={detail.supplierOnboarding.website} />
-                  <Field label="Contact name"          value={detail.supplierOnboarding.contactName} />
-                  <Field label="Contact email"         value={detail.supplierOnboarding.contactEmail} />
-                  <Field label="Supplier category"     value={detail.supplierOnboarding.supplierCategory} />
-                  <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
-                </FieldGroup>
-
-                <Section title="Finance" />
-                <FieldGroup>
-                  <Field label="Payment terms"   value={detail.supplierOnboarding.paymentTerms} />
-                  <Field label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
-                </FieldGroup>
-
-                <Section title="Compliance" />
-                <FieldGroup>
-                  <Field label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
-                  <Field label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
-                </FieldGroup>
-              </>
-            )}
-
-            {/* Financial Information */}
-            <Section title="Financial Information" />
-            <FieldGroup>
-            {detail.supplierOnboarding ? (
-              <>
-                <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
-                <Field label="Currency"              value={request.currency} />
-              </>
-            ) : detail.software ? (
-              <>
-                <Field label="Recurring cost"  value={estimatedTotalLabel} />
-                <Field label="Annual cost"     value={estimatedTotalLabel} />
-                <Field label="Estimated total" value={estimatedTotalLabel} />
-                <Field label="Currency"        value={request.currency} />
-              </>
-            ) : detail.product ? (
-              <>
-                <Field label="Quantity"
-                  value={String(detail.lineItems.reduce((s, i) => s + i.qty, 0) || "—")} />
-                <Field label="Unit price"
-                  value={detail.lineItems[0]
-                    ? `${formatAmount(detail.lineItems[0].unitPrice)} ${request.currency}`
-                    : "—"} />
-                <Field label="Estimated total" value={estimatedTotalLabel} />
-                <Field label="Currency"        value={request.currency} />
-              </>
-            ) : (
-              <>
-                <Field label="Estimated total" value={estimatedTotalLabel} />
-                <Field label="Currency"        value={request.currency} />
-              </>
-            )}
-            </FieldGroup>
-
-            {/* Line Items */}
-            {!detail.supplierOnboarding && detail.lineItems.length > 0 && (
-              <>
-                <Section title="Line Items" />
-                <div className="overflow-hidden rounded-xl border border-border">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {detail.service ? "Deliverable" : detail.software ? "License / Plan" : "Item"}
-                        </th>
-                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {detail.software ? "Seats" : "Qty"}
-                        </th>
-                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {detail.service ? "Rate" : detail.software ? "Price / Seat" : "Unit Price"}
-                        </th>
-                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                          Total
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {detail.lineItems.map((item, i) => (
-                        <tr key={i} className="bg-card">
-                          <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
-                          <td className="px-4 py-3 text-right text-muted-foreground">{item.qty}</td>
-                          <td className="px-4 py-3 text-right text-muted-foreground">
-                            {formatAmount(item.unitPrice)} {request.currency}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-foreground">
-                            {formatAmount(item.qty * item.unitPrice)} {request.currency}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-
-            {/* Documents */}
-            <Section title="Documents" />
-            {detail.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No documents attached.</p>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-border divide-y divide-border">
-                {detail.documents.map((doc, i) => {
-                  const attached = doc.fileName !== "Awaiting upload"
-                  const docStatus: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
-                  const statusCls =
-                    docStatus === "Uploaded"
-                      ? "bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]"
-                      : docStatus === "Pending Review"
-                        ? "bg-[#FEF6E8] text-[#B54708] border border-[#F1E4B5]"
-                        : "bg-[#FEF3F2] text-[#B42318] border border-[#F3D6D2]"
-                  return (
-                    <div key={i} className="flex items-center justify-between gap-4 bg-card px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                          <FileText className="size-4" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            {doc.label}
-                            {doc.required && <span className="ml-0.5 text-destructive">*</span>}
-                          </p>
-                          <p className={cn("text-xs", attached ? "text-muted-foreground" : "text-destructive")}>
-                            {attached
-                              ? `${doc.fileName}${doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}${doc.uploadDate ? ` · ${doc.uploadDate}` : ""}`
-                              : "Awaiting upload"}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold", statusCls)}>
-                        {docStatus}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Activity History */}
-            <Section title="Activity History" />
-            <ol className="flex flex-col">
-              {activityHistory.map((item, i) => (
-                <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
-                  {i !== activityHistory.length - 1 && (
-                    <span className="absolute left-[11px] top-6 h-[calc(100%-0.75rem)] w-px bg-border" />
-                  )}
-                  <span className="relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                    <span className="size-1.5 rounded-full bg-muted-foreground/60" />
+          {/* Tab bar */}
+          <div className="flex items-center gap-6 border-b border-border">
+            {([
+              { id: "overview"  as const, label: "Overview" },
+              { id: "details"   as const, label: detailsLabel },
+              { id: "financial" as const, label: "Financial" },
+              { id: "documents" as const, label: "Documents", count: detail.documents.length || null },
+              { id: "activity"  as const, label: "Activity" },
+            ]).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "relative -mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-sm font-semibold transition-colors",
+                  tab === t.id
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+                {"count" in t && t.count ? (
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                    {t.count}
                   </span>
-                  <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-                    <span className="text-sm font-medium text-foreground">{item.action}</span>
-                    <span className="text-xs text-muted-foreground">{item.user} · {item.at}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
+                ) : null}
+              </button>
+            ))}
           </div>
 
-          {/* ── Right: sticky sidebar ─────────────────────────────────────── */}
-          <div className="flex flex-col gap-5 lg:sticky lg:top-6 lg:self-start">
+          {/* Tab content */}
+          <div className="pt-6">
 
-            {/* Key Numbers */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Key Numbers
-              </p>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Requested amount</p>
-                <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">{amountDisplay}</p>
-              </div>
-              {request.budgetTotal && (
-                <div className="mt-4">
-                  <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>Budget used</span>
-                    <span>
-                      {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
-                      {" / "}
-                      {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
-                    </span>
+            {/* ── Overview ────────────────────────────────────────────────── */}
+            {tab === "overview" && (
+              <div className="flex flex-col gap-6">
+                {/* Key Numbers — full-width banner */}
+                <div className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-border bg-card p-5 shadow-sm">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Requested amount</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{amountDisplay}</p>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-foreground/60 transition-all"
-                      style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
-                    />
+                  {request.budgetTotal && (
+                    <div className="min-w-[220px] flex-1 max-w-xs">
+                      <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Budget used</span>
+                        <span>
+                          {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
+                          {" / "}
+                          {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-foreground/60 transition-all"
+                          style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-8">
+                    {request.quotes > 0 && (
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Quotes</p>
+                        <p className="mt-0.5 text-sm font-semibold text-foreground">{request.quotes}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Department</p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">{request.department}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Cost center</p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">{detail.costCenter}</p>
+                    </div>
                   </div>
                 </div>
-              )}
-              <div className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4">
-                {request.quotes > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Supplier quotes</span>
-                    <span className="font-semibold text-foreground">{request.quotes}</span>
+
+                {/* General */}
+                <div>
+                  <Section title="General" />
+                  <FieldGroup>
+                    <Field label="Description"           value={detail.description} />
+                    <Field label="Procurement category"  value={request.category} />
+                    <Field label="Department"            value={request.department} />
+                    <Field label="Cost center"           value={detail.costCenter} />
+                    <Field label="Business priority"     value={detail.businessPriority} />
+                    <Field label="Currency"              value={request.currency} />
+                    <Field label="Created"               value={request.date} />
+                    <Field label="Last updated"          value={request.updated} />
+                  </FieldGroup>
+                </div>
+              </div>
+            )}
+
+            {/* ── Details ─────────────────────────────────────────────────── */}
+            {tab === "details" && (
+              <div className="flex flex-col gap-6">
+                {detail.product && (
+                  <div>
+                    <Section title="Product Details" />
+                    <FieldGroup>
+                      <Field label="Procurement category" value={detail.product.procurementCategory} />
+                      <Field label="Preferred supplier"   value={detail.product.preferredSupplier} />
+                      <Field label="Needed by"            value={detail.product.neededBy} />
+                      <Field label="Delivery location"    value={detail.product.deliveryLocation} />
+                      <Field label="Purchase type"        value={detail.product.purchaseType} />
+                    </FieldGroup>
                   </div>
                 )}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Department</span>
-                  <span className="font-semibold text-foreground">{request.department}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Cost center</span>
-                  <span className="font-semibold text-foreground">{detail.costCenter}</span>
-                </div>
-              </div>
-            </div>
 
+                {detail.service && (
+                  <div>
+                    <Section title="Service Details" />
+                    <FieldGroup>
+                      <Field label="Procurement category" value={detail.service.procurementCategory} />
+                      <Field label="Preferred supplier"   value={detail.service.preferredSupplier} />
+                      <Field label="Service start"        value={detail.service.serviceStartDate} />
+                      <Field label="Service end"          value={detail.service.serviceEndDate} />
+                      <Field label="Business owner"       value={detail.service.businessOwner} />
+                      <Field label="Contract required"    value={detail.service.contractRequired} />
+                      <Field label="Service type"         value={detail.service.serviceType} />
+                    </FieldGroup>
+                  </div>
+                )}
+
+                {detail.software && (
+                  <>
+                    <div>
+                      <Section title="Software Details" />
+                      <FieldGroup>
+                        <Field label="Software name"      value={detail.software.softwareName} />
+                        <Field label="Preferred supplier" value={detail.software.preferredSupplier} />
+                        <Field label="Business owner"     value={detail.software.businessOwner} />
+                        <Field label="IT owner"           value={detail.software.itOwner} />
+                        <Field label="Number of users"    value={detail.software.users} />
+                        <Field label="Billing cycle"      value={detail.software.billingCycle} />
+                        <Field label="Subscription start" value={detail.software.subscriptionStart} />
+                        <Field label="Subscription end"   value={detail.software.subscriptionEnd} />
+                        <Field label="Contract duration"  value={detail.software.contractDuration} />
+                        <Field label="License type"       value={detail.software.licenseType} />
+                        <Field label="Auto renewal"       value={detail.software.autoRenewal} />
+                      </FieldGroup>
+                    </div>
+                    <div>
+                      <Section title="Data Protection" />
+                      <FieldGroup>
+                        <Field label="Personal data processed" value={detail.software.dataProcessing} />
+                        {detail.software.dataProcessing !== "No" && (
+                          <>
+                            <Field label="Data hosting region" value={detail.software.hostingRegion} />
+                            <Field label="DPA required"        value={detail.software.dpaRequired} />
+                          </>
+                        )}
+                      </FieldGroup>
+                    </div>
+                  </>
+                )}
+
+                {detail.supplierOnboarding && (
+                  <>
+                    <div>
+                      <Section title="Supplier Information" />
+                      <FieldGroup>
+                        <Field label="Legal entity name"     value={detail.supplierOnboarding.legalName} />
+                        <Field label="Country"               value={detail.supplierOnboarding.country} />
+                        <Field label="Registration number"   value={detail.supplierOnboarding.registrationNumber} />
+                        <Field label="VAT number"            value={detail.supplierOnboarding.vatNumber} />
+                        <Field label="Website"               value={detail.supplierOnboarding.website} />
+                        <Field label="Contact name"          value={detail.supplierOnboarding.contactName} />
+                        <Field label="Contact email"         value={detail.supplierOnboarding.contactEmail} />
+                        <Field label="Supplier category"     value={detail.supplierOnboarding.supplierCategory} />
+                        <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                      </FieldGroup>
+                    </div>
+                    <div>
+                      <Section title="Compliance" />
+                      <FieldGroup>
+                        <Field label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
+                        <Field label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
+                      </FieldGroup>
+                    </div>
+                  </>
+                )}
+
+                {!detail.product && !detail.service && !detail.software && !detail.supplierOnboarding && (
+                  <p className="text-sm text-muted-foreground">No additional details for this request.</p>
+                )}
+              </div>
+            )}
+
+            {/* ── Financial ───────────────────────────────────────────────── */}
+            {tab === "financial" && (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <Section title="Financial Information" />
+                  <FieldGroup>
+                    {detail.supplierOnboarding ? (
+                      <>
+                        <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                        <Field label="Payment terms"          value={detail.supplierOnboarding.paymentTerms} />
+                        <Field label="Invoicing email"        value={detail.supplierOnboarding.invoicingEmail} />
+                        <Field label="Currency"               value={request.currency} />
+                      </>
+                    ) : detail.software ? (
+                      <>
+                        <Field label="Recurring cost"  value={estimatedTotalLabel} />
+                        <Field label="Annual cost"     value={estimatedTotalLabel} />
+                        <Field label="Estimated total" value={estimatedTotalLabel} />
+                        <Field label="Currency"        value={request.currency} />
+                      </>
+                    ) : detail.product ? (
+                      <>
+                        <Field label="Quantity"
+                          value={String(detail.lineItems.reduce((s, i) => s + i.qty, 0) || "—")} />
+                        <Field label="Unit price"
+                          value={detail.lineItems[0]
+                            ? `${formatAmount(detail.lineItems[0].unitPrice)} ${request.currency}`
+                            : "—"} />
+                        <Field label="Estimated total" value={estimatedTotalLabel} />
+                        <Field label="Currency"        value={request.currency} />
+                      </>
+                    ) : (
+                      <>
+                        <Field label="Estimated total" value={estimatedTotalLabel} />
+                        <Field label="Currency"        value={request.currency} />
+                      </>
+                    )}
+                  </FieldGroup>
+                </div>
+
+                {!detail.supplierOnboarding && detail.lineItems.length > 0 && (
+                  <div>
+                    <Section title="Line Items" />
+                    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/50">
+                            <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                              {detail.service ? "Deliverable" : detail.software ? "License / Plan" : "Item"}
+                            </th>
+                            <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                              {detail.software ? "Seats" : "Qty"}
+                            </th>
+                            <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                              {detail.service ? "Rate" : detail.software ? "Price / Seat" : "Unit Price"}
+                            </th>
+                            <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Total
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {detail.lineItems.map((item, i) => (
+                            <tr key={i} className="bg-card">
+                              <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
+                              <td className="px-4 py-3 text-right text-muted-foreground">{item.qty}</td>
+                              <td className="px-4 py-3 text-right text-muted-foreground">
+                                {formatAmount(item.unitPrice)} {request.currency}
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-foreground">
+                                {formatAmount(item.qty * item.unitPrice)} {request.currency}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Documents ───────────────────────────────────────────────── */}
+            {tab === "documents" && (
+              detail.documents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No documents attached.</p>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-border divide-y divide-border">
+                  {detail.documents.map((doc, i) => {
+                    const attached = doc.fileName !== "Awaiting upload"
+                    const docStatus: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
+                    const statusCls =
+                      docStatus === "Uploaded"
+                        ? "bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]"
+                        : docStatus === "Pending Review"
+                          ? "bg-[#FEF6E8] text-[#B54708] border border-[#F1E4B5]"
+                          : "bg-[#FEF3F2] text-[#B42318] border border-[#F3D6D2]"
+                    return (
+                      <div key={i} className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                            <FileText className="size-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {doc.label}
+                              {doc.required && <span className="ml-0.5 text-destructive">*</span>}
+                            </p>
+                            <p className={cn("text-xs", attached ? "text-muted-foreground" : "text-destructive")}>
+                              {attached
+                                ? `${doc.fileName}${doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}${doc.uploadDate ? ` · ${doc.uploadDate}` : ""}`
+                                : "Awaiting upload"}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold", statusCls)}>
+                          {docStatus}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            )}
+
+            {/* ── Activity ────────────────────────────────────────────────── */}
+            {tab === "activity" && (
+              <ol className="flex flex-col">
+                {activityHistory.map((item, i) => (
+                  <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                    {i !== activityHistory.length - 1 && (
+                      <span className="absolute left-[11px] top-6 h-[calc(100%-0.75rem)] w-px bg-border" />
+                    )}
+                    <span className="relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                      <span className="size-1.5 rounded-full bg-muted-foreground/60" />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col pt-0.5">
+                      <span className="text-sm font-medium text-foreground">{item.action}</span>
+                      <span className="text-xs text-muted-foreground">{item.user} · {item.at}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </div>
 
-        </div>{/* end left */}
-
-        {/* ── Right: Chat / Discussion panel ───────────────────────────────── */}
-        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col">
-          <div className="sticky top-0 flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden" style={{ maxHeight: "calc(100vh - 5rem)" }}>
+        {/* ── Right: Chat / Discussion panel — full height ─────────────────── */}
+        <div className="hidden w-[360px] shrink-0 lg:flex lg:flex-col lg:sticky lg:top-6 lg:self-start">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ height: "calc(100vh - 7rem)" }}>
             {/* Panel header */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <MessageSquare className="size-4 text-muted-foreground" />

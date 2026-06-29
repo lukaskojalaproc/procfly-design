@@ -21,14 +21,14 @@ const stateStyles: Record<DisplayState, {
   icon: typeof Check
 }> = {
   approved: {
-    card: "border-foreground bg-foreground",
-    dot: "bg-white ring-white/30",
+    card: "border-border bg-card",
+    dot: "bg-[#15803D] ring-[#BBF7D0]",
     label: "Approved",
-    labelCls: "text-white bg-transparent border border-white/30",
+    labelCls: "text-[#15803D] bg-[#ECFDF3] border border-[#BBF7D0]",
     icon: Check,
   },
   in_progress: {
-    card: "border-foreground bg-card ring-2 ring-foreground ring-offset-2",
+    card: "border-foreground bg-card ring-1 ring-foreground",
     dot: "bg-[#B54708] ring-[#F1E4B5]",
     label: "In Progress",
     labelCls: "text-[#B54708] bg-[#FEF6E8] border border-[#F1E4B5]",
@@ -42,7 +42,7 @@ const stateStyles: Record<DisplayState, {
     icon: Clock,
   },
   rejected: {
-    card: "border-border bg-card",
+    card: "border-[#F3D6D2] bg-card",
     dot: "bg-[#B42318] ring-[#F3D6D2]",
     label: "Rejected",
     labelCls: "text-[#B42318] bg-[#FEF3F2] border border-[#F3D6D2]",
@@ -105,32 +105,21 @@ export function RequestApprovalFlow({
                 {/* Step card */}
                 <div
                   className={cn(
-                    "w-[180px] shrink-0 rounded-xl border p-4 transition-shadow",
+                    "w-[220px] shrink-0 rounded-xl border p-4 transition-shadow",
                     s.card,
                     isCurrent && "shadow-md",
                   )}
                 >
                   {/* Top: avatar + name */}
-                  <div className="flex items-center gap-2.5">
-                    <span className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm ring-1",
-                      dState === "approved"
-                        ? "bg-white/20 text-white ring-white/20"
-                        : "bg-background text-foreground ring-border",
-                    )}>
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-bold text-foreground shadow-sm ring-1 ring-border">
                       {initials(step.name)}
                     </span>
-                    <div className="min-w-0">
-                      <p className={cn(
-                        "truncate text-[13px] font-semibold leading-tight",
-                        dState === "approved" ? "text-white" : "text-foreground",
-                      )}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold leading-tight text-foreground">
                         {step.name}
                       </p>
-                      <p className={cn(
-                        "truncate text-[11px]",
-                        dState === "approved" ? "text-white/60" : "text-muted-foreground",
-                      )}>{step.role}</p>
+                      <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{step.role}</p>
                     </div>
                   </div>
 
@@ -150,16 +139,10 @@ export function RequestApprovalFlow({
 
                   {/* Date / comment */}
                   {step.date && (
-                    <p className={cn(
-                      "mt-2 truncate text-[10px]",
-                      dState === "approved" ? "text-white/50" : "text-muted-foreground",
-                    )}>{step.date}</p>
+                    <p className="mt-2 truncate text-[10px] text-muted-foreground">{step.date}</p>
                   )}
                   {step.comment && (
-                    <p className={cn(
-                      "mt-1.5 line-clamp-2 text-[11px] italic",
-                      dState === "approved" ? "text-white/60" : "text-muted-foreground",
-                    )}>
+                    <p className="mt-1.5 line-clamp-2 text-[11px] italic text-muted-foreground">
                       &ldquo;{step.comment}&rdquo;
                     </p>
                   )}
@@ -167,7 +150,7 @@ export function RequestApprovalFlow({
 
                 {/* Arrow connector */}
                 {i < merged.length - 1 && (
-                  <div className="flex h-[72px] w-8 shrink-0 items-center justify-center">
+                  <div className="flex h-[88px] w-8 shrink-0 items-center justify-center">
                     <ChevronRight className="size-4 text-muted-foreground/50" />
                   </div>
                 )}
