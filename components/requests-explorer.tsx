@@ -32,7 +32,6 @@ import {
   type ProcurementRequest,
   type RequestKind,
 } from "@/lib/dashboard-data"
-import { RequestRowMenu } from "@/components/request-row-menu"
 import { useCurrentRole } from "@/lib/role-store"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
@@ -204,84 +203,90 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
   const Icon = kindIcon[request.kind]
   const status = statusMeta[request.status]
   const isCritical = priceTier(request.amount) === "critical"
+  const amountStr = formatAmount(request.amount)
+  const display = request.currency === "EUR" ? `€${amountStr}` : `${amountStr} ${request.currency}`
+
   return (
-    <div className="rounded-xl">
-      <Link
-        href={`/requests/${request.id}`}
-        aria-label={`Open request ${request.ref}: ${request.title}`}
-        className="group flex flex-col rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
-      >
-        {/* Top row: icon + content + amount + status */}
-        <div className="flex items-center gap-4">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-            <Icon className="size-4" />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-                {request.ref}
-              </span>
-              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
-                {request.title}
-              </p>
-              {isCritical && (
-                <span className="shrink-0 rounded-full border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A]">
-                  High Value
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
-                  {initials(request.requester)}
-                </span>
-                {request.requester}
-              </span>
-              <span className="hidden sm:inline">{request.department}</span>
-              <span className="hidden md:inline">{request.date}</span>
-              <span className="hidden md:inline">{request.kind}</span>
-              {request.quotes > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Users className="size-3" />
-                  {quotesLabel(request.quotes)}
-                </span>
-              )}
-            </div>
-            {canSeeApproval && request.status === "Pending Approval" && (
-              <div className="mt-1.5">
-                <Link
-                  href="/approvals"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  View Approval Details
-                  <ChevronRight className="size-3" />
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-5">
-            <AmountDisplay amount={request.amount} currency={request.currency} />
-            <span className={cn(
-              "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
-              status.badge,
-            )}>
-              {status.label}
+    <Link
+      href={`/requests/${request.id}`}
+      aria-label={`Open request ${request.ref}: ${request.title}`}
+      className="group grid rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-foreground/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+      style={{ gridTemplateColumns: "minmax(0,2fr) minmax(140px,1fr) minmax(180px,1fr) auto" }}
+    >
+      {/* Col 1 — Identity */}
+      <div className="min-w-0 pr-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] text-muted-foreground">{request.ref}</span>
+          {isCritical && (
+            <span className="shrink-0 rounded-full border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A]">
+              High Value
+            </span>
+          )}
+        </div>
+        <h4 className="mt-1 line-clamp-1 font-semibold text-foreground">{request.title}</h4>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
+              {initials(request.requester)}
+            </span>
+            <span className="font-medium text-foreground">{request.requester}</span>
+          </span>
+          <span>{request.department}</span>
+          <span className="hidden md:inline">{request.date}</span>
+          <span className="hidden md:inline">{request.kind}</span>
+          {request.quotes > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Users className="size-3" />
+              {quotesLabel(request.quotes)}
+            </span>
+          )}
+        </div>
+        {canSeeApproval && request.status === "Pending Approval" && (
+          <div className="mt-1.5">
+            <span
+              onClick={(e) => { e.preventDefault(); window.location.href = "/approvals" }}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+            >
+              View Approval Details
+              <ChevronRight className="size-3" />
             </span>
           </div>
-
-          <RequestRowMenu request={request} />
-        </div>
-
-        {request.budgetTotal && (
-          <div className="mt-3 pl-[3.25rem]">
-            <BudgetBar amount={request.amount} budgetTotal={request.budgetTotal} currency={request.currency} />
-          </div>
         )}
-      </Link>
-    </div>
+      </div>
+
+      {/* Col 2 — Status */}
+      <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+        <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Status</span>
+        <span className={cn(
+          "mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
+          status.badge,
+        )}>
+          {status.label}
+        </span>
+      </div>
+
+      {/* Col 3 — Amount */}
+      <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Amount</p>
+        <p className={cn(
+          "tabular-nums text-foreground",
+          isCritical ? "text-[15px] font-bold" : "text-lg font-bold",
+        )}>
+          {display}
+        </p>
+        {request.budgetTotal && (
+          <BudgetBar amount={request.amount} budgetTotal={request.budgetTotal} currency={request.currency} />
+        )}
+      </div>
+
+      {/* Col 4 — Open */}
+      <div className="flex items-center pl-4">
+        <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors whitespace-nowrap group-hover:bg-foreground group-hover:text-background">
+          Open
+          <ChevronRight className="size-3.5" />
+        </span>
+      </div>
+    </Link>
   )
 }
 

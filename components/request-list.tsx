@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Package, Briefcase, UserPlus, Users, ShieldCheck } from "lucide-react"
+import { Package, Briefcase, UserPlus, Users, ShieldCheck, ChevronRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { RequestRowMenu } from "@/components/request-row-menu"
 import {
   requests,
   myRequests,
@@ -82,48 +81,39 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
   const status = statusMeta[request.status]
   const isCritical = priceTier(request.amount) === "critical"
-  return (
-    <div className="rounded-xl">
-    <Link
-      href={`/requests/${request.id}`}
-      className="group flex flex-col rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
-    >
-      {/* Top row: icon + content + amount + status */}
-      <div className="flex items-center gap-4">
-        {/* Icon */}
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-[#94A3B8]">
-          <Icon className="size-4" />
-        </div>
+  const amountStr = formatAmount(request.amount)
+  const display = request.currency === "EUR" ? `€${amountStr}` : `${amountStr} ${request.currency}`
 
-        {/* Main content */}
-        <div className="min-w-0 flex-1">
-          {/* Row 1: ref + title + HIGH VALUE */}
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#94A3B8]">
-              {request.ref}
-            </span>
-            <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
-              {request.title}
-            </p>
+  return (
+    <div className="flex flex-col">
+      <Link
+        href={`/requests/${request.id}`}
+        className="group grid rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-foreground/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(140px,1fr) minmax(180px,1fr) auto" }}
+      >
+        {/* Col 1 — Identity */}
+        <div className="min-w-0 pr-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[11px] text-muted-foreground">{request.ref}</span>
             {isCritical && (
               <span className="shrink-0 rounded-full border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A]">
                 High Value
               </span>
             )}
           </div>
-          {/* Row 2: metadata */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
+          <h4 className="mt-1 line-clamp-1 font-semibold text-foreground">{request.title}</h4>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
                 {initials(request.requester)}
               </span>
-              {request.requester}
+              <span className="font-medium text-foreground">{request.requester}</span>
             </span>
-            <span className="hidden sm:inline">{request.department}</span>
+            <span>{request.department}</span>
             <span className="hidden md:inline">{request.date}</span>
             <span className="hidden md:inline">{request.kind}</span>
             {request.quotes > 0 && (
-              <span className="inline-flex items-center gap-1 text-[#64748B]">
+              <span className="inline-flex items-center gap-1">
                 <Users className="size-3" />
                 {quotesLabel(request.quotes)}
               </span>
@@ -131,28 +121,39 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
           </div>
         </div>
 
-        {/* Right side: amount + status */}
-        <div className="flex shrink-0 items-center gap-5">
-          <AmountDisplay amount={request.amount} currency={request.currency} />
-          <span className={cn("w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium", status.badge)}>
+        {/* Col 2 — Status */}
+        <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Status</span>
+          <span className={cn(
+            "mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
+            status.badge,
+          )}>
             {status.label}
           </span>
         </div>
 
-        <RequestRowMenu request={request} />
-      </div>
-
-      {/* Bottom row: full-width budget bar, clearly separated */}
-      {request.budgetTotal && (
-        <div className="mt-3 pl-[3.25rem]">
-          <BudgetBar
-            amount={request.amount}
-            budgetTotal={request.budgetTotal}
-            currency={request.currency}
-          />
+        {/* Col 3 — Amount */}
+        <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Amount</p>
+          <p className={cn(
+            "tabular-nums text-foreground",
+            isCritical ? "text-[15px] font-bold" : "text-lg font-bold",
+          )}>
+            {display}
+          </p>
+          {request.budgetTotal && (
+            <BudgetBar amount={request.amount} budgetTotal={request.budgetTotal} currency={request.currency} />
+          )}
         </div>
-      )}
-    </Link>
+
+        {/* Col 4 — Open */}
+        <div className="flex items-center pl-4">
+          <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors whitespace-nowrap group-hover:bg-foreground group-hover:text-background">
+            Open
+            <ChevronRight className="size-3.5" />
+          </span>
+        </div>
+      </Link>
     </div>
   )
 }
