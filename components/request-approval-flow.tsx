@@ -139,16 +139,16 @@ export function RequestApprovalFlow({
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      // Creator step is a neutral past event — never green
+                      // Creator step — bold black
                       isCreator
-                        ? "text-[#374151] bg-[#f3f4f6] border border-[#d1d5db]"
+                        ? "text-[#111827] bg-[#f3f4f6] border border-[#d1d5db] font-bold"
                         : s.labelCls,
                     )}>
                       <Icon className="size-2.5" />
                       {isCreator ? "Created" : s.label}
                     </span>
                     <span className={cn("size-2 rounded-full ring-2",
-                      isCreator ? "bg-[#374151] ring-[#d1d5db]" : s.dot
+                      isCreator ? "bg-[#111827] ring-[#d1d5db]" : s.dot
                     )} />
                   </div>
 
