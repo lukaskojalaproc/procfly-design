@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { TopBar } from "@/components/top-bar"
@@ -22,7 +23,10 @@ export default async function RequestDetailPage({
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="flex flex-1 flex-col p-6">
-          <RequestDetailView request={request} />
+          {/* Suspense required for useSearchParams() in RequestDetailView */}
+          <Suspense fallback={null}>
+            <RequestDetailView request={request} />
+          </Suspense>
         </main>
       </div>
     </div>
