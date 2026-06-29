@@ -32,11 +32,13 @@ export interface ProcurementRequest {
   supplier?: string
   priority?: RequestPriority
   description?: string
+  /** Department budget cap for this request's category, used for budget bar. */
+  budgetTotal?: number
 }
 
 export const requests: ProcurementRequest[] = [
   // critical tier (>= 100k)
-  { id: "r4", ref: "REQ-1042", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", updated: "2026-06-15 20:09", kind: "Buy Service", category: "Software", amount: 1000000, currency: "EUR", status: "Pending Approval", requester: "Vaidas Petrauskas", department: "IT", quotes: 4, attachments: 3, comments: 2, neededBy: "2026-06-20", priority: "High", description: "Three-year enterprise ERP platform license covering finance, procurement and HR modules." },
+  { id: "r4", ref: "REQ-1042", title: "Enterprise ERP platform license — 3 year term", date: "2026-06-15 20:09", updated: "2026-06-15 20:09", kind: "Buy Service", category: "Software", amount: 1000000, currency: "EUR", status: "Pending Approval", requester: "Vaidas Petrauskas", department: "IT", quotes: 4, attachments: 3, comments: 2, neededBy: "2026-06-20", priority: "High", description: "Three-year enterprise ERP platform license covering finance, procurement and HR modules.", budgetTotal: 1200000 },
   { id: "r9", ref: "REQ-1039", title: "Fleet of 12 delivery vehicles", date: "2026-06-15 16:30", updated: "2026-06-15 17:02", kind: "Buy Product", category: "Logistics", amount: 384000, currency: "EUR", status: "Approved", requester: "Greta Jonaitis", department: "Operations", quotes: 3, attachments: 2, comments: 1, neededBy: "2026-07-15", supplier: "Baltic Auto Group" },
   { id: "r10", ref: "REQ-1036", title: "Annual cloud infrastructure commitment", date: "2026-06-14 11:05", updated: "2026-06-14 15:20", kind: "Buy Service", category: "Cloud", amount: 128400, currency: "EUR", status: "Rejected", requester: "Marius Kazlauskas", department: "IT", quotes: 2, attachments: 1, comments: 4, neededBy: "2026-06-30", description: "Needs revised quotes — current pricing exceeds approved budget." },
   // high tier (10k - 100k)
@@ -54,12 +56,12 @@ export const requests: ProcurementRequest[] = [
   { id: "r6", ref: "REQ-1012", title: "Onboard ProcFly Logistics as preferred carrier", date: "2026-06-15 12:17", updated: "2026-06-15 12:17", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Approved", requester: "Marius Kazlauskas", department: "Operations", quotes: 0, attachments: 1, comments: 0 },
   { id: "r7", ref: "REQ-1008", title: "Onboard Office Supplies Baltics for recurring office orders", date: "2026-06-11 01:52", updated: "2026-06-11 01:52", kind: "Add New Supplier", category: "Supplier Onboarding", amount: 0, currency: "EUR", status: "Pending Approval", requester: "Tomas Vasiliauskas", department: "Operations", quotes: 0, attachments: 1, comments: 1, description: "Missing bank confirmation document." },
   // drafts (created by current user, not yet submitted)
-  { id: "d1", ref: "REQ-1048", title: "Replacement laptops for design team (x6)", date: "2026-06-17 09:10", updated: "2026-06-17 09:32", kind: "Buy Product", category: "Hardware", amount: 12400, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 0, attachments: 1, comments: 0, neededBy: "2026-07-10" },
-  { id: "d2", ref: "REQ-1047", title: "Figma organization-wide license renewal", date: "2026-06-16 18:05", updated: "2026-06-16 18:20", kind: "Buy Service", category: "Software", amount: 9600, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 1, attachments: 0, comments: 0, neededBy: "2026-07-05" },
+  { id: "d1", ref: "REQ-1048", title: "Replacement laptops for design team (x6)", date: "2026-06-17 09:10", updated: "2026-06-17 09:32", kind: "Buy Product", category: "Hardware", amount: 12400, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 0, attachments: 1, comments: 0, neededBy: "2026-07-10", budgetTotal: 18000 },
+  { id: "d2", ref: "REQ-1047", title: "Figma organization-wide license renewal", date: "2026-06-16 18:05", updated: "2026-06-16 18:20", kind: "Buy Service", category: "Software", amount: 9600, currency: "EUR", status: "Draft", requester: "Vaidas Petrauskas", department: "IT", quotes: 1, attachments: 0, comments: 0, neededBy: "2026-07-05", budgetTotal: 15000 },
   // cancelled
   { id: "c1", ref: "REQ-1003", title: "Trade show booth — autumn expo (cancelled event)", date: "2026-06-05 11:00", updated: "2026-06-09 10:12", kind: "Buy Service", category: "Marketing", amount: 22000, currency: "EUR", status: "Cancelled", requester: "Greta Jonaitis", department: "Marketing", quotes: 2, attachments: 1, comments: 1 },
   // archived
-  { id: "a1", ref: "REQ-0991", title: "2025 office multifunction printer lease", date: "2025-11-12 10:00", updated: "2026-01-15 09:00", kind: "Buy Product", category: "Office", amount: 5400, currency: "EUR", status: "Archived", requester: "Vaidas Petrauskas", department: "Facilities", quotes: 3, attachments: 2, comments: 0 },
+  { id: "a1", ref: "REQ-0991", title: "2025 office multifunction printer lease", date: "2025-11-12 10:00", updated: "2026-01-15 09:00", kind: "Buy Product", category: "Office", amount: 5400, currency: "EUR", status: "Archived", requester: "Vaidas Petrauskas", department: "Facilities", quotes: 3, attachments: 2, comments: 0, budgetTotal: 8000 },
   { id: "a2", ref: "REQ-0985", title: "Legacy CRM subscription — sunset", date: "2025-10-01 14:00", updated: "2025-12-20 16:00", kind: "Buy Service", category: "Software", amount: 31200, currency: "EUR", status: "Archived", requester: "Marius Kazlauskas", department: "IT", quotes: 1, attachments: 0, comments: 2 },
   { id: "a3", ref: "REQ-0972", title: "Annual office plant maintenance", date: "2025-09-03 09:30", updated: "2025-11-30 12:00", kind: "Buy Service", category: "Facilities", amount: 1800, currency: "EUR", status: "Archived", requester: "Tomas Vasiliauskas", department: "Facilities", quotes: 2, attachments: 0, comments: 0 },
 ]

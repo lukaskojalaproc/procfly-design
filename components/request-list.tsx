@@ -20,7 +20,7 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/** Single-line amount like ZipHQ: "€ 1,000,000" or "€ 12.4K" — no size contrast. */
+/** Amount tag — critical tier gets a distinct amber pill, others plain. */
 function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
   const tier = priceTier(amount)
   if (tier === "none") {
@@ -28,12 +28,52 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   }
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
-  // Prefix with currency symbol if EUR, otherwise append
-  const display = currency === "EUR" ? `€ ${amountStr}` : `${amountStr} ${currency}`
+  const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
+
+  if (tier === "critical") {
+    return (
+      <span className="shrink-0 rounded-md bg-[#FFF7ED] px-2 py-0.5 text-sm font-semibold tabular-nums text-[#C2410C] ring-1 ring-[#FED7AA]">
+        {display}
+      </span>
+    )
+  }
   return (
     <span className="shrink-0 text-sm font-medium tabular-nums text-[#0F172A]">
       {display}
     </span>
+  )
+}
+
+/** Budget bar — thin progress line showing spend vs budget cap. */
+function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTotal: number; currency: string }) {
+  const pct = Math.min((amount / budgetTotal) * 100, 100)
+  const remaining = budgetTotal - amount
+  const isOver = amount > budgetTotal
+  const barColor = isOver ? "#DC2626" : pct > 80 ? "#D97706" : "#22C55E"
+  const remainingStr = currency === "EUR" ? `€${formatCompact(Math.abs(remaining))}` : `${formatCompact(Math.abs(remaining))} ${currency}`
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      {/* Track */}
+      <div className="h-1 w-full overflow-hidden rounded-full bg-[#F1F5F9]">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
+      </div>
+      {/* Labels */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-[#94A3B8]">
+          {isOver ? "Over budget by" : "Remaining"}{" "}
+          <span className="font-medium" style={{ color: isOver ? "#DC2626" : "#475569" }}>
+            {remainingStr}
+          </span>
+        </span>
+        <span className="shrink-0 text-[10px] text-[#CBD5E1]">
+          of {currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`}
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -74,7 +114,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
             {request.title}
           </p>
         </div>
-        {/* Row 2: metadata — darker, readable */}
+        {/* Row 2: metadata */}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
           <span className="inline-flex items-center gap-1.5">
             <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
@@ -92,14 +132,24 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
             </span>
           )}
         </div>
+        {/* Row 3: budget bar — only when budgetTotal exists */}
+        {request.budgetTotal && (
+          <div className="mt-2.5 flex items-center gap-3">
+            <BudgetBar
+              amount={request.amount}
+              budgetTotal={request.budgetTotal}
+              currency={request.currency}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Right side: amount + status on one line */}
-      <div className="flex shrink-0 items-center gap-3">
+      {/* Right side: amount then status — stacked, right-aligned */}
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         <AmountDisplay amount={request.amount} currency={request.currency} />
         <span
           className={cn(
-            "w-[5.5rem] rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
+            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
             status.badge,
           )}
         >
