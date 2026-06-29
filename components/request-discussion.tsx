@@ -160,9 +160,9 @@ export function RequestDiscussion({
   const hasDraft = draft.trim().length > 0
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Feed */}
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex flex-col">
+      {/* Feed — grows with content, scrolls when panel hits max-height */}
+      <div className="overflow-y-auto p-4">
         {activity.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <MessageSquare className="size-5 text-muted-foreground/40" />

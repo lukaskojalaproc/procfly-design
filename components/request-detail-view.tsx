@@ -717,9 +717,9 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           </div>
         </div>
 
-        {/* ── Right: Chat / Discussion panel — full height ─────────────────── */}
-        <div className="hidden w-[360px] shrink-0 lg:flex lg:flex-col lg:sticky lg:top-6 lg:self-start">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ height: canReview ? "calc(100vh - 6rem)" : "calc(100vh - 7rem)" }}>
+        {/* ── Right: Chat / Discussion panel ───────────────────────────────── */}
+        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col lg:sticky lg:top-6 lg:self-start">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ maxHeight: "calc(100vh - 7rem)", minHeight: "320px" }}>
             {/* Panel header */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <MessageSquare className="size-4 text-muted-foreground" />
@@ -731,7 +731,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               )}
             </div>
             {/* Discussion content */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <RequestDiscussion
                 requestId={request.id}
                 currentUser={request.requester}
