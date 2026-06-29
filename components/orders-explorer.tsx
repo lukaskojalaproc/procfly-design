@@ -47,13 +47,13 @@ function competitionHref(ref?: string): string | null {
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
-  Draft: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
-  Sent: { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
-  "Awaiting Delivery": { dot: "bg-chart-4", text: "text-chart-4", bg: "bg-chart-4/10" },
-  "Partially Delivered": { dot: "bg-chart-5", text: "text-chart-5", bg: "bg-chart-5/10" },
-  Delivered: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  Closed: { dot: "bg-primary", text: "text-primary", bg: "bg-primary/10" },
-  Cancelled: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+  Draft: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
+  Sent: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
+  "Awaiting Delivery": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  "Partially Delivered": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  Delivered: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
+  Closed: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
+  Cancelled: { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
 }
 
 function StatusPill({ status }: { status: OrderStatus }) {
@@ -80,17 +80,16 @@ function KpiCard({
   label,
   value,
   sub,
-  iconClass,
 }: {
   icon: typeof ShoppingCart
   label: string
   value: string
   sub: string
-  iconClass: string
+  iconClass?: string
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className={cn("flex size-9 items-center justify-center rounded-lg", iconClass)}>
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-4.5" />
       </span>
       <div>

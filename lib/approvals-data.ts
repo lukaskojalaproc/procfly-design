@@ -178,23 +178,23 @@ export function formatWaiting(activatedAt: string): string {
 }
 
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
-  overdue: { label: "Overdue", badge: "bg-destructive/12 text-destructive", dot: "bg-destructive" },
-  today: { label: "Due today", badge: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
-  soon: { label: "Due soon", badge: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
+  overdue: { label: "Overdue", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]", dot: "bg-[#B42318]" },
+  today: { label: "Due today", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]", dot: "bg-[#B54708]" },
+  soon: { label: "Due soon", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]", dot: "bg-[#B54708]" },
   later: { label: "Due later", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
   none: { label: "No due date", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },
 }
 
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {
-  "Awaiting Action": { label: "Awaiting Action", badge: "bg-chart-2/15 text-chart-2" },
-  "Approved by Me": { label: "Approved by Me", badge: "bg-primary/12 text-primary" },
-  "Rejected by Me": { label: "Rejected by Me", badge: "bg-destructive/12 text-destructive" },
-  "Changes Requested": { label: "Changes Requested", badge: "bg-chart-3/15 text-chart-3" },
+  "Awaiting Action": { label: "Awaiting Action", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]" },
+  "Approved by Me": { label: "Approved by Me", badge: "border border-[#ABEFC6] bg-[#ECFDF3] text-[#15803D]" },
+  "Rejected by Me": { label: "Rejected by Me", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]" },
+  "Changes Requested": { label: "Changes Requested", badge: "bg-muted text-muted-foreground" },
 }
 
 export const priorityMeta: Record<RequestPriority, { label: string; badge: string }> = {
-  Urgent: { label: "Urgent", badge: "bg-destructive/12 text-destructive" },
-  High: { label: "High", badge: "bg-chart-2/15 text-chart-2" },
+  Urgent: { label: "Urgent", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]" },
+  High: { label: "High", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]" },
   Normal: { label: "Normal", badge: "bg-muted text-muted-foreground" },
 }
 

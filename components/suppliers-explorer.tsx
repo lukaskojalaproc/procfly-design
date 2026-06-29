@@ -36,11 +36,11 @@ import {
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<SupplierStatus, { dot: string; text: string; bg: string }> = {
-  Pending: { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
-  Active: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  Preferred: { dot: "bg-primary", text: "text-primary", bg: "bg-primary/10" },
-  Blocked: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
-  Archived: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
+  Pending: { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  Active: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
+  Preferred: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
+  Blocked: { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
+  Archived: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
 }
 
 function StatusPill({ status }: { status: SupplierStatus }) {
@@ -60,9 +60,9 @@ function StatusPill({ status }: { status: SupplierStatus }) {
 }
 
 const riskStyles: Record<RiskStatus, string> = {
-  "Low Risk": "bg-chart-2/15 text-chart-2",
-  "Medium Risk": "bg-chart-4/15 text-chart-4",
-  "High Risk": "bg-destructive/10 text-destructive",
+  "Low Risk": "border border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",
+  "Medium Risk": "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]",
+  "High Risk": "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]",
 }
 
 function RiskBadge({ risk }: { risk: RiskStatus }) {
@@ -77,8 +77,8 @@ function RiskBadge({ risk }: { risk: RiskStatus }) {
 /** Preferred-partner star badge. */
 function PreferredBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-      <Star className="size-3 fill-primary" />
+    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-foreground">
+      <Star className="size-3 fill-foreground" />
       Preferred
     </span>
   )
@@ -92,17 +92,16 @@ function KpiCard({
   label,
   value,
   sub,
-  iconClass,
 }: {
   icon: typeof Network
   label: string
   value: string
   sub: string
-  iconClass: string
+  iconClass?: string
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className={cn("flex size-9 items-center justify-center rounded-lg", iconClass)}>
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-4.5" />
       </span>
       <div>

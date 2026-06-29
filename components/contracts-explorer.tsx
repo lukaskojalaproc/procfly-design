@@ -37,12 +37,12 @@ import {
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<ContractStatus, { dot: string; text: string; bg: string }> = {
-  Draft: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
-  "Pending Approval": { dot: "bg-chart-3", text: "text-chart-3", bg: "bg-chart-3/10" },
-  Active: { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  "Expiring Soon": { dot: "bg-chart-4", text: "text-chart-4", bg: "bg-chart-4/10" },
-  Expired: { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
-  Terminated: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
+  Draft: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
+  "Pending Approval": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  Active: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
+  "Expiring Soon": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  Expired: { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
+  Terminated: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
 }
 
 function StatusPill({ status }: { status: ContractStatus }) {
@@ -67,10 +67,8 @@ function ExpiryBadge({ contract }: { contract: Contract }) {
   if (!bucket) return null
   const tone =
     bucket === 7
-      ? "bg-destructive/10 text-destructive"
-      : bucket === 14
-        ? "bg-chart-4/15 text-chart-4"
-        : "bg-chart-3/10 text-chart-3"
+      ? "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]"
+      : "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]"
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold", tone)}>
       <AlertTriangle className="size-3" />
@@ -86,7 +84,7 @@ function RenewBadge({ contract }: { contract: Contract }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-        auto ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+        auto ? "bg-secondary text-foreground" : "bg-muted text-muted-foreground",
       )}
     >
       <RefreshCw className="size-3" />
@@ -103,17 +101,16 @@ function KpiCard({
   label,
   value,
   sub,
-  iconClass,
 }: {
   icon: typeof FileSignature
   label: string
   value: string
   sub: string
-  iconClass: string
+  iconClass?: string
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className={cn("flex size-9 items-center justify-center rounded-lg", iconClass)}>
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-4.5" />
       </span>
       <div>

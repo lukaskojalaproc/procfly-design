@@ -72,9 +72,9 @@ function SummaryCard({
 }) {
   const toneCls = {
     default: "bg-muted text-muted-foreground",
-    warn: "bg-chart-2/15 text-chart-2",
-    danger: "bg-destructive/12 text-destructive",
-    good: "bg-primary/12 text-primary",
+    warn: "bg-muted text-muted-foreground",
+    danger: "bg-muted text-muted-foreground",
+    good: "bg-muted text-muted-foreground",
   }[tone]
   return (
     <Card className="flex flex-col gap-2 p-4">
@@ -142,7 +142,7 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
               {r.ref}
             </span>
             {cols.highValue && task.highValue && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[11px] font-semibold text-chart-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[11px] font-semibold text-[#B54708]">
                 <AlertTriangle className="size-3" />
                 High Value
               </span>

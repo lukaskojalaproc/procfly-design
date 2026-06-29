@@ -48,10 +48,10 @@ import {
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<StockStatus, { dot: string; text: string; bg: string }> = {
-  "In Stock": { dot: "bg-chart-2", text: "text-chart-2", bg: "bg-chart-2/15" },
-  "Low Stock": { dot: "bg-chart-4", text: "text-chart-4", bg: "bg-chart-4/15" },
-  "Out of Stock": { dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
-  Archived: { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
+  "In Stock": { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
+  "Low Stock": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
+  "Out of Stock": { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
+  Archived: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
 }
 
 function StatusPill({ status }: { status: StockStatus }) {
@@ -72,7 +72,7 @@ function StatusPill({ status }: { status: StockStatus }) {
 
 function LowStockBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-chart-4/15 px-2 py-0.5 text-[10px] font-bold text-chart-4">
+    <span className="inline-flex items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[10px] font-bold text-[#B54708]">
       <AlertTriangle className="size-3" />
       Low Stock
     </span>
@@ -87,17 +87,16 @@ function KpiCard({
   label,
   value,
   sub,
-  iconClass,
 }: {
   icon: typeof Package
   label: string
   value: string
   sub: string
-  iconClass: string
+  iconClass?: string
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className={cn("flex size-9 items-center justify-center rounded-lg", iconClass)}>
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-4.5" />
       </span>
       <div>
@@ -363,7 +362,7 @@ export function WarehouseExplorer() {
       {/* Content */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center gap-1.5 border-b border-border p-5">
-          <Package className="size-4 text-primary" />
+          <Package className="size-4 text-muted-foreground" />
           <h3 className="font-semibold text-foreground">Inventory items</h3>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
             {loadState === "ready" ? filtered.length : "—"}
