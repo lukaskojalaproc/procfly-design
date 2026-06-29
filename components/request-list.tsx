@@ -20,35 +20,32 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/**
- * Amount block — stacked vertically: number on top, currency below.
- * Gives the amount its own column with breathing room.
- */
+/** Amount + currency on one line. Number is the accent, currency is secondary. */
 function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
   const tier = priceTier(amount)
   if (tier === "none") {
-    return (
-      <span className="flex shrink-0 flex-col items-end leading-none">
-        <span className="text-sm tabular-nums text-muted-foreground/40">—</span>
-      </span>
-    )
+    return <span className="shrink-0 text-sm tabular-nums text-muted-foreground/40">—</span>
   }
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
   return (
-    <span className="flex shrink-0 flex-col items-end leading-none tabular-nums">
+    <span className="inline-flex shrink-0 items-baseline gap-1 tabular-nums">
       <span className={cn(
         "font-semibold",
-        tier === "critical" ? "text-foreground" : "text-foreground/80",
-        isLarge ? "text-base" : "text-sm",
+        isLarge ? "text-base text-[#0F172A]" : "text-sm text-[#0F172A]/80",
       )}>
         {amountStr}
       </span>
-      <span className="mt-1 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/50">
-        {currency}
-      </span>
+      <span className="text-[11px] font-normal text-[#94A3B8]">{currency}</span>
     </span>
   )
+}
+
+/** Lithuanian pluralization for quotes. */
+function quotesLabel(n: number) {
+  if (n === 1) return "1 pasiūlymas"
+  if (n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 10 || n % 100 >= 20)) return `${n} pasiūlymai`
+  return `${n} pasiūlymų`
 }
 
 const kindIcon: Record<RequestKind, typeof Package> = {
@@ -59,67 +56,60 @@ const kindIcon: Record<RequestKind, typeof Package> = {
 
 function RequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
+  const status = statusMeta[request.status]
   return (
     <Link
       href={`/requests/${request.id}`}
-      className="group flex items-center gap-4 rounded-xl px-3 py-5 transition-colors table-row-hover"
+      className="group flex items-center gap-4 rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
     >
-      {/* Icon — neutral. Green reserved for CTA only. */}
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground">
-        <Icon className="size-[1.1rem]" />
+      {/* Icon */}
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-[#94A3B8]">
+        <Icon className="size-4" />
       </div>
 
-      {/* Title + metadata */}
+      {/* Main content */}
       <div className="min-w-0 flex-1">
-        {/* Row 1: ref + title + amount right-aligned */}
+        {/* Row 1: ref + title */}
         <div className="flex items-center gap-2">
-          <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
+          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#94A3B8]">
             {request.ref}
           </span>
-          {/* Title: font-medium (500) — body weight, not heavy */}
-          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
+          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
             {request.title}
           </p>
-          {/* Amount lives here — right-aligned, plenty of room, no competition */}
-          <AmountDisplay amount={request.amount} currency={request.currency} />
         </div>
-        {/* Row 2: metadata */}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {/* Row 2: metadata — darker, readable */}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="flex size-4.5 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
               {initials(request.requester)}
             </span>
             {request.requester}
           </span>
-          <span className="hidden items-center gap-1.5 sm:inline-flex">
-            <span className="size-[3px] rounded-full bg-border/60" />
-            {request.department}
-          </span>
-          <span className="hidden items-center gap-1.5 md:inline-flex">
-            <span className="size-[3px] rounded-full bg-border/60" />
-            {request.date}
-          </span>
-          <span className="hidden items-center gap-1.5 md:inline-flex">
-            <span className="size-[3px] rounded-full bg-border/60" />
-            {request.kind}
-          </span>
+          <span className="hidden sm:inline">{request.department}</span>
+          <span className="hidden md:inline">{request.date}</span>
+          <span className="hidden md:inline">{request.kind}</span>
           {request.quotes > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+            <span className="inline-flex items-center gap-1 text-[#64748B]">
               <Users className="size-3" />
-              {request.quotes} quotes
+              {quotesLabel(request.quotes)}
             </span>
           )}
         </div>
       </div>
 
-      <span
-        className={cn(
-          "hidden shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium sm:inline-flex",
-          statusMeta[request.status].badge,
-        )}
-      >
-        {statusMeta[request.status].label}
-      </span>
+      {/* Right side: amount then status — with clear gap between them */}
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <AmountDisplay amount={request.amount} currency={request.currency} />
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+            status.badge,
+          )}
+        >
+          {status.label}
+        </span>
+      </div>
 
       <RequestRowMenu request={request} />
     </Link>
