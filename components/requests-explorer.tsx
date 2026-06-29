@@ -226,7 +226,7 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
                 {request.title}
               </p>
               {isCritical && (
-                <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-foreground">
+                <span className="shrink-0 rounded-full border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A]">
                   High Value
                 </span>
               )}
