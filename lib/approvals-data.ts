@@ -178,11 +178,11 @@ export function formatWaiting(activatedAt: string): string {
 }
 
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
-  overdue: { label: "Overdue",    badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b] font-semibold", dot: "bg-[#dc2626]" },
-  today:   { label: "Due today",  badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]",               dot: "bg-[#d97706]" },
-  soon:    { label: "Due soon",   badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]",               dot: "bg-[#d97706]" },
-  later:   { label: "Due later",  badge: "border border-[#e5e7eb] bg-[#f9fafb] text-[#6b7280]",               dot: "bg-[#9ca3af]" },
-  none:    { label: "No due date",badge: "border border-[#e5e7eb] bg-[#f9fafb] text-[#6b7280]",               dot: "bg-[#9ca3af]" },
+  overdue: { label: "Overdue",    badge: "text-[#dc2626] font-semibold", dot: "" },
+  today:   { label: "Due today",  badge: "text-[#d97706] font-semibold", dot: "" },
+  soon:    { label: "Due soon",   badge: "text-[#d97706]",               dot: "" },
+  later:   { label: "Due later",  badge: "text-[#6b7280]",               dot: "" },
+  none:    { label: "No due date",badge: "text-[#9ca3af]",               dot: "" },
 }
 
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {

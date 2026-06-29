@@ -164,11 +164,7 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
       <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
         <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Due date</span>
         {isActive ? (
-          <span className={cn(
-            "mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
-            due.badge,
-          )}>
-            <span className={cn("size-1.5 rounded-full", due.dot)} />
+          <span className={cn("mt-0.5 text-[11px] whitespace-nowrap", due.badge)}>
             {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
           </span>
         ) : (
