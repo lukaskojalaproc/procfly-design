@@ -238,7 +238,7 @@ export function AnalyticsOverview() {
                 {categories.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "#4F46E5" : "oklch(0.91 0.003 240)"}
+                    fill={index === 0 ? "#818CF8" : "#E2E8F0"}
                   />
                 ))}
               </Bar>
