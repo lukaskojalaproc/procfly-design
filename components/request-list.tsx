@@ -88,79 +88,83 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
     <Link
       href={`/requests/${request.id}`}
       className={cn(
-        "group flex items-center gap-4 rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
+        "group flex flex-col rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
         isCritical ? "rounded-l-none" : "rounded-xl",
       )}
     >
-      {/* Icon */}
-      <div className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg text-[#94A3B8]",
-        isCritical ? "bg-[#0C6B58]/[0.07]" : "bg-muted/60",
-      )}>
-        <Icon className="size-4" />
-      </div>
+      {/* Top row: icon + content + amount + status */}
+      <div className="flex items-center gap-4">
+        {/* Icon */}
+        <div className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg text-[#94A3B8]",
+          isCritical ? "bg-[#0C6B58]/[0.07]" : "bg-muted/60",
+        )}>
+          <Icon className="size-4" />
+        </div>
 
-      {/* Main content */}
-      <div className="min-w-0 flex-1">
-        {/* Row 1: ref + title */}
-        <div className="flex items-center gap-2">
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#94A3B8]">
-            {request.ref}
-          </span>
-          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
-            {request.title}
-          </p>
-          {isCritical && (
-            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              style={{ color: "#0C6B58", background: "#E6F4F1" }}>
-              High Value
+        {/* Main content */}
+        <div className="min-w-0 flex-1">
+          {/* Row 1: ref + title */}
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#94A3B8]">
+              {request.ref}
             </span>
-          )}
-        </div>
-        {/* Row 2: metadata */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
-              {initials(request.requester)}
-            </span>
-            {request.requester}
-          </span>
-          <span className="hidden sm:inline">{request.department}</span>
-          <span className="hidden md:inline">{request.date}</span>
-          <span className="hidden md:inline">{request.kind}</span>
-          {request.quotes > 0 && (
-            <span className="inline-flex items-center gap-1 text-[#64748B]">
-              <Users className="size-3" />
-              {quotesLabel(request.quotes)}
-            </span>
-          )}
-        </div>
-        {/* Row 3: budget bar — subtle, inline, only when budgetTotal exists */}
-        {request.budgetTotal && (
-          <div className="mt-2">
-            <BudgetBar
-              amount={request.amount}
-              budgetTotal={request.budgetTotal}
-              currency={request.currency}
-            />
+            <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
+              {request.title}
+            </p>
+            {isCritical && (
+              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                style={{ color: "#0C6B58", background: "#E6F4F1" }}>
+                High Value
+              </span>
+            )}
           </div>
-        )}
+          {/* Row 2: metadata */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
+                {initials(request.requester)}
+              </span>
+              {request.requester}
+            </span>
+            <span className="hidden sm:inline">{request.department}</span>
+            <span className="hidden md:inline">{request.date}</span>
+            <span className="hidden md:inline">{request.kind}</span>
+            {request.quotes > 0 && (
+              <span className="inline-flex items-center gap-1 text-[#64748B]">
+                <Users className="size-3" />
+                {quotesLabel(request.quotes)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right side: amount + status */}
+        <div className="flex shrink-0 items-center gap-5">
+          <AmountDisplay amount={request.amount} currency={request.currency} />
+          <span
+            className={cn(
+              "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
+              status.badge,
+            )}
+          >
+            {status.label}
+          </span>
+        </div>
+
+        <RequestRowMenu request={request} />
       </div>
 
-      {/* Right side: amount + status — generous gap between them */}
-      <div className="flex shrink-0 items-center gap-5">
-        <AmountDisplay amount={request.amount} currency={request.currency} />
-        <span
-          className={cn(
-            "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
-            status.badge,
-          )}
-        >
-          {status.label}
-        </span>
-      </div>
-
-      <RequestRowMenu request={request} />
+      {/* Bottom row: full-width budget bar, clearly separated */}
+      {request.budgetTotal && (
+        <div className="mt-3 pl-[3.25rem]">
+          <BudgetBar
+            amount={request.amount}
+            budgetTotal={request.budgetTotal}
+            currency={request.currency}
+          />
+        </div>
+      )}
     </Link>
     </div>
   )
