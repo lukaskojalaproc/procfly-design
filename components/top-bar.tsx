@@ -9,12 +9,11 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/80 px-6 py-2 backdrop-blur">
       <div className="relative flex-1 max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
-        {/* Item 9: input thinner — py-1.5 */}
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
         <input
           type="search"
-          placeholder="Search requests, suppliers, approvals..."
-          className="w-full rounded-lg border border-border/60 bg-card py-1.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+          placeholder="Ieškoti užklausų, tiekėjų, patvirtinimų..."
+          className="w-full rounded-lg border border-[#DCE5EC] bg-white py-1.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-[#64748B] focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </div>
       <button className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
@@ -33,10 +32,10 @@ export function TopBar() {
 }
 
 export function PageHeader({
-  crumb = "Overview",
+  crumb = "Pirkimų apžvalga",
   crumbs,
-  title = "Overview",
-  description = "Manage procurement requests, approvals, and suppliers in one place.",
+  title = "Pirkimų apžvalga",
+  description = "Stebėkite aktyvias užklausas, patvirtinimus, konkursus ir svarbiausius pirkimų rodiklius.",
   actions,
 }: {
   crumb?: string

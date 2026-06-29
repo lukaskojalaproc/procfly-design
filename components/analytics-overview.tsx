@@ -30,7 +30,7 @@ import {
   getSpendSeries,
   getSpendByCategory,
   periodLabels,
-  periodCompare,
+  periodSubtitles,
   formatCompact,
   type Period,
   type Kpi,
@@ -91,20 +91,16 @@ export function AnalyticsOverview() {
   const kpis = getKpis(period)
   const spend = getSpendSeries(period)
   const categories = getSpendByCategory()
-  const compare = periodCompare[period]
 
   return (
     <section className="flex flex-col gap-4">
       {/* Header + period selector */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          {/* Title: font-bold (700) */}
           <h2 className="text-lg font-bold text-foreground">{periodLabels[period]}</h2>
-          <p className="text-sm text-muted-foreground">
-            {periodLabels[period]} · all figures {compare}
-          </p>
+          <p className="text-sm text-muted-foreground">{periodSubtitles[period]}</p>
         </div>
-        {/* Item 2: active filter — light fill, dark text, never green */}
+        {/* Period filter — compact, active = white card chip */}
         <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
           {PERIODS.map((p) => (
             <button

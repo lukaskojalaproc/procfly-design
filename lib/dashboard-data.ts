@@ -141,9 +141,15 @@ export function archivedRequests(): ProcurementRequest[] {
 export type Period = "month" | "quarter" | "year"
 
 export const periodLabels: Record<Period, string> = {
-  month: "This month",
-  quarter: "This quarter",
-  year: "This year",
+  month: "Šis mėnuo",
+  quarter: "Šis ketvirtis",
+  year: "Šie metai",
+}
+
+export const periodSubtitles: Record<Period, string> = {
+  month: "Šio mėnesio rodikliai, lyginant su praėjusiu mėnesiu",
+  quarter: "Šio ketvirčio rodikliai, lyginant su praėjusiu ketvirčiu",
+  year: "Šių metų rodikliai, lyginant su praėjusiais metais",
 }
 
 export const periodCompare: Record<Period, string> = {
