@@ -20,8 +20,8 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/** Amount — pill with white background and border so it reads as the primary value at a glance. */
-function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
+/** Amount — pill with background and border so it reads as the primary value at a glance. */
+function AmountDisplay({ amount, currency, dark = false }: { amount: number; currency: string; dark?: boolean }) {
   const tier = priceTier(amount)
   if (tier === "none") {
     return <span className="shrink-0 text-sm tabular-nums text-[#94A3B8]">—</span>
@@ -32,8 +32,11 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
   return (
     <span className={cn(
-      "shrink-0 rounded-lg border border-border bg-background px-2.5 py-1 tabular-nums shadow-sm",
-      isCritical ? "text-[15px] font-bold text-[#0F172A]" : isLarge ? "text-[14px] font-semibold text-[#0F172A]" : "text-[13px] font-medium text-[#0F172A]"
+      "shrink-0 rounded-lg px-2.5 py-1 tabular-nums shadow-sm",
+      dark
+        ? "border border-white/25 bg-white/10 text-white"
+        : "border border-border bg-background text-[#0F172A]",
+      isCritical ? "text-[15px] font-bold" : isLarge ? "text-[14px] font-semibold" : "text-[13px] font-medium",
     )}>
       {display}
     </span>
@@ -85,21 +88,21 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   return (
     <div className={cn(
       "rounded-xl",
-      isCritical && "border-l-[3px] border-l-foreground/30 bg-foreground/[0.035] pl-[1px]",
+      isCritical && "border-l-[3px] border-l-white/30 bg-[#0F172A] pl-[1px]",
     )}>
     <Link
       href={`/requests/${request.id}`}
       className={cn(
-        "group flex flex-col rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
-        isCritical ? "rounded-l-none" : "rounded-xl",
+        "group flex flex-col rounded-r-xl px-3 py-[1.125rem] transition-colors",
+        isCritical ? "rounded-l-none hover:bg-white/[0.04]" : "rounded-xl table-row-hover",
       )}
     >
       {/* Top row: icon + content + amount + status */}
       <div className="flex items-center gap-4">
         {/* Icon */}
         <div className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg text-[#94A3B8]",
-          isCritical ? "bg-foreground/[0.07] text-foreground" : "bg-muted/60",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+          isCritical ? "bg-white/10 text-white" : "bg-muted/60 text-[#94A3B8]",
         )}>
           <Icon className="size-4" />
         </div>
@@ -108,23 +111,34 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         <div className="min-w-0 flex-1">
           {/* Row 1: ref + title */}
           <div className="flex items-center gap-2">
-            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#94A3B8]">
+            <span className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium",
+              isCritical ? "bg-white/10 text-white/60" : "bg-muted text-[#94A3B8]",
+            )}>
               {request.ref}
             </span>
-            <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
+            <p className={cn(
+              "min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug",
+              isCritical ? "text-white" : "text-[#0F172A]",
+            )}>
               {request.title}
             </p>
             {isCritical && (
-              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                style={{ color: "#0F172A", background: "#E2E8F0" }}>
+              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
                 High Value
               </span>
             )}
           </div>
           {/* Row 2: metadata */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
+          <div className={cn(
+            "mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs",
+            isCritical ? "text-white/50" : "text-[#475569]",
+          )}>
             <span className="inline-flex items-center gap-1.5">
-              <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
+              <span className={cn(
+                "flex size-4 items-center justify-center rounded-full text-[9px] font-semibold",
+                isCritical ? "bg-white/15 text-white/80" : "bg-[#E2E8F0] text-[#475569]",
+              )}>
                 {initials(request.requester)}
               </span>
               {request.requester}
@@ -143,11 +157,13 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
 
         {/* Right side: amount + status */}
         <div className="flex shrink-0 items-center gap-5">
-          <AmountDisplay amount={request.amount} currency={request.currency} />
+          <AmountDisplay amount={request.amount} currency={request.currency} dark={isCritical} />
           <span
             className={cn(
               "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
-              status.badge,
+              isCritical
+                ? "border border-white/20 bg-white/10 text-white"
+                : status.badge,
             )}
           >
             {status.label}
