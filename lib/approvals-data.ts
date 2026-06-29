@@ -186,17 +186,18 @@ export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; do
   none:    { label: "No due date",badge: `${pill} text-[#94A3B8]`,               dot: "" },
 }
 
+const badgePill = "inline-flex w-fit items-center rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold"
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {
-  "Awaiting Action":   { label: "Awaiting Action",   badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]" },
-  "Approved by Me":    { label: "Approved by Me",    badge: "border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]" },
-  "Rejected by Me":    { label: "Rejected by Me",    badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b]" },
-  "Changes Requested": { label: "Changes Requested", badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b]" },
+  "Awaiting Action":   { label: "Awaiting Action",   badge: `${badgePill} text-[#92400e]` },
+  "Approved by Me":    { label: "Approved by Me",    badge: `${badgePill} text-[#166534]` },
+  "Rejected by Me":    { label: "Rejected by Me",    badge: `${badgePill} text-[#991b1b]` },
+  "Changes Requested": { label: "Changes Requested", badge: `${badgePill} text-[#991b1b]` },
 }
 
 export const priorityMeta: Record<RequestPriority, { label: string; badge: string }> = {
-  Urgent: { label: "Urgent", badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b] font-semibold" },
-  High:   { label: "High",   badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]" },
-  Normal: { label: "Normal", badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]" },
+  Urgent: { label: "Urgent", badge: `${badgePill} text-[#dc2626]` },
+  High:   { label: "High",   badge: `${badgePill} text-[#92400e]` },
+  Normal: { label: "Normal", badge: `${badgePill} text-[#64748B]` },
 }
 
 // --- Tabs, filters, sorting -------------------------------------------------

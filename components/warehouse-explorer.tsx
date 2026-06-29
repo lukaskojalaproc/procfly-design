@@ -61,7 +61,7 @@ function StatusPill({ status }: { status: StockStatus }) {
 
 function LowStockBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[10px] font-bold text-[#B54708]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold text-[#92400e]">
       <AlertTriangle className="size-3" />
       Low Stock
     </span>
