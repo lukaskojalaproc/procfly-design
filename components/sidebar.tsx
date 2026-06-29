@@ -52,13 +52,13 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-          : "text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          ? "bg-white/[0.12] text-white shadow-sm"
+          : "text-white/80 hover:bg-white/[0.08] hover:text-white",
       )}
     >
-      <Icon className="size-5 shrink-0" />
+      <Icon className={cn("size-5 shrink-0", active ? "text-white" : "text-white/80")} />
       <span>{label}</span>
     </Link>
   )
@@ -86,7 +86,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setNewRequestOpen(true)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 transition-all hover:bg-white/[0.08] hover:text-white"
           >
             <FilePlus2 className="size-5 shrink-0" />
             <span>New Request</span>
@@ -109,8 +109,8 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-sidebar-accent">
-          <div className="flex size-9 items-center justify-center rounded-md bg-sidebar-accent text-xs font-bold text-sidebar-accent-foreground">
+        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-all hover:bg-white/[0.08]">
+          <div className="flex size-9 items-center justify-center rounded-md bg-white/[0.12] text-xs font-bold text-white">
             PF
           </div>
           <div className="flex-1 overflow-hidden">

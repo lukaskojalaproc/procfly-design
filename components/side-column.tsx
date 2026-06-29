@@ -38,21 +38,21 @@ export function SideColumn() {
   return (
     <div className="flex flex-col gap-4">
       {/* Needs Attention — actionable items */}
-      <Card className="p-5">
+      <Card className="card-shadow p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Needs Attention</h2>
-          <span className="rounded-full bg-destructive/12 px-2 py-0.5 text-xs font-semibold text-destructive">
+          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
             {needsAttention.length}
           </span>
         </div>
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-2">
           {needsAttention.map((item) => {
             const Icon = attentionIcon[item.type]
             return (
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/60"
+                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50"
                 >
                   <span
                     className={cn(
@@ -66,7 +66,7 @@ export function SideColumn() {
                     <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
                     <p className="truncate text-xs text-muted-foreground">{item.meta}</p>
                   </div>
-                  <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                  <span className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground transition-colors group-hover:border-primary group-hover:text-primary">
                     {item.action}
                     <ChevronRight className="size-3.5" />
                   </span>
@@ -78,10 +78,10 @@ export function SideColumn() {
       </Card>
 
       {/* Recent Activity — who did what, to which request */}
-      <Card className="p-5">
+      <Card className="card-shadow p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Recent Activity</h2>
-          <Link href="/approvals" className="text-sm font-semibold text-primary hover:underline">
+          <Link href="/approvals" className="btn-secondary py-1 text-xs">
             View all
           </Link>
         </div>

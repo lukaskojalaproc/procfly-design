@@ -29,7 +29,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   return (
     <Link
       href={`/requests/${request.id}`}
-      className="group flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-muted/60"
+      className="group flex items-center gap-4 rounded-xl px-3 py-4 transition-colors table-row-hover"
     >
       <span className={cn("h-10 w-1 shrink-0 rounded-full", statusMeta[request.status].dot)} />
       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
@@ -101,12 +101,12 @@ export function RequestList() {
   ]
 
   return (
-    <Card className="p-5">
+    <Card className="card-shadow p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-foreground">Requests</h2>
           {isSuperAdmin && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-xs font-semibold text-primary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               <ShieldCheck className="size-3" />
               Super Admin
             </span>
@@ -114,7 +114,7 @@ export function RequestList() {
         </div>
         <Link
           href="/requests"
-          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          className="btn-secondary"
         >
           View all requests
         </Link>

@@ -46,8 +46,8 @@ const kpiIcon: Record<Kpi["key"], typeof TrendingUp> = {
 }
 
 const spendChartConfig: ChartConfig = {
-  spend: { label: "Spend", color: "var(--chart-1)" },
-  budget: { label: "Budget", color: "var(--chart-3)" },
+  spend: { label: "Spend", color: "var(--chart-1)" },   // green
+  budget: { label: "Budget", color: "var(--chart-3)" }, // neutral gray
 }
 
 const categoryChartConfig: ChartConfig = {
@@ -64,15 +64,15 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
 
   return (
-    <Card className="flex flex-col gap-3 p-5 shadow-sm transition-shadow hover:shadow-md">
+    <Card className="card-shadow flex flex-col gap-4 p-6 transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
         <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Icon className="size-4.5" />
         </span>
         <span
           className={cn(
-            "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold",
-            isGood ? "bg-primary/12 text-primary" : "bg-destructive/12 text-destructive",
+            "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+            isGood ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive",
           )}
         >
           <DeltaIcon className="size-3" />
@@ -80,9 +80,9 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         </span>
       </div>
       <div>
-        <p className="text-2xl font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
-        <p className="mt-1.5 text-sm font-medium text-foreground">{kpi.label}</p>
-        <p className="text-xs text-muted-foreground">{kpi.sub}</p>
+        <p className="text-[1.6rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
+        <p className="mt-2 text-sm font-semibold text-foreground">{kpi.label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{kpi.sub}</p>
       </div>
     </Card>
   )
@@ -105,7 +105,7 @@ export function AnalyticsOverview() {
             {periodLabels[period]} · all figures {compare}
           </p>
         </div>
-        <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
+        <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-sm">
           {PERIODS.map((p) => (
             <button
               key={p}
@@ -114,7 +114,7 @@ export function AnalyticsOverview() {
               className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 period === p
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -134,18 +134,18 @@ export function AnalyticsOverview() {
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Spend over time */}
-        <Card className="p-5 lg:col-span-2">
+        <Card className="card-shadow p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-foreground">Spend over time</h3>
               <p className="text-xs text-muted-foreground">Committed spend vs allocated budget</p>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <span className="size-2.5 rounded-full bg-chart-1" /> Spend
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-5 rounded-full bg-chart-1" /> Spend
               </span>
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <span className="size-2.5 rounded-full bg-chart-3" /> Budget
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-5 rounded-full border-t-2 border-dashed border-chart-3" /> Budget
               </span>
             </div>
           </div>
@@ -199,7 +199,7 @@ export function AnalyticsOverview() {
         </Card>
 
         {/* Spend by category */}
-        <Card className="p-5">
+        <Card className="card-shadow p-5">
           <div className="mb-4">
             <h3 className="font-semibold text-foreground">Spend by category</h3>
             <p className="text-xs text-muted-foreground">Top categories this workspace</p>
