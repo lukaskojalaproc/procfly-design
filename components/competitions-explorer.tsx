@@ -405,12 +405,12 @@ export function CompetitionsExplorer() {
             <span
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                tab === t ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                tab === t ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground",
               )}
             >
               {tabCounts[t]}
             </span>
-            {tab === t && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />}
+            {tab === t && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-foreground" />}
           </button>
         ))}
       </div>

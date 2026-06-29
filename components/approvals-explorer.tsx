@@ -101,7 +101,7 @@ function FilterSelect<T extends string>({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm font-medium text-foreground outline-none focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
       >
         {options.map((o) => (
           <option key={o} value={o}>
@@ -394,10 +394,10 @@ export function ApprovalsExplorer() {
                     key={key}
                     onClick={() => setTab(key)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
                       isActive
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-foreground hover:bg-muted",
+                        ? "border-foreground/30 bg-foreground/[0.06] text-foreground"
+                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
                     {key === "All" && <Layers className="size-4" />}
@@ -405,7 +405,7 @@ export function ApprovalsExplorer() {
                     <span
                       className={cn(
                         "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
-                        isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
+                        isActive ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground",
                       )}
                     >
                       {counts[key] ?? 0}
@@ -423,7 +423,7 @@ export function ApprovalsExplorer() {
             onChange={(e) => setQuery(e.target.value)}
             disabled={loading}
             placeholder="Search by request ID, title, requester, supplier, or category…"
-            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60"
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20 disabled:opacity-60"
           />
         </div>
 
