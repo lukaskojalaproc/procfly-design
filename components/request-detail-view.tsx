@@ -414,12 +414,19 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                             {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
                           </span>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-foreground/50 transition-all"
-                            style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
-                          />
-                        </div>
+                        {(() => {
+                          const pct = Math.min(100, Math.round((request.amount / request.budgetTotal!) * 100))
+                          // Amber when over 90% budget used, green otherwise
+                          const fillCls = pct >= 90 ? "bg-[#d97706]" : "bg-[#16a34a]"
+                          return (
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn("h-full rounded-full transition-all", fillCls)}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          )
+                        })()}
                         <p className="mt-1.5 text-[10px] text-muted-foreground/60">
                           {Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}% of budget
                         </p>
@@ -650,10 +657,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                     const docStatus: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
                     const statusCls =
                       docStatus === "Uploaded"
-                        ? "bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]"
+                        // Green — complete / success
+                        ? "bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0]"
                         : docStatus === "Pending Review"
-                          ? "bg-[#FEF6E8] text-[#B54708] border border-[#F1E4B5]"
-                          : "bg-[#FEF3F2] text-[#B42318] border border-[#F3D6D2]"
+                          // Grey — neutral waiting, not amber (no action needed from viewer)
+                          ? "bg-[#f9fafb] text-[#6b7280] border border-[#d1d5db]"
+                          // Dark grey — missing / blocked (not red — document absence is not an error state)
+                          : "bg-[#f3f4f6] text-[#374151] border border-[#d1d5db]"
                     return (
                       <div key={i} className="flex items-center justify-between gap-4 bg-card px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">

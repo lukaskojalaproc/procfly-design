@@ -20,32 +20,36 @@ const stateStyles: Record<DisplayState, {
   labelCls: string
   icon: typeof Check
 }> = {
+  // Green — success / complete
   approved: {
     card: "border-border bg-card",
-    dot: "bg-[#15803D] ring-[#BBF7D0]",
+    dot: "bg-[#16a34a] ring-[#bbf7d0]",
     label: "Approved",
-    labelCls: "text-[#15803D] bg-[#ECFDF3] border border-[#BBF7D0]",
+    labelCls: "text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0]",
     icon: Check,
   },
+  // Amber — active / awaiting decision; outline uses amber tint, not green
   in_progress: {
-    card: "border-[#4A7C59]/40 bg-card shadow-[0_0_0_3px_rgba(74,124,89,0.10)]",
-    dot: "bg-[#B54708] ring-[#F1E4B5]",
+    card: "border-[#d97706]/30 bg-card shadow-[0_0_0_3px_rgba(217,119,6,0.08)]",
+    dot: "bg-[#d97706] ring-[#fde68a]",
     label: "In Progress",
-    labelCls: "text-[#B54708] bg-[#FEF6E8] border border-[#F1E4B5]",
+    labelCls: "text-[#92400e] bg-[#fffbeb] border border-[#fde68a]",
     icon: Clock,
   },
+  // Grey — neutral, waiting
   not_started: {
     card: "border-border/60 bg-card",
-    dot: "bg-border/50 ring-border/30",
+    dot: "bg-[#d1d5db] ring-[#e5e7eb]",
     label: "Not Started",
-    labelCls: "text-muted-foreground/50 bg-muted/40 border border-border/40",
+    labelCls: "text-[#9ca3af] bg-[#f9fafb] border border-[#e5e7eb]",
     icon: Clock,
   },
+  // Dark grey — terminal / stopped
   rejected: {
-    card: "border-[#F3D6D2] bg-card",
-    dot: "bg-[#B42318] ring-[#F3D6D2]",
+    card: "border-[#d1d5db] bg-card",
+    dot: "bg-[#6b7280] ring-[#d1d5db]",
     label: "Rejected",
-    labelCls: "text-[#B42318] bg-[#FEF3F2] border border-[#F3D6D2]",
+    labelCls: "text-[#374151] bg-[#f3f4f6] border border-[#d1d5db]",
     icon: X,
   },
 }
