@@ -60,36 +60,36 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
 
   return (
     <div className={cn(
-      "flex min-w-0 flex-1 flex-col justify-between gap-3 px-6 py-5",
-      !isLast && "border-r border-[#E2E8F0]",
+      "flex min-w-0 flex-1 flex-col gap-2 px-5 py-4",
+      !isLast && "border-r border-[#E5E7EB]",
     )}>
-      {/* Top: label + delta */}
+      {/* Top: label + delta — ZipHQ keeps these on one line, small caps */}
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
+        <p className="truncate text-[10.5px] font-semibold uppercase tracking-widest text-[#9CA3AF]">
           {kpi.label}
         </p>
         <span
-          className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium tabular-nums"
+          className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-semibold tabular-nums"
           style={{ color: deltaColor }}
         >
-          <DeltaIcon className="size-2.5" />
+          <DeltaIcon className="size-[9px]" />
           {deltaText}
         </span>
       </div>
 
-      {/* Value — large body, smaller prefix/suffix */}
-      <div className="flex items-baseline gap-0.5 tabular-nums leading-none">
+      {/* Value — prefix same color as body (ZipHQ style), suffix smaller */}
+      <div className="flex items-baseline gap-[1px] tabular-nums leading-none">
         {prefix && (
-          <span className="text-lg font-medium text-[#64748B]">{prefix}</span>
+          <span className="text-[1.25rem] font-bold text-[#111827]">{prefix}</span>
         )}
-        <span className="text-[2rem] font-bold tracking-tight text-[#0F172A]">{body}</span>
+        <span className="text-[2.25rem] font-black tracking-tight text-[#111827]">{body}</span>
         {suffix && (
-          <span className="text-base font-semibold text-[#94A3B8]">{suffix}</span>
+          <span className="ml-0.5 text-[1.25rem] font-bold text-[#6B7280]">{suffix}</span>
         )}
       </div>
 
-      {/* Sub */}
-      <p className="truncate text-[11px] text-[#94A3B8]">{kpi.sub}</p>
+      {/* Sub — slightly darker than before, matches ZipHQ muted label */}
+      <p className="truncate text-[11px] text-[#6B7280]">{kpi.sub}</p>
     </div>
   )
 }
@@ -130,7 +130,7 @@ export function AnalyticsOverview() {
       </div>
 
       {/* KPI strip — Gong-style: no cards, dividers between stats */}
-      <div className="flex overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
+      <div className="flex overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
         {kpis.map((kpi, i) => (
           <KpiStat key={kpi.key} kpi={kpi} isLast={i === kpis.length - 1} />
         ))}
