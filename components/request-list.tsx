@@ -31,7 +31,7 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
   if (tier === "critical") {
     return (
-      <span className="shrink-0 rounded-md bg-[#0F172A] px-2 py-0.5 text-sm font-semibold tabular-nums text-white">
+      <span className="shrink-0 rounded-md bg-[#0F172A] px-2.5 py-1 text-base font-bold tabular-nums leading-none text-white">
         {display}
       </span>
     )
