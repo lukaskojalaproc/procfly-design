@@ -177,7 +177,7 @@ export function formatWaiting(activatedAt: string): string {
   return remHours > 0 ? `${days}d ${remHours}h waiting` : `${days}d waiting`
 }
 
-const pill = "inline-flex items-center rounded-full bg-[#f3f4f6] px-2.5 py-0.5"
+const pill = "inline-flex w-fit items-center rounded-full bg-[#f3f4f6] px-2.5 py-0.5 text-[11px]"
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
   overdue: { label: "Overdue",    badge: `${pill} text-[#dc2626] font-semibold`, dot: "" },
   today:   { label: "Due today",  badge: `${pill} text-[#d97706] font-semibold`, dot: "" },
