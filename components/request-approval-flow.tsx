@@ -1,7 +1,6 @@
 "use client"
 
 import { Check, X, Clock } from "lucide-react"
-import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { initials, type ApprovalStep, type ApprovalState } from "@/lib/dashboard-data"
 import { useStepDecisions } from "@/lib/request-activity-store"
@@ -55,18 +54,18 @@ export function RequestApprovalFlow({
   const currentIndex = merged.findIndex((s, i) => i > 0 && s.state === "pending")
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">Approval flow</h2>
-        <span className="text-sm font-medium text-muted-foreground">
-          {completed} of {total} completed
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Approval Flow</p>
+        <span className="text-xs font-medium text-muted-foreground">
+          {completed} of {total}
         </span>
       </div>
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-foreground/60 transition-all" style={{ width: `${progressPct}%` }} />
       </div>
 
-      <ol className="mt-6 flex flex-col">
+      <ol className="mt-5 flex flex-col">
         {merged.map((step, i) => {
           const isLast = i === merged.length - 1
           const done = step.state === "approved"
@@ -142,7 +141,7 @@ export function RequestApprovalFlow({
           )
         })}
       </ol>
-    </Card>
+    </div>
   )
 }
 
