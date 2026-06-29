@@ -47,13 +47,13 @@ function competitionHref(ref?: string): string | null {
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
-  Draft: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  Sent: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  "Awaiting Delivery": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
-  "Partially Delivered": { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF3E8]" },
-  Delivered: { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#ABEFC6] bg-[#ECFDF3]" },
-  Closed: { dot: "bg-[#667085]", text: "text-[#667085]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  Cancelled: { dot: "bg-[#B42318]", text: "text-[#B42318]", bg: "border border-[#FECDCA] bg-[#FEF3F2]" },
+  Draft:                { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Sent:                 { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  "Awaiting Delivery":  { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
+  "Partially Delivered":{ dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
+  Delivered:            { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
+  Closed:               { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Cancelled:            { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
 }
 
 function StatusPill({ status }: { status: OrderStatus }) {

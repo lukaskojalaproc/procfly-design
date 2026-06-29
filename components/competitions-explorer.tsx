@@ -56,12 +56,12 @@ function closingLabel(hours: number | null): { text: string; urgent: boolean } |
 // Status pill
 // ---------------------------------------------------------------------------
 const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
-  Draft:          { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
-  "Ready to Start": { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
-  Active:         { dot: "bg-[#16a34a]",             text: "text-[#166534]",        bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
-  Evaluation:     { dot: "bg-foreground/60",        text: "text-foreground",       bg: "border border-foreground/15 bg-foreground/[0.04]" },
-  Awarded:        { dot: "bg-foreground",           text: "text-foreground",       bg: "border border-foreground/20 bg-foreground/[0.06]" },
-  Cancelled:      { dot: "bg-muted-foreground/50", text: "text-muted-foreground", bg: "border border-border bg-muted" },
+  Draft:            { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  "Ready to Start": { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Active:           { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
+  Evaluation:       { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
+  Awarded:          { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
+  Cancelled:        { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
 }
 
 function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolean }) {
