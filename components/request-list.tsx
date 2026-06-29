@@ -20,19 +20,20 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/** Amount — uniform plain text, semibold for large values. No color variation. */
+/** Amount — pill with white background and border so it reads as the primary value at a glance. */
 function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
   const tier = priceTier(amount)
   if (tier === "none") {
     return <span className="shrink-0 text-sm tabular-nums text-[#94A3B8]">—</span>
   }
-  const isLarge = tier === "high" || tier === "critical"
+  const isCritical = tier === "critical"
+  const isLarge = tier === "high" || isCritical
   const amountStr = formatAmount(amount)
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
   return (
     <span className={cn(
-      "shrink-0 tabular-nums text-[#0F172A]",
-      tier === "critical" ? "text-[15px] font-bold" : isLarge ? "text-[14px] font-semibold" : "text-[14px] font-medium"
+      "shrink-0 rounded-lg border border-border bg-background px-2.5 py-1 tabular-nums shadow-sm",
+      isCritical ? "text-[15px] font-bold text-[#0F172A]" : isLarge ? "text-[14px] font-semibold text-[#0F172A]" : "text-[13px] font-medium text-[#0F172A]"
     )}>
       {display}
     </span>

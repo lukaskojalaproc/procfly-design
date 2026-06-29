@@ -119,13 +119,14 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   if (tier === "none") {
     return <span className="shrink-0 text-sm tabular-nums text-muted-foreground">—</span>
   }
-  const isLarge = tier === "high" || tier === "critical"
+  const isCritical = tier === "critical"
+  const isLarge = tier === "high" || isCritical
   const amountStr = formatAmount(amount)
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
   return (
     <span className={cn(
-      "shrink-0 tabular-nums text-foreground",
-      tier === "critical" ? "text-[15px] font-bold" : isLarge ? "text-[14px] font-semibold" : "text-[14px] font-medium"
+      "shrink-0 rounded-lg border border-border bg-background px-2.5 py-1 tabular-nums shadow-sm",
+      isCritical ? "text-[15px] font-bold text-foreground" : isLarge ? "text-[14px] font-semibold text-foreground" : "text-[13px] font-medium text-foreground"
     )}>
       {display}
     </span>
