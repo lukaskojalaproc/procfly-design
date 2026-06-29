@@ -43,7 +43,7 @@ const statusStyles: Record<ContractStatus, string> = {
   Active:             `${pill} text-[#166534]`,
   "Expiring Soon":    `${pill} text-[#d97706]`,
   Expired:            `${pill} text-[#dc2626]`,
-  Terminated:         `${pill} text-[#64748B]`,
+  Terminated:         `${pill} text-[#0F172A]`,
 }
 
 function StatusPill({ status }: { status: ContractStatus }) {
