@@ -21,27 +21,50 @@ const attentionIcon: Record<AttentionItem["type"], typeof AlertTriangle> = {
   supplier: Building2,
 }
 
+// All icons use a single neutral muted tone — no color variety.
 const attentionTone: Record<AttentionItem["severity"], string> = {
-  high: "bg-destructive/10 text-destructive",
-  medium: "bg-chart-2/15 text-chart-2",
+  high: "bg-muted text-muted-foreground",
+  medium: "bg-muted text-muted-foreground",
 }
 
+// Action button variants per action label.
+// "Complete" = primary green. Everything else = neutral outline.
+function ActionButton({ label }: { label: string }) {
+  const isPrimary = label === "Complete"
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center gap-0.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+        isPrimary
+          ? "bg-primary text-primary-foreground"
+          : "border border-border bg-card text-muted-foreground group-hover:border-border/80 group-hover:text-foreground",
+      )}
+    >
+      {label}
+      <ChevronRight className="size-3" />
+    </span>
+  )
+}
+
+// Activity feed icons: green = approved, red = rejected, gray = everything else.
+// Yellow removed.
 const feedIcon: Record<FeedKind, { icon: typeof CheckCircle2; cls: string }> = {
-  approved: { icon: CheckCircle2, cls: "bg-primary/12 text-primary" },
-  submitted: { icon: Send, cls: "bg-chart-3/12 text-chart-3" },
-  rejected: { icon: XCircle, cls: "bg-destructive/12 text-destructive" },
-  comment: { icon: MessageSquare, cls: "bg-accent text-accent-foreground" },
+  approved: { icon: CheckCircle2, cls: "bg-emerald-50 text-emerald-600" },
+  submitted: { icon: Send, cls: "bg-muted text-muted-foreground" },
+  rejected: { icon: XCircle, cls: "bg-red-50 text-red-500" },
+  comment: { icon: MessageSquare, cls: "bg-muted text-muted-foreground" },
   updated: { icon: PenLine, cls: "bg-muted text-muted-foreground" },
 }
 
 export function SideColumn() {
   return (
     <div className="flex flex-col gap-4">
-      {/* Needs Attention — actionable items */}
-      <Card className="card-shadow p-5">
+      {/* Needs Attention */}
+      <Card className="card-shadow p-6">
         <div className="mb-4 flex items-center justify-between">
+          {/* Title: 700 */}
           <h2 className="text-lg font-bold text-foreground">Needs Attention</h2>
-          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+          <span className="rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-500">
             {needsAttention.length}
           </span>
         </div>
@@ -52,24 +75,17 @@ export function SideColumn() {
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50"
+                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
                 >
-                  <span
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                      attentionTone[item.severity],
-                    )}
-                  >
+                  <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", attentionTone[item.severity])}>
                     <Icon className="size-4.5" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                    {/* Body: 400 */}
+                    <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
                     <p className="truncate text-xs text-muted-foreground">{item.meta}</p>
                   </div>
-                  <span className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground transition-colors group-hover:border-primary group-hover:text-primary">
-                    {item.action}
-                    <ChevronRight className="size-3.5" />
-                  </span>
+                  <ActionButton label={item.action} />
                 </Link>
               </li>
             )
@@ -77,8 +93,8 @@ export function SideColumn() {
         </ul>
       </Card>
 
-      {/* Recent Activity — who did what, to which request */}
-      <Card className="card-shadow p-5">
+      {/* Recent Activity */}
+      <Card className="card-shadow p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Recent Activity</h2>
           <Link href="/approvals" className="btn-secondary py-1 text-xs">
@@ -91,13 +107,17 @@ export function SideColumn() {
             const isLast = i === activityFeed.length - 1
             return (
               <li key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
-                {!isLast && <span className="absolute left-[15px] top-9 h-[calc(100%-1.5rem)] w-px bg-border" />}
+                {!isLast && (
+                  <span className="absolute left-[15px] top-9 h-[calc(100%-1.5rem)] w-px bg-border" />
+                )}
                 <span className={cn("relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full", cls)}>
                   <Icon className="size-4" />
                 </span>
                 <Link href={item.href} className="min-w-0 flex-1 rounded-lg py-0.5 hover:underline">
                   <p className="text-sm leading-snug text-foreground">
-                    <span className="font-semibold">{item.actor}</span> {item.action}{" "}
+                    {/* Labels: 500 */}
+                    <span className="font-medium">{item.actor}</span>{" "}
+                    <span className="text-muted-foreground">{item.action}</span>{" "}
                     <span className="text-muted-foreground">{item.target}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">{item.date}</p>

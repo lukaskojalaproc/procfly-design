@@ -10,7 +10,7 @@ interface PriceTagProps {
 
 const tierStyles: Record<
   PriceTier,
-  { amount: string; size: string; bar: string; label?: string }
+  { amount: string; size: string; bar: string }
 > = {
   none: {
     amount: "text-muted-foreground/70 font-medium",
@@ -18,25 +18,25 @@ const tierStyles: Record<
     bar: "bg-transparent",
   },
   low: {
+    amount: "text-foreground font-medium",
+    size: "text-sm",
+    bar: "bg-muted-foreground/20",
+  },
+  mid: {
     amount: "text-foreground font-semibold",
     size: "text-base",
     bar: "bg-muted-foreground/30",
   },
-  mid: {
+  high: {
     amount: "text-foreground font-semibold",
     size: "text-lg",
-    bar: "bg-primary/50",
+    bar: "bg-muted-foreground/40",
   },
-  high: {
+  critical: {
+    // High value: number stays foreground (black), no green
     amount: "text-foreground font-bold",
     size: "text-xl",
     bar: "bg-primary",
-  },
-  critical: {
-    amount: "text-primary font-bold",
-    size: "text-2xl",
-    bar: "bg-primary",
-    label: "High value",
   },
 }
 
@@ -44,7 +44,6 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
   const tier = priceTier(amount)
   const style = tierStyles[tier]
 
-  // Zero-cost requests (e.g. "Add New Supplier") have no meaningful price.
   if (tier === "none") {
     return (
       <div className="flex flex-col items-end gap-1">
@@ -62,11 +61,6 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
   return (
     <div className="flex w-36 flex-col items-end gap-1.5">
       <div className="flex items-baseline gap-1.5">
-        {style.label && (
-          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground">
-            {style.label}
-          </span>
-        )}
         <span className={cn("tabular-nums leading-none", style.amount, style.size)}>
           {isLarge ? formatCompact(amount) : formatAmount(amount)}
         </span>
@@ -74,7 +68,13 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
           {currency}
         </span>
       </div>
-      {/* Relative magnitude bar — lets you compare request sizes at a glance */}
+      {/* "High value request" label — outline badge, no fill */}
+      {tier === "critical" && (
+        <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] font-medium text-primary">
+          High value request
+        </span>
+      )}
+      {/* Relative magnitude bar */}
       <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={cn("h-full rounded-full transition-all", style.bar)}

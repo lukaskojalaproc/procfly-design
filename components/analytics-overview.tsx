@@ -17,6 +17,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   XAxis,
   YAxis,
 } from "recharts"
@@ -46,8 +47,8 @@ const kpiIcon: Record<Kpi["key"], typeof TrendingUp> = {
 }
 
 const spendChartConfig: ChartConfig = {
-  spend: { label: "Spend", color: "var(--chart-1)" },   // green
-  budget: { label: "Budget", color: "var(--chart-3)" }, // neutral gray
+  spend: { label: "Spend", color: "var(--chart-1)" },
+  budget: { label: "Budget", color: "var(--chart-3)" },
 }
 
 const categoryChartConfig: ChartConfig = {
@@ -63,25 +64,30 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       ? `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}`
       : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
 
+  // Only "savings" gets a coloured number — everything else stays foreground (black).
+  const valueColour = kpi.key === "savings" ? "text-primary" : "text-foreground"
+
+  // Delta pill: muted tones — not vivid green/red.
+  const deltaCls = isGood
+    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+    : "bg-red-50 text-red-500 border border-red-100"
+
   return (
-    <Card className="card-shadow flex flex-col gap-4 p-6 transition-shadow hover:shadow-md">
+    <Card className="card-shadow flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        {/* Single accent color for all icons — ProcFly green */}
+        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/8 text-primary">
           <Icon className="size-4.5" />
         </span>
-        <span
-          className={cn(
-            "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
-            isGood ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive",
-          )}
-        >
+        <span className={cn("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium", deltaCls)}>
           <DeltaIcon className="size-3" />
           {deltaText}
         </span>
       </div>
       <div>
-        <p className="text-[1.6rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
-        <p className="mt-2 text-sm font-semibold text-foreground">{kpi.label}</p>
+        <p className={cn("text-[1.6rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
+        {/* Section label: font-medium (500), not bold */}
+        <p className="mt-2 text-sm font-medium text-foreground">{kpi.label}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{kpi.sub}</p>
       </div>
     </Card>
@@ -100,6 +106,7 @@ export function AnalyticsOverview() {
       {/* Header + period selector */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
+          {/* Title: font-bold (700) */}
           <h2 className="text-lg font-bold text-foreground">Overview</h2>
           <p className="text-sm text-muted-foreground">
             {periodLabels[period]} · all figures {compare}
@@ -134,9 +141,10 @@ export function AnalyticsOverview() {
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Spend over time */}
-        <Card className="card-shadow p-5 lg:col-span-2">
+        <Card className="card-shadow p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
+              {/* Section title: font-semibold (600) */}
               <h3 className="font-semibold text-foreground">Spend over time</h3>
               <p className="text-xs text-muted-foreground">Committed spend vs allocated budget</p>
             </div>
@@ -153,8 +161,8 @@ export function AnalyticsOverview() {
             <AreaChart data={spend} margin={{ left: 4, right: 4, top: 4 }}>
               <defs>
                 <linearGradient id="fillSpend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -183,7 +191,7 @@ export function AnalyticsOverview() {
                 dataKey="budget"
                 type="monotone"
                 stroke="var(--color-budget)"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 strokeDasharray="4 4"
                 fill="none"
               />
@@ -198,8 +206,8 @@ export function AnalyticsOverview() {
           </ChartContainer>
         </Card>
 
-        {/* Spend by category */}
-        <Card className="card-shadow p-5">
+        {/* Spend by category — first bar green, rest light gray */}
+        <Card className="card-shadow p-6">
           <div className="mb-4">
             <h3 className="font-semibold text-foreground">Spend by category</h3>
             <p className="text-xs text-muted-foreground">Top categories this workspace</p>
@@ -227,7 +235,14 @@ export function AnalyticsOverview() {
                   />
                 }
               />
-              <Bar dataKey="spend" fill="var(--color-spend)" radius={4} barSize={18} />
+              <Bar dataKey="spend" radius={4} barSize={18}>
+                {categories.map((_entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index === 0 ? "var(--chart-1)" : "oklch(0.88 0.004 240)"}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ChartContainer>
         </Card>

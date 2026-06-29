@@ -80,8 +80,8 @@ export const stats = {
 
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
   Draft: { label: "Draft", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
-  "Pending Approval": { label: "Pending Approval", badge: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
-  Approved: { label: "Approved", badge: "bg-primary/12 text-primary", dot: "bg-primary" },
+  "Pending Approval": { label: "Pending Approval", badge: "border border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" },
+  Approved: { label: "Approved", badge: "border border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
   Rejected: { label: "Rejected", badge: "bg-destructive/12 text-destructive", dot: "bg-destructive" },
   Cancelled: { label: "Cancelled", badge: "bg-destructive/10 text-destructive", dot: "bg-destructive/70" },
   Archived: { label: "Archived", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },

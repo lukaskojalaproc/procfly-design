@@ -84,8 +84,8 @@
   --chart-5: oklch(0.43 0.1 162);
   /* Radius — slightly larger for modern premium feel */
   --radius: 0.875rem;
-  /* Sidebar — darker, desaturated forest green */
-  --sidebar: oklch(0.38 0.09 162);
+  /* Sidebar — very dark, desaturated; closer to Linear/Attio */
+  --sidebar: oklch(0.30 0.07 162);
   --sidebar-foreground: oklch(0.97 0.008 162);
   /* Active item — very subtle white overlay */
   --sidebar-primary: oklch(1 0 0 / 12%);
@@ -95,12 +95,12 @@
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.99 0 0);
-  /* Brand-green hero — matches darker sidebar */
-  --hero: oklch(0.38 0.09 162);
+  /* Brand-green hero — matches sidebar */
+  --hero: oklch(0.30 0.07 162);
   --hero-foreground: oklch(0.97 0.008 162);
   --hero-muted: oklch(0.85 0.04 162);
   --hero-border: oklch(1 0 0 / 10%);
-  --hero-accent: oklch(0.33 0.09 162);
+  --hero-accent: oklch(0.26 0.07 162);
 }
 
 .dark {
@@ -188,12 +188,12 @@
 }
 
 @layer utilities {
-  /* Premium card shadow — soft, layered, not harsh */
+  /* Premium card shadow — very soft, barely there */
   .card-shadow {
     box-shadow:
-      0 1px 3px 0 oklch(0 0 0 / 0.06),
-      0 4px 12px -2px oklch(0 0 0 / 0.08),
-      0 0 0 1px oklch(0 0 0 / 0.035);
+      0 1px 2px 0 oklch(0 0 0 / 0.04),
+      0 3px 8px -2px oklch(0 0 0 / 0.06),
+      0 0 0 1px oklch(0 0 0 / 0.028);
   }
   /* Progress bar track/fill globals */
   .progress-track {
@@ -202,9 +202,9 @@
   .progress-fill {
     @apply h-full rounded-full bg-primary transition-all;
   }
-  /* Table row hover — very subtle green tint */
+  /* Table row hover — neutral muted, no green tint */
   .table-row-hover:hover {
-    background-color: oklch(0.96 0.025 162 / 0.45);
+    background-color: oklch(0.965 0.004 240 / 0.7);
   }
   /* Secondary button style */
   .btn-secondary {

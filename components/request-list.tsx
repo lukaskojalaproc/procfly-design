@@ -32,7 +32,8 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       className="group flex items-center gap-4 rounded-xl px-3 py-4 transition-colors table-row-hover"
     >
       <span className={cn("h-10 w-1 shrink-0 rounded-full", statusMeta[request.status].dot)} />
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
+      {/* Icon: single ProcFly green accent */}
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
         <Icon className="size-5" />
       </div>
 
@@ -45,7 +46,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
+            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
               {initials(request.requester)}
             </span>
             {request.requester}
@@ -137,12 +138,8 @@ export function RequestList() {
               )}
             >
               {tab.label}
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
-                  active ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground",
-                )}
-              >
+              {/* Count badge: neutral always, no green */}
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                 {tab.count}
               </span>
             </button>
