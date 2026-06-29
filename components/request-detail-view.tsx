@@ -341,7 +341,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
       <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
 
       {/* ── Main layout: left tabbed content + right discussion panel ────── */}
-      <div className="flex min-h-0 flex-1 items-stretch gap-6 pt-8">
+      <div className="flex min-h-0 flex-1 items-stretch gap-6 pt-6">
 
         {/* ── Left: tabs + tab content ─────────────────────────────────────── */}
         <div className="flex min-w-0 flex-1 flex-col">
