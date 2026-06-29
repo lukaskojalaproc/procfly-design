@@ -57,7 +57,7 @@ function closingLabel(hours: number | null): { text: string; urgent: boolean } |
 // ---------------------------------------------------------------------------
 const statusStyles: Record<CompetitionStatus, { dot: string; text: string; bg: string }> = {
   Draft:            { dot: "bg-[#475467]", text: "text-[#475467]", bg: "border border-[#E2E8F0] bg-[#F8FAFC]" },
-  "Ready to Start": { dot: "bg-[#475467]", text: "text-[#475467]", bg: "border border-[#D0D5DD] bg-[#F8FAFC]" },
+  "Ready to Start": { dot: "bg-white",     text: "text-white",     bg: "border border-[#0F172A] bg-[#0F172A]" },
   Active:           { dot: "bg-[#15803D]", text: "text-[#15803D]", bg: "border border-[#BBF7D0] bg-[#ECFDF3]" },
   Evaluation:       { dot: "bg-[#B54708]", text: "text-[#B54708]", bg: "border border-[#F1E4B5] bg-[#FEF6E8]" },
   Awarded:          { dot: "bg-[#166534]", text: "text-[#166534]", bg: "border border-[#BBF7D0] bg-[#ECFDF3]" },
