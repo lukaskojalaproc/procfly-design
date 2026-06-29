@@ -38,9 +38,9 @@ import {
 const statusStyles: Record<SupplierStatus, { dot: string; text: string; bg: string }> = {
   Pending:   { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
   Active:    { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
-  Preferred: { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Preferred: { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
   Blocked:   { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
-  Archived:  { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Archived:  { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
 }
 
 function StatusPill({ status }: { status: SupplierStatus }) {

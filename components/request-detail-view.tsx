@@ -664,9 +664,9 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                         ? "bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0]"
                         : docStatus === "Pending Review"
                           // Grey — neutral waiting, not amber (no action needed from viewer)
-                          ? "bg-[#f9fafb] text-[#6b7280] border border-[#d1d5db]"
-                          // Dark grey — missing / blocked (not red — document absence is not an error state)
-                          : "bg-[#f3f4f6] text-[#374151] border border-[#d1d5db]"
+                          ? "bg-[#F8FAFC] text-[#64748B] border border-[#CBD5E1]"
+                          // Slate-dark — missing / blocked
+                          : "bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]"
                     return (
                       <div key={i} className="flex items-center justify-between gap-4 bg-card px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">

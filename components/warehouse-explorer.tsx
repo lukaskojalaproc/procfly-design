@@ -51,7 +51,7 @@ const statusStyles: Record<StockStatus, { dot: string; text: string; bg: string 
   "In Stock":     { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
   "Low Stock":    { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
   "Out of Stock": { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
-  Archived:       { dot: "bg-[#9ca3af]", text: "text-[#6b7280]", bg: "border border-[#e5e7eb] bg-[#f9fafb]" },
+  Archived:       { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
 }
 
 function StatusPill({ status }: { status: StockStatus }) {

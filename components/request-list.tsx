@@ -57,8 +57,8 @@ function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTo
       </div>
       {/* Two-part label: remaining prominent, total secondary with slash separator */}
       <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
-        <span className="text-[11px] font-semibold text-[#374151]">{remainingStr}</span>
-        <span className="text-[10px] text-[#9CA3AF]">/ {totalStr}</span>
+        <span className="text-[11px] font-semibold text-[#475569]">{remainingStr}</span>
+        <span className="text-[10px] text-[#94A3B8]">/ {totalStr}</span>
       </div>
     </div>
   )
