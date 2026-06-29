@@ -65,7 +65,7 @@ function Section({ title }: { title: string }) {
 
 function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
+    <div className="mt-3 overflow-hidden rounded-xl border border-border/40 bg-card">
       {children}
     </div>
   )
@@ -73,8 +73,8 @@ function FieldGroup({ children }: { children: React.ReactNode }) {
 
 function Field({ label, value, children }: { label: string; value?: string | null; children?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[200px_1fr] items-start gap-4 border-b border-border/60 px-4 py-3 last:border-0">
-      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+    <div className="grid grid-cols-[200px_1fr] items-start gap-6 border-b border-border/25 px-5 py-4 last:border-0">
+      <span className="shrink-0 text-[12px] text-muted-foreground/55 pt-px">{label}</span>
       <span className="text-sm font-medium text-foreground">{children ?? value ?? "—"}</span>
     </div>
   )
