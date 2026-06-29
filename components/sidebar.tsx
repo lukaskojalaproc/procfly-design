@@ -118,8 +118,8 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
-        <button className="group flex w-full items-center gap-3 rounded-lg border border-white/40 bg-white/20 px-2 py-2 text-left transition-all hover:border-white/60 hover:bg-white/30 active:scale-[0.98]">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white/30 text-xs font-bold text-white">
+        <button className="group flex w-full items-center gap-3 rounded-lg border border-black/40 bg-black/40 px-2 py-2 text-left transition-all hover:bg-black/60 active:scale-[0.98]">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-black/40 text-xs font-bold text-white">
             PF
           </div>
           <div className="flex-1 overflow-hidden">
