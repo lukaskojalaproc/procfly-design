@@ -73,7 +73,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
     : "bg-red-50 text-red-500 border border-red-100"
 
   return (
-    <Card className="card-shadow flex flex-col gap-4 p-6">
+    <Card className="card-shadow flex flex-col gap-5 px-6 py-7">
       <div className="flex items-center justify-between">
         {/* Single accent color for all icons — ProcFly green */}
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
@@ -85,10 +85,9 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         </span>
       </div>
       <div>
-        <p className={cn("text-[1.6rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
-        {/* Section label: font-medium (500), not bold */}
-        <p className="mt-2 text-sm font-medium text-foreground">{kpi.label}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{kpi.sub}</p>
+        <p className={cn("text-[1.75rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
+        <p className="mt-2.5 text-sm font-medium text-foreground">{kpi.label}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
       </div>
     </Card>
   )

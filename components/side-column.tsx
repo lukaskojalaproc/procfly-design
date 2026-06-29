@@ -68,7 +68,7 @@ export function SideColumn() {
             {needsAttention.length}
           </span>
         </div>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {needsAttention.map((item) => {
             const Icon = attentionIcon[item.type]
             return (
@@ -101,26 +101,26 @@ export function SideColumn() {
             View all
           </Link>
         </div>
-        <ol className="flex flex-col gap-1">
+        <ol className="flex flex-col gap-0.5">
           {activityFeed.map((item, i) => {
             const { icon: Icon, cls } = feedIcon[item.kind]
             const isLast = i === activityFeed.length - 1
             return (
-              <li key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+              <li key={item.id} className="relative flex gap-3 pb-5 last:pb-0">
                 {!isLast && (
-                  <span className="absolute left-[15px] top-9 h-[calc(100%-1.5rem)] w-px bg-border" />
+                  <span className="absolute left-[15px] top-9 h-[calc(100%-1.75rem)] w-px bg-border/60" />
                 )}
                 <span className={cn("relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full", cls)}>
                   <Icon className="size-4" />
                 </span>
+                {/* Increased line-height; actor same color as action text (foreground/80) */}
                 <Link href={item.href} className="min-w-0 flex-1 rounded-lg py-0.5 hover:underline">
-                  <p className="text-sm leading-snug text-foreground">
-                    {/* Labels: 500 */}
-                    <span className="font-medium">{item.actor}</span>{" "}
-                    <span className="text-muted-foreground">{item.action}</span>{" "}
-                    <span className="text-muted-foreground">{item.target}</span>
+                  <p className="text-sm leading-relaxed text-foreground/75">
+                    <span className="font-semibold text-foreground/90">{item.actor}</span>{" "}
+                    {item.action}{" "}
+                    {item.target}
                   </p>
-                  <p className="text-xs text-muted-foreground">{item.date}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground/70">{item.date}</p>
                 </Link>
               </li>
             )

@@ -78,13 +78,15 @@ export const stats = {
 // the Approvals module.
 // ---------------------------------------------------------------------------
 
+// Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
+// Keep fills very light so badges read as metadata, not primary information.
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  Draft: { label: "Draft", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
-  "Pending Approval": { label: "Pending Approval", badge: "border border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" },
-  Approved: { label: "Approved", badge: "border border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-  Rejected: { label: "Rejected", badge: "bg-destructive/12 text-destructive", dot: "bg-destructive" },
-  Cancelled: { label: "Cancelled", badge: "bg-destructive/10 text-destructive", dot: "bg-destructive/70" },
-  Archived: { label: "Archived", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },
+  Draft:             { label: "Draft",            badge: "bg-muted/70 text-muted-foreground/70",                              dot: "bg-muted-foreground/40" },
+  "Pending Approval":{ label: "Pending",           badge: "border border-amber-200/60 bg-amber-50/50 text-amber-600/90",      dot: "bg-amber-400" },
+  Approved:          { label: "Approved",          badge: "border border-emerald-200/60 bg-emerald-50/50 text-emerald-600/90", dot: "bg-emerald-500" },
+  Rejected:          { label: "Rejected",          badge: "border border-red-200/60 bg-red-50/50 text-red-500/90",            dot: "bg-destructive" },
+  Cancelled:         { label: "Cancelled",         badge: "border border-red-100/50 bg-red-50/30 text-red-400/80",            dot: "bg-destructive/60" },
+  Archived:          { label: "Archived",          badge: "bg-muted/50 text-muted-foreground/50",                             dot: "bg-muted-foreground/30" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */

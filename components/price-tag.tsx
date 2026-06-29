@@ -8,35 +8,31 @@ interface PriceTagProps {
   max: number
 }
 
-const tierStyles: Record<
-  PriceTier,
-  { amount: string; size: string; bar: string }
-> = {
+const tierStyles: Record<PriceTier, { amountCls: string; sizeCls: string; barCls: string }> = {
   none: {
-    amount: "text-muted-foreground/70 font-medium",
-    size: "text-sm",
-    bar: "bg-transparent",
+    amountCls: "text-muted-foreground/70 font-medium",
+    sizeCls: "text-sm",
+    barCls: "bg-transparent",
   },
   low: {
-    amount: "text-foreground font-medium",
-    size: "text-sm",
-    bar: "bg-muted-foreground/20",
+    amountCls: "text-foreground font-medium",
+    sizeCls: "text-sm",
+    barCls: "bg-muted-foreground/20",
   },
   mid: {
-    amount: "text-foreground font-semibold",
-    size: "text-base",
-    bar: "bg-muted-foreground/30",
+    amountCls: "text-foreground font-semibold",
+    sizeCls: "text-base",
+    barCls: "bg-muted-foreground/25",
   },
   high: {
-    amount: "text-foreground font-semibold",
-    size: "text-lg",
-    bar: "bg-muted-foreground/40",
+    amountCls: "text-foreground font-semibold",
+    sizeCls: "text-lg",
+    barCls: "bg-muted-foreground/35",
   },
   critical: {
-    // High value: number stays foreground (black), no green
-    amount: "text-foreground font-bold",
-    size: "text-xl",
-    bar: "bg-primary",
+    amountCls: "text-foreground font-bold",
+    sizeCls: "text-xl",
+    barCls: "bg-primary",
   },
 }
 
@@ -46,11 +42,8 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
 
   if (tier === "none") {
     return (
-      <div className="flex flex-col items-end gap-1">
-        <span className="text-sm font-medium text-muted-foreground/70">No cost</span>
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground/50">
-          {currency}
-        </span>
+      <div className="w-32 shrink-0 text-right">
+        <p className="text-sm font-medium text-muted-foreground/60">—</p>
       </div>
     )
   }
@@ -59,25 +52,29 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
   const isLarge = tier === "high" || tier === "critical"
 
   return (
-    <div className="flex w-36 flex-col items-end gap-1.5">
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn("tabular-nums leading-none", style.amount, style.size)}>
+    <div className="w-32 shrink-0">
+      {/* Amount: hero — large, foreground black */}
+      <p className="text-right">
+        <span className={cn("tabular-nums leading-none", style.amountCls, style.sizeCls)}>
           {isLarge ? formatCompact(amount) : formatAmount(amount)}
         </span>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {currency}
-        </span>
-      </div>
-      {/* "High value request" label — outline badge, no fill */}
+      </p>
+      {/* Currency: secondary — small gray, below amount */}
+      <p className="mt-0.5 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+        {currency}
+      </p>
+      {/* High value badge — tight, outline, metadata-level */}
       {tier === "critical" && (
-        <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] font-medium text-primary">
-          High value request
-        </span>
+        <p className="mt-1 text-right">
+          <span className="inline-flex rounded border border-primary/30 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-primary/80">
+            High value
+          </span>
+        </p>
       )}
       {/* Relative magnitude bar */}
-      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+      <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={cn("h-full rounded-full transition-all", style.bar)}
+          className={cn("h-full rounded-full transition-all", style.barCls)}
           style={{ width: `${pct}%` }}
         />
       </div>

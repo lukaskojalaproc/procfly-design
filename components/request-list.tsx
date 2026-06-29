@@ -29,38 +29,45 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   return (
     <Link
       href={`/requests/${request.id}`}
-      className="group flex items-center gap-4 rounded-xl px-3 py-4 transition-colors table-row-hover"
+      className="group flex items-center gap-4 rounded-xl px-3 py-5 transition-colors table-row-hover"
     >
-      {/* Left accent bar — neutral gray by default, green on hover/active */}
-      <span className="h-10 w-1 shrink-0 rounded-full bg-border transition-colors group-hover:bg-primary" />
+      {/* Left accent bar */}
+      <span className="h-11 w-1 shrink-0 rounded-full bg-border transition-colors group-hover:bg-primary" />
       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
         <Icon className="size-5" />
       </div>
 
+      {/* Title + metadata — flex-col with explicit vertical gap */}
       <div className="min-w-0 flex-1">
+        {/* Row 1: ref + title */}
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
             {request.ref}
           </span>
-          <p className="truncate font-semibold text-foreground">{request.title}</p>
+          <p className="truncate text-[0.9375rem] font-semibold leading-snug text-foreground">{request.title}</p>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        {/* Row 2: metadata — wider gaps, lighter separators */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+            <span className="flex size-4.5 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
               {initials(request.requester)}
             </span>
             {request.requester}
           </span>
-          <span className="hidden items-center gap-1 sm:inline-flex">
-            <span className="size-1 rounded-full bg-border" />
+          <span className="hidden items-center gap-1.5 sm:inline-flex">
+            <span className="size-[3px] rounded-full bg-border/60" />
             {request.department}
           </span>
-          <span className="hidden items-center gap-1 md:inline-flex">
-            <span className="size-1 rounded-full bg-border" />
-            {request.date} · {request.kind}
+          <span className="hidden items-center gap-1.5 md:inline-flex">
+            <span className="size-[3px] rounded-full bg-border/60" />
+            {request.date}
+          </span>
+          <span className="hidden items-center gap-1.5 md:inline-flex">
+            <span className="size-[3px] rounded-full bg-border/60" />
+            {request.kind}
           </span>
           {request.quotes > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
               <Users className="size-3" />
               {request.quotes} quotes
             </span>
@@ -68,11 +75,14 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         </div>
       </div>
 
-      <PriceTag amount={request.amount} currency={request.currency} max={maxAmount} />
+      {/* Amount — pushed left with explicit margin from status */}
+      <div className="mr-4">
+        <PriceTag amount={request.amount} currency={request.currency} max={maxAmount} />
+      </div>
 
       <span
         className={cn(
-          "hidden shrink-0 rounded-full px-3 py-1 text-xs font-semibold sm:inline-flex",
+          "hidden shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium sm:inline-flex",
           statusMeta[request.status].badge,
         )}
       >
