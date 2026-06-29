@@ -205,24 +205,15 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
   const status = statusMeta[request.status]
   const isCritical = priceTier(request.amount) === "critical"
   return (
-    <div className={cn(
-      "rounded-xl",
-      isCritical && "border-l-[3px] border-l-[#029F74] bg-[#EAF7F2] pl-[1px]",
-    )}>
+    <div className="rounded-xl">
       <Link
         href={`/requests/${request.id}`}
         aria-label={`Open request ${request.ref}: ${request.title}`}
-        className={cn(
-          "group flex flex-col rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
-          isCritical ? "rounded-l-none" : "rounded-xl",
-        )}
+        className="group flex flex-col rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
       >
         {/* Top row: icon + content + amount + status */}
         <div className="flex items-center gap-4">
-          <div className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
-            isCritical ? "bg-[#029F74]/[0.10] text-[#1F5A43]" : "bg-muted/60",
-          )}>
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
             <Icon className="size-4" />
           </div>
 
@@ -235,8 +226,7 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
                 {request.title}
               </p>
               {isCritical && (
-                <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ color: "#1F5A43", background: "#EAF7F2" }}>
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-foreground">
                   High Value
                 </span>
               )}
@@ -263,7 +253,7 @@ function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; 
                 <Link
                   href="/approvals"
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline"
                 >
                   View Approval Details
                   <ChevronRight className="size-3" />
