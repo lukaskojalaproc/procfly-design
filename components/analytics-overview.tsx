@@ -98,20 +98,21 @@ export function AnalyticsOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">{periodLabels[period]}</h2>
-          <p className="text-sm text-muted-foreground">{periodSubtitles[period]}</p>
+          {/* 4. Tighter gap between heading and subtitle */}
+          <p className="mt-px text-sm text-[#475569]">{periodSubtitles[period]}</p>
         </div>
-        {/* Period filter — compact, active = white card chip */}
-        <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
+        {/* 1. Period filter — borderless track, light pill active state */}
+        <div className="flex items-center gap-0.5 rounded-lg bg-muted/50 p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
               className={cn(
-                "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                "rounded-md px-2.5 py-0.5 text-sm transition-colors",
                 period === p
-                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-white/90 font-medium text-foreground/80 shadow-none"
+                  : "font-normal text-muted-foreground/70 hover:text-foreground",
               )}
             >
               {periodLabels[p]}

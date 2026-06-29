@@ -13,7 +13,7 @@ export function TopBar() {
         <input
           type="search"
           placeholder="Ieškoti užklausų, tiekėjų, patvirtinimų..."
-          className="w-full rounded-lg border border-[#DCE5EC] bg-white py-1.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-[#64748B] focus:border-primary focus:ring-2 focus:ring-primary/15"
+          className="w-full rounded-lg border border-[#DCE5EC] bg-white py-1.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-[#475569] focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </div>
       <button className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
@@ -50,7 +50,7 @@ export function PageHeader({
     <div className="flex flex-col gap-1">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">
-          Home
+          Pagrindinis
         </Link>
         {trail.map((item, i) => {
           const isLast = i === trail.length - 1
@@ -72,7 +72,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground/80">{description}</p>
+          <p className="text-sm text-[#475569]">{description}</p>
         </div>
         <div className="flex items-center gap-2">
           {actions ?? (

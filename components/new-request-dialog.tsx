@@ -1200,7 +1200,7 @@ export function NewRequestDialog({
           className="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="size-4" />
-          New Request
+          Nauja užklausa
         </button>
       )}
 
