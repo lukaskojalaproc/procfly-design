@@ -49,12 +49,21 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
       ? `${sign}${kpi.delta}`
       : `${sign}${kpi.delta}%`
 
+  // Split "€1.1M" → prefix "€", body "1.1", suffix "M"
+  // Split "2.4d"  → prefix "",  body "2.4", suffix "d"
+  // Split "84K"   → prefix "",  body "84",  suffix "K"
+  // Split "6"     → prefix "",  body "6",   suffix ""
+  const match = kpi.value.match(/^([€$£]?)([0-9.,]+)([A-Za-z]*)$/)
+  const prefix  = match?.[1] ?? ""
+  const body    = match?.[2] ?? kpi.value
+  const suffix  = match?.[3] ?? ""
+
   return (
     <div className={cn(
-      "flex min-w-0 flex-1 flex-col gap-2 px-6 py-4",
+      "flex min-w-0 flex-1 flex-col justify-between gap-3 px-6 py-5",
       !isLast && "border-r border-[#E2E8F0]",
     )}>
-      {/* Label row */}
+      {/* Top: label + delta */}
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
           {kpi.label}
@@ -67,11 +76,19 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
           {deltaText}
         </span>
       </div>
-      {/* Value */}
-      <p className="text-[1.625rem] font-semibold leading-none tabular-nums text-[#0F172A]">
-        {kpi.value}
-      </p>
-      {/* Sub — one-line context, same muted gray as label */}
+
+      {/* Value — large body, smaller prefix/suffix */}
+      <div className="flex items-baseline gap-0.5 tabular-nums leading-none">
+        {prefix && (
+          <span className="text-lg font-medium text-[#64748B]">{prefix}</span>
+        )}
+        <span className="text-[2rem] font-bold tracking-tight text-[#0F172A]">{body}</span>
+        {suffix && (
+          <span className="text-base font-semibold text-[#94A3B8]">{suffix}</span>
+        )}
+      </div>
+
+      {/* Sub */}
       <p className="truncate text-[11px] text-[#94A3B8]">{kpi.sub}</p>
     </div>
   )
