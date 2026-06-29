@@ -338,28 +338,30 @@ export const settingsTabs: TabConfig[] = [
   },
 ]
 
+const pill = "bg-[#F1F5F9]"
 /** Badge color classes keyed by value for status/role/required columns. */
 export function settingsBadgeClass(value: string): string {
   switch (value) {
     case "Active":
     case "Required":
     case "Yes":
-      return "bg-primary/10 text-primary"
+      return `${pill} text-[#166534]`
     case "Inactive":
     case "No":
-      return "bg-muted text-muted-foreground"
+      return `${pill} text-[#64748B]`
     case "Optional":
-      return "bg-amber-100 text-amber-700"
+      return `${pill} text-[#92400e]`
     case "Super Admin":
     case "Admin":
-      return "bg-rose-100 text-rose-700"
+      return `${pill} text-[#dc2626]`
     case "Finance":
     case "Legal":
-      return "bg-blue-100 text-blue-700"
+      return `${pill} text-[#1e40af]`
     case "Procurement":
+      return `${pill} text-[#166534]`
     case "Manager":
-      return "bg-emerald-100 text-emerald-700"
+      return `${pill} text-[#475569]`
     default:
-      return "bg-muted text-muted-foreground"
+      return `${pill} text-[#64748B]`
   }
 }
