@@ -13,7 +13,7 @@ export function TopBar() {
         <input
           type="search"
           placeholder="Ieškoti užklausų, tiekėjų, patvirtinimų..."
-          className="h-9 w-full rounded-lg border border-[#CBD5E1] bg-[#F8FAFC] py-2 pl-9 pr-3 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-[#94A3B8] hover:border-[#94A3B8] hover:bg-white focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+          className="h-9 w-full rounded-lg border border-[#94A3B8] bg-white py-2 pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-[#94A3B8] hover:border-[#64748B] focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </div>
       <button className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
