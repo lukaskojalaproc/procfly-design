@@ -10,7 +10,7 @@ export default function Page() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
-        <main className="flex flex-1 flex-col gap-6 p-6">
+        <main className="flex flex-1 flex-col gap-4 p-6 pt-5">
           <PageHeader />
           <AnalyticsOverview />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">

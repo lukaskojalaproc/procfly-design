@@ -67,31 +67,33 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
   // Item 1: all KPI numbers black — no green on savings either
   const valueColour = "text-foreground"
 
-  // Item 2: delta — near-neutral, color only a faint hint
+  // Item 2: delta — small, muted color hint (green good / red bad), not vivid
   const deltaCls = isGood
-    ? "bg-foreground/[0.04] text-foreground/50 border border-foreground/[0.06]"
-    : "bg-foreground/[0.04] text-foreground/50 border border-foreground/[0.06]"
+    ? "text-emerald-600/70"
+    : "text-red-500/70"
 
-  // Item 11: icon bg barely-there — not visible gray square
-  const iconCls = "bg-muted/50 text-muted-foreground/70"
+  // Item 4: icon bg nearly invisible — just a faint shape
+  const iconCls = "text-muted-foreground/50"
 
   return (
     <Card className="card-shadow flex flex-col gap-5 px-6 py-7">
       <div className="flex items-center justify-between">
-        <span className={cn("flex size-9 items-center justify-center rounded-lg", iconCls)}>
+        {/* Item 4: no background at all — just icon */}
+        <span className={cn("flex size-8 items-center justify-center", iconCls)}>
           <Icon className="size-4" />
         </span>
-        {/* Item 2: delta badge — smaller, muted */}
-        <span className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium", deltaCls)}>
+        {/* Item 2: delta — no bg, no border, just colored text */}
+        <span className={cn("inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums", deltaCls)}>
           <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
       </div>
       <div>
-        <p className={cn("text-[1.75rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
-        <p className="mt-2.5 text-sm font-medium text-foreground/85">{kpi.label}</p>
-        {/* Item 7: sub-label — less transparent, more readable */}
-        <p className="mt-1 text-xs font-normal text-foreground/45">{kpi.sub}</p>
+        {/* Item 3: all KPI numbers the same — black/foreground */}
+        <p className="text-[1.75rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
+        <p className="mt-2.5 text-sm font-medium text-foreground/80">{kpi.label}</p>
+        {/* Item 5: sub-label darker — more readable */}
+        <p className="mt-1 text-xs font-normal text-foreground/55">{kpi.sub}</p>
       </div>
     </Card>
   )
@@ -115,17 +117,17 @@ export function AnalyticsOverview() {
             {periodLabels[period]} · all figures {compare}
           </p>
         </div>
-        {/* Item 3: active filter — dark/foreground fill, not green */}
-        <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
+        {/* Item 2: active filter — light fill, dark text, never green */}
+        <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "rounded-md px-3 py-1 text-sm font-medium transition-colors",
                 period === p
-                  ? "bg-foreground/[0.08] text-foreground shadow-none"
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >

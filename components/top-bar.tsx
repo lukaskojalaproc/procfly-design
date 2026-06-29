@@ -48,8 +48,7 @@ export function PageHeader({
 }) {
   const trail = crumbs ?? [{ label: crumb }]
   return (
-    // Item 10: tighter vertical spacing — gap-2 instead of gap-4
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">
           Home
@@ -71,10 +70,10 @@ export function PageHeader({
         })}
       </nav>
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground/80">{description}</p>
         </div>
         <div className="flex items-center gap-2">
           {actions ?? (
