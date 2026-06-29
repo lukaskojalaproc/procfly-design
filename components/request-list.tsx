@@ -20,23 +20,19 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/** Amount + currency on one line. Number is the accent, currency is secondary. */
+/** Single-line amount like ZipHQ: "€ 1,000,000" or "€ 12.4K" — no size contrast. */
 function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
   const tier = priceTier(amount)
   if (tier === "none") {
-    return <span className="shrink-0 text-sm tabular-nums text-muted-foreground/40">—</span>
+    return <span className="shrink-0 text-sm tabular-nums text-[#94A3B8]">—</span>
   }
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
+  // Prefix with currency symbol if EUR, otherwise append
+  const display = currency === "EUR" ? `€ ${amountStr}` : `${amountStr} ${currency}`
   return (
-    <span className="inline-flex shrink-0 items-baseline gap-1 tabular-nums">
-      <span className={cn(
-        "font-semibold",
-        isLarge ? "text-base text-[#0F172A]" : "text-sm text-[#0F172A]/80",
-      )}>
-        {amountStr}
-      </span>
-      <span className="text-[11px] font-normal text-[#94A3B8]">{currency}</span>
+    <span className="shrink-0 text-sm font-medium tabular-nums text-[#0F172A]">
+      {display}
     </span>
   )
 }
@@ -98,12 +94,12 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         </div>
       </div>
 
-      {/* Right side: amount then status — with clear gap between them */}
-      <div className="flex shrink-0 flex-col items-end gap-2">
+      {/* Right side: amount + status on one line */}
+      <div className="flex shrink-0 items-center gap-3">
         <AmountDisplay amount={request.amount} currency={request.currency} />
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+            "w-[5.5rem] rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
             status.badge,
           )}
         >
