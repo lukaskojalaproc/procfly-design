@@ -85,11 +85,15 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   const status = statusMeta[request.status]
   const isCritical = priceTier(request.amount) === "critical"
   return (
+    <div className={cn(
+      "rounded-xl",
+      isCritical && "border-l-[3px] border-l-[#0F172A] bg-[#F8FAFC] pl-[1px]",
+    )}>
     <Link
       href={`/requests/${request.id}`}
       className={cn(
-        "group flex items-center gap-4 rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover",
-        isCritical && "ring-1 ring-[#0F172A]/25 bg-[#F8FAFC]",
+        "group flex items-center gap-4 rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
+        isCritical ? "rounded-l-none" : "rounded-xl",
       )}
     >
       {/* Icon */}
@@ -156,6 +160,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
 
       <RequestRowMenu request={request} />
     </Link>
+    </div>
   )
 }
 
