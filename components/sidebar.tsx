@@ -55,11 +55,11 @@ function NavItem({
       className={cn(
         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-[#e8f5ee] text-[#1a3d2a]"
-          : "text-[#4b6b59] hover:bg-[#f0f7f3] hover:text-[#1a3d2a]",
+          ? "bg-white/[0.10] text-white"
+          : "text-white/75 hover:bg-white/[0.06] hover:text-white",
       )}
     >
-      <Icon className={cn("size-5 shrink-0", active ? "text-[#16a34a]" : "text-[#6b9e82]")} />
+      <Icon className={cn("size-5 shrink-0", active ? "text-white" : "text-white/75")} />
       <span>{label}</span>
     </Link>
   )
@@ -78,10 +78,10 @@ export function Sidebar() {
           alt="Procfly"
           width={108}
           height={28}
-          className="opacity-90"
+          className="invert brightness-0 opacity-90"
           priority
         />
-        <Menu className="size-5 text-[#4b6b59]" />
+        <Menu className="size-5 text-white/70" />
       </div>
 
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
@@ -92,9 +92,9 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setNewRequestOpen(true)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#4b6b59] transition-all hover:bg-[#f0f7f3] hover:text-[#1a3d2a]"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/75 transition-all hover:bg-white/[0.06] hover:text-white"
           >
-            <FilePlus2 className="size-5 shrink-0 text-[#6b9e82]" />
+            <FilePlus2 className="size-5 shrink-0 text-white/75" />
             <span>New Request</span>
           </button>
           <NewRequestDialog open={newRequestOpen} onOpenChange={setNewRequestOpen} hideTrigger />
@@ -114,18 +114,18 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="border-t border-[#E2E8F0] p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-all hover:bg-[#f0f7f3]">
-          <div className="flex size-9 items-center justify-center rounded-md bg-[#e8f5ee] text-xs font-bold text-[#1a3d2a]">
+      <div className="border-t border-sidebar-border p-3">
+        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-all hover:bg-white/[0.08]">
+          <div className="flex size-9 items-center justify-center rounded-md bg-white/[0.12] text-xs font-bold text-white">
             PF
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-semibold text-[#1a2e22]">
+            <p className="truncate text-sm font-semibold text-sidebar-foreground">
               ProcFly Demo Workspace
             </p>
-            <p className="truncate text-xs text-[#4b6b59]">Select Workspace</p>
+            <p className="truncate text-xs text-sidebar-foreground/70">Select Workspace</p>
           </div>
-          <ChevronDown className="size-4 text-[#4b6b59]" />
+          <ChevronDown className="size-4 text-sidebar-foreground/70" />
         </button>
       </div>
     </aside>
