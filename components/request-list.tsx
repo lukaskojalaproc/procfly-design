@@ -47,22 +47,20 @@ function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTo
   const remainingStr = currency === "EUR" ? `€${formatCompact(remaining)}` : `${formatCompact(remaining)} ${currency}`
   const totalStr = currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`
 
-  const isNearLimit = pct >= 80
-
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
-      {/* Track — visible light gray, fill in dark slate */}
+      {/* Track */}
       <div className="h-[4px] flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
         <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: isNearLimit ? "#334155" : "#64748B" }}
+          className="h-full rounded-full bg-[#94A3B8] transition-all"
+          style={{ width: `${pct}%` }}
         />
       </div>
-      {/* Label */}
-      <span className="shrink-0 whitespace-nowrap text-[11px] text-[#475569]">
-        Liko <span className="font-semibold text-[#0F172A]">{remainingStr}</span>
-        <span className="text-[#94A3B8]"> iš {totalStr}</span>
-      </span>
+      {/* Two-part label: remaining prominent, total secondary with slash separator */}
+      <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
+        <span className="text-[11px] font-semibold text-[#374151]">{remainingStr}</span>
+        <span className="text-[10px] text-[#9CA3AF]">/ {totalStr}</span>
+      </div>
     </div>
   )
 }
@@ -87,7 +85,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   return (
     <div className={cn(
       "rounded-xl",
-      isCritical && "border-l-[3px] border-l-[#0F172A] bg-[#F8FAFC] pl-[1px]",
+      isCritical && "border-l-[3px] border-l-[#4F46E5] bg-[#F8FAFC] pl-[1px]",
     )}>
     <Link
       href={`/requests/${request.id}`}
