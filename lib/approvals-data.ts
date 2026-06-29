@@ -178,23 +178,23 @@ export function formatWaiting(activatedAt: string): string {
 }
 
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
-  overdue: { label: "Overdue", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]", dot: "bg-[#B42318]" },
-  today: { label: "Due today", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]", dot: "bg-[#B54708]" },
-  soon: { label: "Due soon", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]", dot: "bg-[#B54708]" },
-  later: { label: "Due later", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
-  none: { label: "No due date", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },
+  overdue: { label: "Overdue", badge: "border border-foreground/25 bg-foreground/[0.06] text-foreground font-semibold", dot: "bg-foreground" },
+  today:   { label: "Due today", badge: "border border-foreground/20 bg-foreground/[0.05] text-foreground", dot: "bg-foreground/70" },
+  soon:    { label: "Due soon",  badge: "border border-border bg-muted text-muted-foreground", dot: "bg-muted-foreground/60" },
+  later:   { label: "Due later", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },
+  none:    { label: "No due date", badge: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/40" },
 }
 
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {
-  "Awaiting Action": { label: "Awaiting Action", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]" },
-  "Approved by Me": { label: "Approved by Me", badge: "border border-[#ABEFC6] bg-[#ECFDF3] text-[#15803D]" },
-  "Rejected by Me": { label: "Rejected by Me", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]" },
+  "Awaiting Action":   { label: "Awaiting Action",   badge: "border border-foreground/20 bg-foreground/[0.06] text-foreground" },
+  "Approved by Me":    { label: "Approved by Me",    badge: "border border-border bg-muted text-muted-foreground" },
+  "Rejected by Me":    { label: "Rejected by Me",    badge: "border border-foreground/25 bg-foreground/[0.06] text-foreground font-medium" },
   "Changes Requested": { label: "Changes Requested", badge: "bg-muted text-muted-foreground" },
 }
 
 export const priorityMeta: Record<RequestPriority, { label: string; badge: string }> = {
-  Urgent: { label: "Urgent", badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]" },
-  High: { label: "High", badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]" },
+  Urgent: { label: "Urgent", badge: "border border-foreground/25 bg-foreground/[0.06] text-foreground font-semibold" },
+  High:   { label: "High",   badge: "border border-border bg-muted text-muted-foreground" },
   Normal: { label: "Normal", badge: "bg-muted text-muted-foreground" },
 }
 

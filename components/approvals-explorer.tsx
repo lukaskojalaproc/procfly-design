@@ -62,16 +62,10 @@ function StatBar({ stats }: { stats: { label: string; value: string; accent?: bo
     <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map((s, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
-          <span className={cn(
-            "text-[11px] font-medium uppercase tracking-widest",
-            s.accent ? "text-[#B54708]" : "text-muted-foreground",
-          )}>
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             {s.label}
           </span>
-          <span className={cn(
-            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
-            s.accent ? "text-[#B54708]" : "text-foreground",
-          )}>
+          <span className="text-[1.6rem] font-bold leading-none tracking-tight tabular-nums text-foreground">
             {s.value}
           </span>
         </div>
@@ -160,7 +154,7 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
                 {r.title}
               </p>
               {task.highValue && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[10px] font-semibold text-[#B54708]">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-foreground/20 bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-semibold text-foreground">
                   <AlertTriangle className="size-3" />
                   High Value
                 </span>
@@ -457,7 +451,7 @@ export function ApprovalsExplorer() {
             ))}
             <button
               onClick={clearFilters}
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-foreground hover:underline"
             >
               Clear Filters
             </button>
@@ -494,7 +488,7 @@ export function ApprovalsExplorer() {
             </Card>
           ) : (
             <Card className="flex flex-col items-center gap-2 p-12 text-center">
-              <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <CheckCircle2 className="size-6" />
               </span>
               <p className="font-semibold text-foreground">You are all caught up.</p>
