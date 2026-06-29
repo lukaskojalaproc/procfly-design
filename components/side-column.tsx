@@ -68,14 +68,14 @@ export function SideColumn() {
             {needsAttention.length}
           </span>
         </div>
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-4">
           {needsAttention.map((item) => {
             const Icon = attentionIcon[item.type]
             return (
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
+                  className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 transition-colors hover:border-border hover:bg-muted/30"
                 >
                   <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", attentionTone[item.severity])}>
                     <Icon className="size-4.5" />

@@ -64,11 +64,9 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       href={`/requests/${request.id}`}
       className="group flex items-center gap-4 rounded-xl px-3 py-5 transition-colors table-row-hover"
     >
-      {/* Left accent bar */}
-      <span className="h-11 w-1 shrink-0 rounded-full bg-border transition-colors group-hover:bg-primary" />
-      {/* Icon — neutral, not green. Green reserved for CTA only. */}
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <Icon className="size-5" />
+      {/* Icon — neutral. Green reserved for CTA only. */}
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground">
+        <Icon className="size-[1.1rem]" />
       </div>
 
       {/* Title + metadata */}
@@ -78,7 +76,8 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
           <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
             {request.ref}
           </span>
-          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold leading-snug text-foreground">
+          {/* Title: font-medium (500) — body weight, not heavy */}
+          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
             {request.title}
           </p>
           {/* Amount lives here — right-aligned, plenty of room, no competition */}

@@ -54,11 +54,11 @@ function NavItem({
       className={cn(
         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-white/[0.12] text-white shadow-sm"
-          : "text-white/80 hover:bg-white/[0.08] hover:text-white",
+          ? "bg-white/[0.10] text-white"
+          : "text-white/75 hover:bg-white/[0.06] hover:text-white",
       )}
     >
-      <Icon className={cn("size-5 shrink-0", active ? "text-white" : "text-white/80")} />
+      <Icon className={cn("size-5 shrink-0", active ? "text-white" : "text-white/75")} />
       <span>{label}</span>
     </Link>
   )
@@ -86,7 +86,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setNewRequestOpen(true)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 transition-all hover:bg-white/[0.08] hover:text-white"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/75 transition-all hover:bg-white/[0.06] hover:text-white"
           >
             <FilePlus2 className="size-5 shrink-0" />
             <span>New Request</span>

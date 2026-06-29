@@ -90,8 +90,10 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       </div>
       <div>
         <p className={cn("text-[1.75rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
-        <p className="mt-2.5 text-sm font-medium text-foreground">{kpi.label}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
+        {/* Label: 500 weight */}
+        <p className="mt-2.5 text-sm font-medium text-foreground/90">{kpi.label}</p>
+        {/* Sub: darker gray — not too light */}
+        <p className="mt-1 text-xs font-normal text-foreground/50">{kpi.sub}</p>
       </div>
     </Card>
   )

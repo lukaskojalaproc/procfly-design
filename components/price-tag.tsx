@@ -63,14 +63,6 @@ export function PriceTag({ amount, currency, max }: PriceTagProps) {
       <p className="mt-0.5 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
         {currency}
       </p>
-      {/* High value badge — tight, outline, metadata-level */}
-      {tier === "critical" && (
-        <p className="mt-1 text-right">
-          <span className="inline-flex rounded border border-primary/30 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-primary/80">
-            High value
-          </span>
-        </p>
-      )}
       {/* Relative magnitude bar */}
       <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-muted">
         <div
