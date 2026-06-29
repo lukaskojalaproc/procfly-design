@@ -28,17 +28,17 @@ const stateStyles: Record<DisplayState, {
     icon: Check,
   },
   in_progress: {
-    card: "border-foreground bg-card ring-1 ring-foreground",
+    card: "border-[#4A7C59]/40 bg-card shadow-[0_0_0_3px_rgba(74,124,89,0.10)]",
     dot: "bg-[#B54708] ring-[#F1E4B5]",
     label: "In Progress",
     labelCls: "text-[#B54708] bg-[#FEF6E8] border border-[#F1E4B5]",
     icon: Clock,
   },
   not_started: {
-    card: "border-border bg-card",
-    dot: "bg-border ring-border",
+    card: "border-border/60 bg-card",
+    dot: "bg-border/50 ring-border/30",
     label: "Not Started",
-    labelCls: "text-muted-foreground bg-muted/60 border border-border",
+    labelCls: "text-muted-foreground/50 bg-muted/40 border border-border/40",
     icon: Clock,
   },
   rejected: {
@@ -105,43 +105,51 @@ export function RequestApprovalFlow({
                 {/* Step card */}
                 <div
                   className={cn(
-                    "w-[220px] shrink-0 rounded-xl border p-4 transition-shadow",
+                    "w-[210px] shrink-0 rounded-xl border p-4 transition-all duration-150",
                     s.card,
-                    isCurrent && "shadow-md",
+                    dState === "not_started" && "opacity-60",
                   )}
                 >
                   {/* Top: avatar + name */}
                   <div className="flex items-start gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-bold text-foreground shadow-sm ring-1 ring-border">
+                    <span className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm ring-1",
+                      dState === "not_started"
+                        ? "bg-muted text-muted-foreground ring-border/40"
+                        : "bg-background text-foreground ring-border",
+                    )}>
                       {initials(step.name)}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold leading-tight text-foreground">
+                      <p className={cn(
+                        "text-[13px] font-semibold leading-tight",
+                        dState === "not_started" ? "text-muted-foreground" : "text-foreground",
+                      )}>
                         {step.name}
                       </p>
                       <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{step.role}</p>
                     </div>
                   </div>
 
-                  {/* Status badge */}
+                  {/* Status badge + dot */}
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        s.labelCls,
-                      )}
-                    >
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      s.labelCls,
+                    )}>
                       <Icon className="size-2.5" />
                       {isCreator ? "Created" : s.label}
                     </span>
-                    <span className={cn("size-2.5 rounded-full ring-2", s.dot)} />
+                    <span className={cn("size-2 rounded-full ring-2", s.dot)} />
                   </div>
 
-                  {/* Date / comment */}
+                  {/* Date — always shown */}
                   {step.date && (
                     <p className="mt-2 truncate text-[10px] text-muted-foreground">{step.date}</p>
                   )}
-                  {step.comment && (
+
+                  {/* Comment — only for active or completed steps */}
+                  {step.comment && (dState === "in_progress" || dState === "approved" || dState === "rejected") && (
                     <p className="mt-1.5 line-clamp-2 text-[11px] italic text-muted-foreground">
                       &ldquo;{step.comment}&rdquo;
                     </p>
