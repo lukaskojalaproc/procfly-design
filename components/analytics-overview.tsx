@@ -57,43 +57,30 @@ const categoryChartConfig: ChartConfig = {
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpiIcon[kpi.key]
-  const isGood = kpi.trend === kpi.goodWhen
   const DeltaIcon = kpi.trend === "up" ? ArrowUpRight : ArrowDownRight
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
       ? `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}`
       : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
 
-  // Item 1: all KPI numbers black — no green on savings either
-  const valueColour = "text-foreground"
-
-  // Item 2: delta — small, muted color hint (green good / red bad), not vivid
-  const deltaCls = isGood
-    ? "text-emerald-600/70"
-    : "text-red-500/70"
-
-  // Item 4: icon bg nearly invisible — just a faint shape
-  const iconCls = "text-muted-foreground/50"
+  // All deltas: same neutral color — no semantic green/red
+  const deltaCls = "text-muted-foreground/70"
 
   return (
-    <Card className="card-shadow flex flex-col gap-5 px-6 py-7">
+    <Card className="card-shadow flex flex-col gap-3 px-5 py-5">
       <div className="flex items-center justify-between">
-        {/* Item 4: no background at all — just icon */}
-        <span className={cn("flex size-8 items-center justify-center", iconCls)}>
-          <Icon className="size-4" />
+        <span className="flex size-7 items-center justify-center text-muted-foreground/45">
+          <Icon className="size-3.5" />
         </span>
-        {/* Item 2: delta — no bg, no border, just colored text */}
-        <span className={cn("inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums", deltaCls)}>
-          <DeltaIcon className="size-2.5" />
+        <span className={cn("inline-flex items-center gap-0.5 text-xs font-medium tabular-nums", deltaCls)}>
+          <DeltaIcon className="size-3" />
           {deltaText}
         </span>
       </div>
       <div>
-        {/* Item 3: all KPI numbers the same — black/foreground */}
-        <p className="text-[1.75rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
-        <p className="mt-2.5 text-sm font-medium text-foreground/80">{kpi.label}</p>
-        {/* Item 5: sub-label darker — more readable */}
-        <p className="mt-1 text-xs font-normal text-foreground/55">{kpi.sub}</p>
+        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
+        <p className="mt-2 text-sm font-medium text-foreground/80">{kpi.label}</p>
+        <p className="mt-0.5 text-xs font-normal text-foreground/50">{kpi.sub}</p>
       </div>
     </Card>
   )
