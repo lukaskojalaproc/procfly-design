@@ -29,6 +29,13 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
+  if (tier === "critical") {
+    return (
+      <span className="shrink-0 rounded-md bg-[#0F172A] px-2 py-0.5 text-sm font-semibold tabular-nums text-white">
+        {display}
+      </span>
+    )
+  }
   return (
     <span className={cn("shrink-0 tabular-nums text-[#0F172A]", isLarge ? "text-sm font-semibold" : "text-sm font-medium")}>
       {display}
