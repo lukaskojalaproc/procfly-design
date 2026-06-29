@@ -56,36 +56,35 @@ const categoryChartConfig: ChartConfig = {
 }
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
-  const isGood = kpi.trend === kpi.goodWhen
-  const DeltaIcon = kpi.trend === "up" ? ArrowUp : ArrowDown
-  const sign = kpi.trend === "up" ? "+" : "−"
+  // Arrow up = green, arrow down = red — always, no exceptions
+  const isUp = kpi.trend === "up"
+  const DeltaIcon = isUp ? ArrowUp : ArrowDown
+  const deltaColor = isUp ? "#16A34A" : "#DC2626"
+  const sign = isUp ? "+" : "−"
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
       ? `${sign}${kpi.delta}`
       : `${sign}${kpi.delta}%`
 
-  // Delta text color only — no background, no border
-  const deltaColor = isGood ? "#16A34A" : "#DC2626"
-
   return (
-    <Card className="card-shadow flex items-center justify-between gap-3 px-4 py-3.5">
-      {/* Left: label stack */}
-      <div className="min-w-0">
-        <p className="truncate text-xs font-medium text-[#64748B]">{kpi.label}</p>
-        <p className="truncate text-[10px] text-[#94A3B8]">{kpi.sub}</p>
-      </div>
-      {/* Right: number + delta */}
-      <div className="flex shrink-0 flex-col items-end gap-0.5">
-        <p className="text-xl font-bold leading-none tabular-nums text-[#0F172A]">
-          {kpi.value}
-        </p>
+    <Card className="card-shadow flex flex-col justify-between gap-3 px-4 py-4">
+      {/* Top row: delta badge right-aligned */}
+      <div className="flex items-center justify-end">
         <span
-          className="inline-flex items-center gap-px text-[10px] font-medium leading-none tabular-nums"
+          className="inline-flex items-center gap-0.5 text-[11px] font-medium leading-none tabular-nums"
           style={{ color: deltaColor }}
         >
           <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
+      </div>
+      {/* Bottom: number then label */}
+      <div>
+        <p className="text-2xl font-bold leading-none tabular-nums text-[#0F172A]">
+          {kpi.value}
+        </p>
+        <p className="mt-1.5 text-xs font-medium text-[#64748B]">{kpi.label}</p>
+        <p className="mt-0.5 text-[10px] text-[#94A3B8]">{kpi.sub}</p>
       </div>
     </Card>
   )
