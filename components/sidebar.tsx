@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -72,9 +73,14 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex">
       <div className="flex items-center justify-between px-5 py-5">
-        <span className="text-2xl font-bold tracking-tight text-sidebar-foreground">
-          Procfly
-        </span>
+        <Image
+          src="/procfly-logo.png"
+          alt="Procfly"
+          width={108}
+          height={28}
+          className="invert brightness-0 opacity-90"
+          priority
+        />
         <Menu className="size-5 text-sidebar-foreground/80" />
       </div>
 
