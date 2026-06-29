@@ -20,7 +20,7 @@ const stateStyles: Record<DisplayState, {
   labelCls: string
   icon: typeof Check
 }> = {
-  // Green — success / complete
+  // Green — only Approved
   approved: {
     card: "border-border bg-card",
     dot: "bg-[#16a34a] ring-[#bbf7d0]",
@@ -28,28 +28,28 @@ const stateStyles: Record<DisplayState, {
     labelCls: "text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0]",
     icon: Check,
   },
-  // Amber — active / awaiting decision; outline uses amber tint, not green
+  // Dark/neutral — In Progress
   in_progress: {
-    card: "border-[#d97706]/30 bg-card shadow-[0_0_0_3px_rgba(217,119,6,0.08)]",
-    dot: "bg-[#d97706] ring-[#fde68a]",
+    card: "border-border bg-card",
+    dot: "bg-[#374151] ring-[#d1d5db]",
     label: "In Progress",
-    labelCls: "text-[#92400e] bg-[#fffbeb] border border-[#fde68a]",
+    labelCls: "text-[#111827] bg-[#f3f4f6] border border-[#d1d5db]",
     icon: Clock,
   },
-  // Grey — neutral, waiting
+  // Dark/neutral — Not Started
   not_started: {
     card: "border-border/60 bg-card",
     dot: "bg-[#d1d5db] ring-[#e5e7eb]",
     label: "Not Started",
-    labelCls: "text-[#9ca3af] bg-[#f9fafb] border border-[#e5e7eb]",
+    labelCls: "text-[#6b7280] bg-[#f9fafb] border border-[#e5e7eb]",
     icon: Clock,
   },
-  // Dark grey — terminal / stopped
+  // Red — only Rejected
   rejected: {
-    card: "border-[#d1d5db] bg-card",
-    dot: "bg-[#6b7280] ring-[#d1d5db]",
+    card: "border-[#fecaca]/60 bg-card",
+    dot: "bg-[#dc2626] ring-[#fecaca]",
     label: "Rejected",
-    labelCls: "text-[#374151] bg-[#f3f4f6] border border-[#d1d5db]",
+    labelCls: "text-[#991b1b] bg-[#fef2f2] border border-[#fecaca]",
     icon: X,
   },
 }
@@ -139,12 +139,17 @@ export function RequestApprovalFlow({
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      s.labelCls,
+                      // Creator step is a neutral past event — never green
+                      isCreator
+                        ? "text-[#374151] bg-[#f3f4f6] border border-[#d1d5db]"
+                        : s.labelCls,
                     )}>
                       <Icon className="size-2.5" />
                       {isCreator ? "Created" : s.label}
                     </span>
-                    <span className={cn("size-2 rounded-full ring-2", s.dot)} />
+                    <span className={cn("size-2 rounded-full ring-2",
+                      isCreator ? "bg-[#374151] ring-[#d1d5db]" : s.dot
+                    )} />
                   </div>
 
                   {/* Date — always shown */}

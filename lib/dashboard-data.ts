@@ -86,13 +86,14 @@ export const statusMeta: Record<RequestStatus, { label: string; badge: string; d
   // Grey — neutral, no action needed
   Draft:              { label: "Draft",     badge: "border border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]", dot: "bg-[#9ca3af]" },
   Archived:           { label: "Archived",  badge: "border border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]", dot: "bg-[#9ca3af]" },
-  // Amber — action pending / in motion
-  "Pending Approval": { label: "Pending",   badge: "border border-[#fde68a] bg-[#fffbeb] text-[#92400e]", dot: "bg-[#d97706]" },
-  // Green — success / complete
+  // Dark/neutral — in motion, no colour distraction
+  "Pending Approval": { label: "Pending",   badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#374151]", dot: "bg-[#374151]" },
+  // Green — only Approved
   Approved:           { label: "Approved",  badge: "border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]", dot: "bg-[#16a34a]" },
-  // Dark grey — terminal / stopped (not an error, no red)
-  Rejected:           { label: "Rejected",  badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#374151]", dot: "bg-[#6b7280]" },
-  Cancelled:          { label: "Cancelled", badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#374151]", dot: "bg-[#6b7280]" },
+  // Red — only Rejected
+  Rejected:           { label: "Rejected",  badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b]", dot: "bg-[#dc2626]" },
+  // Dark grey — cancelled (stopped, not failure)
+  Cancelled:          { label: "Cancelled", badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#6b7280]", dot: "bg-[#9ca3af]" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */
