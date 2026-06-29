@@ -1,21 +1,11 @@
 "use client"
 
-import { Check, X, Clock } from "lucide-react"
+import { Check, X, Clock, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { initials, type ApprovalStep, type ApprovalState } from "@/lib/dashboard-data"
 import { useStepDecisions } from "@/lib/request-activity-store"
 
-// Display state for a step in the read-only progress view. The request creator
-// is never counted as an approval; a pending step is either the one currently
-// In Progress or a future step that has Not Started.
 type DisplayState = "approved" | "in_progress" | "not_started" | "rejected"
-
-const displayBadge: Record<DisplayState, { label: string; cls: string; icon: typeof Check }> = {
-  approved: { label: "Approved", cls: "bg-primary/12 text-primary", icon: Check },
-  in_progress: { label: "In Progress", cls: "bg-chart-2/15 text-chart-2", icon: Clock },
-  not_started: { label: "Not Started", cls: "bg-muted text-muted-foreground", icon: Clock },
-  rejected: { label: "Rejected", cls: "bg-destructive/12 text-destructive", icon: X },
-}
 
 function displayStateFor(state: ApprovalState, isCurrent: boolean): DisplayState {
   if (state === "approved") return "approved"
@@ -23,11 +13,43 @@ function displayStateFor(state: ApprovalState, isCurrent: boolean): DisplayState
   return isCurrent ? "in_progress" : "not_started"
 }
 
-/**
- * Read-only visualization of the approval workflow. It shows what has happened
- * and what is next — it never renders decision actions. All decision-making
- * lives in the Approval Review banner on the request detail page.
- */
+const stateStyles: Record<DisplayState, {
+  card: string
+  dot: string
+  label: string
+  labelCls: string
+  icon: typeof Check
+}> = {
+  approved: {
+    card: "border-[#BBF7D0] bg-[#ECFDF3]",
+    dot: "bg-[#15803D] ring-[#BBF7D0]",
+    label: "Approved",
+    labelCls: "text-[#15803D] bg-[#ECFDF3] border border-[#BBF7D0]",
+    icon: Check,
+  },
+  in_progress: {
+    card: "border-[#F1E4B5] bg-[#FFFBEB] ring-1 ring-[#F1E4B5]",
+    dot: "bg-[#B54708] ring-[#F1E4B5]",
+    label: "In Progress",
+    labelCls: "text-[#B54708] bg-[#FEF6E8] border border-[#F1E4B5]",
+    icon: Clock,
+  },
+  not_started: {
+    card: "border-border bg-muted/30",
+    dot: "bg-muted-foreground/30 ring-border",
+    label: "Not Started",
+    labelCls: "text-muted-foreground bg-muted border border-border",
+    icon: Clock,
+  },
+  rejected: {
+    card: "border-[#F3D6D2] bg-[#FEF3F2]",
+    dot: "bg-[#B42318] ring-[#F3D6D2]",
+    label: "Rejected",
+    labelCls: "text-[#B42318] bg-[#FEF3F2] border border-[#F3D6D2]",
+    icon: X,
+  },
+}
+
 export function RequestApprovalFlow({
   requestId,
   approvals,
@@ -37,110 +59,111 @@ export function RequestApprovalFlow({
 }) {
   const decisions = useStepDecisions(requestId)
 
-  // Merge seed approvals with any recorded decisions.
   const merged = approvals.map((step, i) => {
     const d = decisions[i]
-    return d ? { ...step, state: d.state, comment: d.comment || step.comment, date: localDate(d.at) } : step
+    return d
+      ? { ...step, state: d.state, comment: d.comment || step.comment, date: localDate(d.at) }
+      : step
   })
 
-  // Progress is measured over approval steps only — the creator (step 1) does
-  // not count as an approval.
   const approverSteps = merged.slice(1)
   const completed = approverSteps.filter((a) => a.state === "approved").length
   const total = approverSteps.length
   const progressPct = total ? Math.round((completed / total) * 100) : 0
-
-  // The current step is the first one still pending (after step 1 / creator).
   const currentIndex = merged.findIndex((s, i) => i > 0 && s.state === "pending")
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Approval Flow</p>
-        <span className="text-xs font-medium text-muted-foreground">
-          {completed} of {total}
-        </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-foreground/60 transition-all" style={{ width: `${progressPct}%` }} />
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          Approval Flow
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">{completed} of {total} approved</span>
+          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-[#15803D] transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      <ol className="mt-5 flex flex-col">
-        {merged.map((step, i) => {
-          const isLast = i === merged.length - 1
-          const done = step.state === "approved"
-          const isCurrent = i === currentIndex
-          const dState = displayStateFor(step.state, isCurrent)
-          const badge = displayBadge[dState]
-          const BadgeIcon = badge.icon
-          return (
-            <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
-              {!isLast && (
-                <span
+      {/* Horizontal scrollable steps */}
+      <div className="overflow-x-auto px-5 py-5">
+        <div className="flex min-w-max items-start gap-0">
+          {merged.map((step, i) => {
+            const isCurrent = i === currentIndex
+            const dState = displayStateFor(step.state, isCurrent)
+            const s = stateStyles[dState]
+            const Icon = s.icon
+            const isCreator = i === 0
+
+            return (
+              <div key={i} className="flex items-start">
+                {/* Step card */}
+                <div
                   className={cn(
-                    "absolute left-[15px] top-9 h-[calc(100%-1.5rem)] w-0.5",
-                    done ? "bg-primary" : "bg-border",
+                    "w-[180px] shrink-0 rounded-xl border p-4 transition-shadow",
+                    s.card,
+                    isCurrent && "shadow-md",
                   )}
-                />
-              )}
-              <span
-                className={cn(
-                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card",
-                  dState === "approved"
-                    ? "border-primary text-primary"
-                    : dState === "rejected"
-                      ? "border-destructive text-destructive"
-                      : dState === "in_progress"
-                        ? "border-chart-2 text-chart-2"
-                        : "border-border text-muted-foreground",
-                )}
-              >
-                <BadgeIcon className="size-4" />
-              </span>
-
-              <div
-                className={cn(
-                  "flex-1 rounded-xl border bg-muted/30 p-4",
-                  isCurrent ? "border-primary/40 ring-1 ring-primary/15" : "border-border",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
+                >
+                  {/* Top: avatar + name */}
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-bold text-foreground shadow-sm ring-1 ring-border">
                       {initials(step.name)}
                     </span>
-                    <div>
-                      <p className="font-semibold text-foreground">{step.name}</p>
-                      <p className="text-xs text-muted-foreground">{step.role}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold leading-tight text-foreground">
+                        {step.name}
+                      </p>
+                      <p className="truncate text-[11px] text-muted-foreground">{step.role}</p>
                     </div>
                   </div>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                      badge.cls,
-                    )}
-                  >
-                    <BadgeIcon className="size-3" />
-                    {badge.label}
-                  </span>
-                </div>
-                <div className="mt-2.5 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{step.comment ?? "No comment yet"}</span>
-                  <span className="text-muted-foreground">{step.date}</span>
+
+                  {/* Status badge */}
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        s.labelCls,
+                      )}
+                    >
+                      <Icon className="size-2.5" />
+                      {isCreator ? "Created" : s.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "size-2.5 rounded-full ring-2",
+                        s.dot,
+                      )}
+                    />
+                  </div>
+
+                  {/* Date / comment */}
+                  {step.date && (
+                    <p className="mt-2 truncate text-[10px] text-muted-foreground">{step.date}</p>
+                  )}
+                  {step.comment && (
+                    <p className="mt-1.5 line-clamp-2 text-[11px] italic text-muted-foreground">
+                      &ldquo;{step.comment}&rdquo;
+                    </p>
+                  )}
                 </div>
 
-                {/* Read-only assignment hint on the active step */}
-                {isCurrent && (
-                  <div className="mt-3 flex items-center gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-                    <Clock className="size-3.5 text-chart-2" />
-                    Assigned to: <span className="font-medium text-foreground">{step.name}</span>
+                {/* Arrow connector */}
+                {i < merged.length - 1 && (
+                  <div className="flex h-[72px] w-8 shrink-0 items-center justify-center">
+                    <ChevronRight className="size-4 text-muted-foreground/50" />
                   </div>
                 )}
               </div>
-            </li>
-          )
-        })}
-      </ol>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

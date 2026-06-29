@@ -352,7 +352,13 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
       {/* ── Details tab ───────────────────────────────────────────────────── */}
       {tab === "details" && (
-        <div className="grid grid-cols-1 gap-10 pt-6 lg:grid-cols-[1fr_304px]">
+        <div className="flex flex-col gap-0 pt-6">
+
+          {/* ── Approval Flow — full-width horizontal canvas ──────────────── */}
+          <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
+
+          {/* ── Below: left fields + right sidebar ───────────────────────── */}
+          <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-[1fr_280px]">
 
           {/* ── Left: scrollable content ─────────────────────────────────── */}
           <div className="min-w-0">
@@ -628,9 +634,8 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               </div>
             </div>
 
-            {/* Approval Flow */}
-            <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
           </div>
+        </div>
         </div>
       )}
     </div>
