@@ -87,28 +87,26 @@ function PreferredBadge() {
 // ---------------------------------------------------------------------------
 // KPI card
 // ---------------------------------------------------------------------------
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof Network
-  label: string
-  value: string
-  sub: string
-  iconClass?: string
-}) {
+function StatBar({ stats }: { stats: { label: string; value: string; sub?: string; accent?: boolean }[] }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <Icon className="size-4.5" />
-      </span>
-      <div>
-        <p className="text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground">{value}</p>
-        <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </div>
+    <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {stats.map((s, i) => (
+        <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
+          <span className={cn(
+            "text-[11px] font-medium uppercase tracking-widest",
+            s.accent ? "text-[#B42318]" : "text-muted-foreground",
+          )}>
+            {s.label}
+          </span>
+          <span className={cn(
+            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
+            s.accent ? "text-[#B42318]" : "text-foreground",
+          )}>
+            {s.value}
+          </span>
+          {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -249,44 +247,14 @@ export function SuppliersExplorer() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <KpiCard
-          icon={CheckCircle2}
-          label="Active suppliers"
-          value={`${supplierStats.active}`}
-          sub="ready to trade"
-          iconClass="bg-chart-2/15 text-chart-2"
-        />
-        <KpiCard
-          icon={Clock}
-          label="Pending suppliers"
-          value={`${supplierStats.pending}`}
-          sub="awaiting onboarding"
-          iconClass="bg-chart-3/10 text-chart-3"
-        />
-        <KpiCard
-          icon={Star}
-          label="Preferred suppliers"
-          value={`${supplierStats.preferred}`}
-          sub="strategic partners"
-          iconClass="bg-primary/10 text-primary"
-        />
-        <KpiCard
-          icon={Ban}
-          label="Blocked suppliers"
-          value={`${supplierStats.blocked}`}
-          sub="cannot transact"
-          iconClass="bg-destructive/10 text-destructive"
-        />
-        <KpiCard
-          icon={Users}
-          label="Total suppliers"
-          value={`${supplierStats.total}`}
-          sub="across all statuses"
-          iconClass="bg-primary/10 text-primary"
-        />
-      </div>
+      {/* Stat bar */}
+      <StatBar stats={[
+        { label: "Active", value: `${supplierStats.active}`, sub: "ready to trade" },
+        { label: "Pending", value: `${supplierStats.pending}`, sub: "onboarding" },
+        { label: "Preferred", value: `${supplierStats.preferred}`, sub: "strategic partners" },
+        { label: "Blocked", value: `${supplierStats.blocked}`, accent: supplierStats.blocked > 0 },
+        { label: "Total", value: `${supplierStats.total}` },
+      ]} />
 
       {/* Lifecycle tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border">

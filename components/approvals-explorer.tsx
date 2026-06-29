@@ -5,9 +5,7 @@ import Link from "next/link"
 import {
   Search,
   Clock,
-  Wallet,
   AlertTriangle,
-  CalendarClock,
   CheckCircle2,
   Package,
   Briefcase,
@@ -59,31 +57,26 @@ const PAGE_SIZE = 8
 
 // --- Summary cards ----------------------------------------------------------
 
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  tone = "default",
-}: {
-  icon: typeof Wallet
-  label: string
-  value: string
-  tone?: "default" | "warn" | "danger" | "good"
-}) {
-  const toneCls = {
-    default: "bg-muted text-muted-foreground",
-    warn: "bg-muted text-muted-foreground",
-    danger: "bg-muted text-muted-foreground",
-    good: "bg-muted text-muted-foreground",
-  }[tone]
+function StatBar({ stats }: { stats: { label: string; value: string; accent?: boolean }[] }) {
   return (
-    <Card className="flex flex-col gap-2 p-4">
-      <span className={cn("flex size-8 items-center justify-center rounded-lg", toneCls)}>
-        <Icon className="size-4" />
-      </span>
-      <span className="mt-1 text-2xl font-bold tracking-tight text-foreground">{value}</span>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    </Card>
+    <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {stats.map((s, i) => (
+        <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
+          <span className={cn(
+            "text-[11px] font-medium uppercase tracking-widest",
+            s.accent ? "text-[#B54708]" : "text-muted-foreground",
+          )}>
+            {s.label}
+          </span>
+          <span className={cn(
+            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
+            s.accent ? "text-[#B54708]" : "text-foreground",
+          )}>
+            {s.value}
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -374,25 +367,13 @@ export function ApprovalsExplorer() {
   return (
     <div className="flex flex-col gap-5">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="flex flex-col gap-2 p-4">
-              <div className="size-8 animate-pulse rounded-lg bg-muted" />
-              <div className="mt-1 h-6 w-12 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-            </Card>
-          ))
-        ) : (
-          <>
-            <SummaryCard icon={Clock} label="Awaiting My Action" value={`${summary.awaiting}`} tone="warn" />
-            <SummaryCard icon={Wallet} label="Value at Stake" value={formatCompactEur(summary.valueAtStake)} />
-            <SummaryCard icon={AlertTriangle} label="Overdue" value={`${summary.overdue}`} tone="danger" />
-            <SummaryCard icon={CalendarClock} label="Due Soon" value={`${summary.dueSoon}`} tone="warn" />
-            <SummaryCard icon={CheckCircle2} label="Completed by Me" value={`${summary.completedByMe}`} tone="good" />
-          </>
-        )}
-      </div>
+        <StatBar stats={[
+          { label: "Awaiting My Action", value: `${summary.awaiting}`, accent: summary.awaiting > 0 },
+          { label: "Value at Stake", value: formatCompactEur(summary.valueAtStake) },
+          { label: "Overdue", value: `${summary.overdue}`, accent: summary.overdue > 0 },
+          { label: "Due Soon", value: `${summary.dueSoon}` },
+          { label: "Completed by Me", value: `${summary.completedByMe}` },
+        ]} />
 
       {/* Tabs + search + filters */}
       <Card className="flex flex-col gap-4 p-4">

@@ -86,30 +86,28 @@ function StatusPill({ status, live }: { status: CompetitionStatus; live?: boolea
 }
 
 // ---------------------------------------------------------------------------
-// KPI card
+// Inline stat bar
 // ---------------------------------------------------------------------------
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof Zap
-  label: string
-  value: string
-  sub: string
-  iconClass?: string
-}) {
+function StatBar({ stats }: { stats: { label: string; value: string; sub?: string; accent?: boolean }[] }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <Icon className="size-4.5" />
-      </span>
-      <div>
-        <p className="text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground">{value}</p>
-        <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </div>
+    <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {stats.map((s, i) => (
+        <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
+          <span className={cn(
+            "text-[11px] font-medium uppercase tracking-widest",
+            s.accent ? "text-[#B42318]" : "text-muted-foreground",
+          )}>
+            {s.label}
+          </span>
+          <span className={cn(
+            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
+            s.accent ? "text-[#B42318]" : "text-foreground",
+          )}>
+            {s.value}
+          </span>
+          {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -386,44 +384,14 @@ export function CompetitionsExplorer() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <KpiCard
-          icon={Zap}
-          label="Active Competitions"
-          value={`${competitionStats.active}`}
-          sub="bidding live now"
-          iconClass="bg-primary/10 text-primary"
-        />
-        <KpiCard
-          icon={Send}
-          label="Ready to Start"
-          value={`${tabCounts["Ready to Start"]}`}
-          sub="awaiting launch"
-          iconClass="bg-chart-3/10 text-chart-3"
-        />
-        <KpiCard
-          icon={ShieldCheck}
-          label="Awarded"
-          value={`${competitionStats.awarded}`}
-          sub={`of ${competitionStats.total} total`}
-          iconClass="bg-chart-2/15 text-chart-2"
-        />
-        <KpiCard
-          icon={CircleDollarSign}
-          label="Total Savings"
-          value={fmtEur(totalSavings)}
-          sub="across awarded events"
-          iconClass="bg-chart-2/15 text-chart-2"
-        />
-        <KpiCard
-          icon={Flame}
-          label="Live Bid Value"
-          value={fmtEur(liveValue)}
-          sub="spend up for bid"
-          iconClass="bg-primary/10 text-primary"
-        />
-      </div>
+      {/* Stat bar */}
+      <StatBar stats={[
+        { label: "Active", value: `${competitionStats.active}`, sub: "bidding live" },
+        { label: "Ready to Start", value: `${tabCounts["Ready to Start"]}`, sub: "awaiting launch" },
+        { label: "Awarded", value: `${competitionStats.awarded}`, sub: `of ${competitionStats.total} total` },
+        { label: "Total Savings", value: fmtEur(totalSavings), sub: "awarded events" },
+        { label: "Live Bid Value", value: fmtEur(liveValue), sub: "spend up for bid" },
+      ]} />
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border">

@@ -82,28 +82,26 @@ function LowStockBadge() {
 // ---------------------------------------------------------------------------
 // KPI card
 // ---------------------------------------------------------------------------
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof Package
-  label: string
-  value: string
-  sub: string
-  iconClass?: string
-}) {
+function StatBar({ stats }: { stats: { label: string; value: string; sub?: string; accent?: boolean }[] }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <Icon className="size-4.5" />
-      </span>
-      <div>
-        <p className="text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground">{value}</p>
-        <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </div>
+    <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {stats.map((s, i) => (
+        <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
+          <span className={cn(
+            "text-[11px] font-medium uppercase tracking-widest",
+            s.accent ? "text-[#B42318]" : "text-muted-foreground",
+          )}>
+            {s.label}
+          </span>
+          <span className={cn(
+            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
+            s.accent ? "text-[#B42318]" : "text-foreground",
+          )}>
+            {s.value}
+          </span>
+          {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -248,14 +246,14 @@ export function WarehouseExplorer() {
   return (
     <div className="flex flex-col gap-6">
       <CreateItemDialog open={addOpen} onOpenChange={setAddOpen} />
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <KpiCard icon={Boxes} label="Total items" value={`${warehouseStats.total}`} sub="SKUs tracked" iconClass="bg-primary/10 text-primary" />
-        <KpiCard icon={AlertTriangle} label="Low stock items" value={`${warehouseStats.lowStock}`} sub="below minimum" iconClass="bg-chart-4/15 text-chart-4" />
-        <KpiCard icon={PackageX} label="Out of stock" value={`${warehouseStats.outOfStock}`} sub="needs reorder" iconClass="bg-destructive/10 text-destructive" />
-        <KpiCard icon={CircleDollarSign} label="Inventory value" value={`${formatAmount(warehouseStats.totalValue)}`} sub="EUR on hand" iconClass="bg-chart-2/15 text-chart-2" />
-        <KpiCard icon={Tags} label="Categories" value={`${warehouseStats.categories}`} sub="product groups" iconClass="bg-chart-3/10 text-chart-3" />
-      </div>
+      {/* Stat bar */}
+      <StatBar stats={[
+        { label: "Total Items", value: `${warehouseStats.total}`, sub: "SKUs tracked" },
+        { label: "Low Stock", value: `${warehouseStats.lowStock}`, sub: "below minimum", accent: warehouseStats.lowStock > 0 },
+        { label: "Out of Stock", value: `${warehouseStats.outOfStock}`, accent: warehouseStats.outOfStock > 0 },
+        { label: "Inventory Value", value: formatAmount(warehouseStats.totalValue), sub: "EUR on hand" },
+        { label: "Categories", value: `${warehouseStats.categories}` },
+      ]} />
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border">

@@ -75,28 +75,26 @@ function StatusPill({ status }: { status: OrderStatus }) {
 // ---------------------------------------------------------------------------
 // KPI card
 // ---------------------------------------------------------------------------
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof ShoppingCart
-  label: string
-  value: string
-  sub: string
-  iconClass?: string
-}) {
+function StatBar({ stats }: { stats: { label: string; value: string; sub?: string; accent?: boolean }[] }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <Icon className="size-4.5" />
-      </span>
-      <div>
-        <p className="text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground">{value}</p>
-        <p className="mt-1 text-xs font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </div>
+    <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {stats.map((s, i) => (
+        <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
+          <span className={cn(
+            "text-[11px] font-medium uppercase tracking-widest",
+            s.accent ? "text-[#B42318]" : "text-muted-foreground",
+          )}>
+            {s.label}
+          </span>
+          <span className={cn(
+            "text-[1.6rem] font-bold leading-none tracking-tight tabular-nums",
+            s.accent ? "text-[#B42318]" : "text-foreground",
+          )}>
+            {s.value}
+          </span>
+          {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -286,51 +284,15 @@ export function OrdersExplorer() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <KpiCard
-          icon={ListChecks}
-          label="All orders"
-          value={`${orderStats.total}`}
-          sub="purchase orders"
-          iconClass="bg-primary/10 text-primary"
-        />
-        <KpiCard
-          icon={FileEdit}
-          label="Draft"
-          value={`${orderStats.draft}`}
-          sub="not yet sent"
-          iconClass="bg-muted text-muted-foreground"
-        />
-        <KpiCard
-          icon={Send}
-          label="Sent"
-          value={`${orderStats.sent}`}
-          sub="awaiting response"
-          iconClass="bg-chart-3/10 text-chart-3"
-        />
-        <KpiCard
-          icon={Truck}
-          label="Awaiting delivery"
-          value={`${orderStats.awaitingDelivery}`}
-          sub="in transit"
-          iconClass="bg-chart-4/10 text-chart-4"
-        />
-        <KpiCard
-          icon={PackageCheck}
-          label="Delivered"
-          value={`${orderStats.delivered}`}
-          sub="received & closed"
-          iconClass="bg-chart-2/15 text-chart-2"
-        />
-        <KpiCard
-          icon={CircleDollarSign}
-          label="Committed"
-          value={`${formatAmount(orderStats.committed)}`}
-          sub="EUR across orders"
-          iconClass="bg-primary/10 text-primary"
-        />
-      </div>
+      {/* Stat bar */}
+      <StatBar stats={[
+        { label: "All Orders", value: `${orderStats.total}`, sub: "purchase orders" },
+        { label: "Draft", value: `${orderStats.draft}` },
+        { label: "Sent", value: `${orderStats.sent}`, sub: "awaiting response" },
+        { label: "Awaiting Delivery", value: `${orderStats.awaitingDelivery}`, sub: "in transit" },
+        { label: "Delivered", value: `${orderStats.delivered}` },
+        { label: "Committed", value: formatAmount(orderStats.committed), sub: "EUR total" },
+      ]} />
 
       {/* Lifecycle tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border">
