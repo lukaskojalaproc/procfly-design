@@ -67,12 +67,12 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
           {deltaText}
         </span>
       </div>
-      {/* Value row */}
+      {/* Value */}
       <p className="text-[1.625rem] font-semibold leading-none tabular-nums text-[#0F172A]">
         {kpi.value}
       </p>
-      {/* Sub */}
-      <p className="text-[11px] text-[#94A3B8]">{kpi.sub}</p>
+      {/* Sub — one-line context, same muted gray as label */}
+      <p className="truncate text-[11px] text-[#94A3B8]">{kpi.sub}</p>
     </div>
   )
 }

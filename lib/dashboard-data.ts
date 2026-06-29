@@ -227,25 +227,25 @@ export interface Kpi {
 
 const kpiByPeriod: Record<Period, Kpi[]> = {
   month: [
-    { key: "spend", label: "Total Spend", value: "1,100,000", sub: "EUR committed", delta: 12.4, trend: "up", goodWhen: "down" },
-    { key: "savings", label: "Savings Achieved", value: "84,000", sub: "EUR vs baseline", delta: 8.1, trend: "up", goodWhen: "up" },
-    { key: "approval", label: "Avg Approval Time", value: "2.4d", sub: "request to decision", delta: 14.0, trend: "down", goodWhen: "down" },
-    { key: "pending", label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 2, trend: "up", goodWhen: "down" },
-    { key: "competitions", label: "Open Competitions", value: "3", sub: "live sourcing events", delta: 1, trend: "up", goodWhen: "up" },
+    { key: "spend",        label: "Total Spend",       value: "€1.1M",  sub: "committed spend",      delta: 12.4, trend: "up",   goodWhen: "down" },
+    { key: "savings",      label: "Savings Achieved",  value: "€84K",   sub: "vs baseline target",   delta: 8.1,  trend: "up",   goodWhen: "up"   },
+    { key: "approval",     label: "Avg Approval Time", value: "2.4d",   sub: "request to decision",  delta: 14.0, trend: "down", goodWhen: "down" },
+    { key: "pending",      label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 2, trend: "up", goodWhen: "down" },
+    { key: "competitions", label: "Open Competitions", value: "3",      sub: "active events",        delta: 1,    trend: "up",   goodWhen: "up"   },
   ],
   quarter: [
-    { key: "spend", label: "Total Spend", value: "2,700,000", sub: "EUR committed", delta: 9.2, trend: "up", goodWhen: "down" },
-    { key: "savings", label: "Savings Achieved", value: "231,000", sub: "EUR vs baseline", delta: 11.5, trend: "up", goodWhen: "up" },
-    { key: "approval", label: "Avg Approval Time", value: "2.7d", sub: "request to decision", delta: 6.0, trend: "down", goodWhen: "down" },
-    { key: "pending", label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 1, trend: "down", goodWhen: "down" },
-    { key: "competitions", label: "Open Competitions", value: "5", sub: "live sourcing events", delta: 2, trend: "up", goodWhen: "up" },
+    { key: "spend",        label: "Total Spend",       value: "€2.7M",  sub: "committed spend",      delta: 9.2,  trend: "up",   goodWhen: "down" },
+    { key: "savings",      label: "Savings Achieved",  value: "€231K",  sub: "vs baseline target",   delta: 11.5, trend: "up",   goodWhen: "up"   },
+    { key: "approval",     label: "Avg Approval Time", value: "2.7d",   sub: "request to decision",  delta: 6.0,  trend: "down", goodWhen: "down" },
+    { key: "pending",      label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 1, trend: "down", goodWhen: "down" },
+    { key: "competitions", label: "Open Competitions", value: "5",      sub: "active events",        delta: 2,    trend: "up",   goodWhen: "up"   },
   ],
   year: [
-    { key: "spend", label: "Total Spend", value: "10,700,000", sub: "EUR committed", delta: 5.8, trend: "up", goodWhen: "down" },
-    { key: "savings", label: "Savings Achieved", value: "912,000", sub: "EUR vs baseline", delta: 17.3, trend: "up", goodWhen: "up" },
-    { key: "approval", label: "Avg Approval Time", value: "3.1d", sub: "request to decision", delta: 9.5, trend: "down", goodWhen: "down" },
-    { key: "pending", label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 4, trend: "down", goodWhen: "down" },
-    { key: "competitions", label: "Open Competitions", value: "12", sub: "live sourcing events", delta: 3, trend: "up", goodWhen: "up" },
+    { key: "spend",        label: "Total Spend",       value: "€10.7M", sub: "committed spend",      delta: 5.8,  trend: "up",   goodWhen: "down" },
+    { key: "savings",      label: "Savings Achieved",  value: "€912K",  sub: "vs baseline target",   delta: 17.3, trend: "up",   goodWhen: "up"   },
+    { key: "approval",     label: "Avg Approval Time", value: "3.1d",   sub: "request to decision",  delta: 9.5,  trend: "down", goodWhen: "down" },
+    { key: "pending",      label: "Pending Approvals", value: stats.pending.toString(), sub: "awaiting decision", delta: 4, trend: "down", goodWhen: "down" },
+    { key: "competitions", label: "Open Competitions", value: "12",     sub: "active events",        delta: 3,    trend: "up",   goodWhen: "up"   },
   ],
 }
 
