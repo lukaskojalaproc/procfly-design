@@ -125,22 +125,20 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
       <Link
         href={reviewHref}
         className={cn(
-          "flex flex-col px-3 py-[1.125rem] transition-colors table-row-hover",
+          "grid items-center gap-0 px-3 py-[1.125rem] transition-colors table-row-hover",
           isCritical ? "rounded-r-xl rounded-l-none" : "rounded-xl",
         )}
+        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(150px,1fr) minmax(170px,1fr) auto" }}
       >
-        <div className="flex items-center gap-4">
-          {/* Icon — same size/style as RequestRow */}
+        {/* Col 1 — Icon + identity */}
+        <div className="flex min-w-0 items-center gap-3 pr-6">
           <div className={cn(
             "flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
-            isCritical ? "bg-[#029F74]/[0.10] text-[#1F5A43]" : "bg-muted/60",
+            isCritical ? "bg-foreground/[0.07] text-foreground" : "bg-muted/60",
           )}>
             <Icon className="size-4" />
           </div>
-
-          {/* Main content */}
-          <div className="min-w-0 flex-1">
-            {/* Row 1: ref + priority chip (urgent only) + title + high-value badge */}
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
                 {r.ref}
@@ -150,18 +148,10 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
                   Urgent
                 </span>
               )}
-              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
+              <p className="min-w-0 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
                 {r.title}
               </p>
-              {task.highValue && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-foreground/20 bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                  <AlertTriangle className="size-3" />
-                  High Value
-                </span>
-              )}
             </div>
-
-            {/* Row 2: requester · type · step · waiting time */}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
@@ -182,46 +172,57 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
               )}
             </div>
           </div>
+        </div>
 
-          {/* Right side: due badge + amount + review button */}
-          <div className="flex shrink-0 items-center gap-4">
-            {/* Due date pill */}
-            {isActive ? (
-              <span className={cn(
-                "hidden whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold lg:inline-flex items-center gap-1.5",
-                due.badge,
-              )}>
-                <span className={cn("size-1.5 rounded-full", due.dot)} />
-                {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
-              </span>
-            ) : (
-              <span className="hidden text-xs text-muted-foreground lg:block">
-                {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
-              </span>
-            )}
-
-            {/* Amount */}
-            <div className="hidden flex-col items-end lg:flex">
-              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Amount</span>
-              <span className={cn(
-                "tabular-nums text-foreground",
-                isCritical ? "text-[15px] font-bold" : "text-[14px] font-semibold",
-              )}>
-                {formatTaskAmount(r.amount, r.currency)}
-              </span>
-            </div>
-
-            {/* Review / View button */}
+        {/* Col 2 — Due date */}
+        <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+          {isActive ? (
             <span className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors",
-              isActive
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-secondary text-foreground hover:bg-secondary/80",
+              "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
+              due.badge,
             )}>
-              {isActive ? "Review" : "View"}
-              <ArrowUpRight className="size-3.5" />
+              <span className={cn("size-1.5 rounded-full", due.dot)} />
+              {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
+            </span>
+          )}
+        </div>
+
+        {/* Col 3 — High Value badge + Amount */}
+        <div className="flex items-center justify-between gap-3 border-l border-border pl-6">
+          {task.highValue ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-foreground/20 bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-semibold text-foreground">
+              <AlertTriangle className="size-3" />
+              High Value
+            </span>
+          ) : (
+            <span />
+          )}
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Amount</span>
+            <span className={cn(
+              "tabular-nums text-foreground",
+              isCritical ? "text-[15px] font-bold" : "text-[14px] font-semibold",
+            )}>
+              {formatTaskAmount(r.amount, r.currency)}
             </span>
           </div>
+        </div>
+
+        {/* Col 4 — Review / View button */}
+        <div className="flex items-center pl-4">
+          <span className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap",
+            isActive
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-secondary text-foreground hover:bg-secondary/80",
+          )}>
+            {isActive ? "Review" : "View"}
+            <ArrowUpRight className="size-3.5" />
+          </span>
         </div>
       </Link>
     </div>
