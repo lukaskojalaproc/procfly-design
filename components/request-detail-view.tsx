@@ -269,56 +269,68 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
           All requests
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex items-start gap-4 min-w-0">
             {/* Kind icon */}
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
+            <div className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
               <Icon className="size-5" />
             </div>
-            <div>
-              {/* Ref + kind + status row */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-                  {request.ref}
-                </span>
-                <span className="text-[11px] text-muted-foreground">{request.kind}</span>
+
+            <div className="min-w-0">
+              {/* Eyebrow: ref · kind — muted, small */}
+              <p className="text-[11px] text-muted-foreground/70 font-mono tracking-wide">
+                {request.ref}
+                <span className="mx-1.5 opacity-40">·</span>
+                {request.kind}
+              </p>
+
+              {/* Primary: title + status badge */}
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                <h1 className="text-[1.375rem] font-bold leading-snug tracking-tight text-foreground text-balance">
+                  {request.title}
+                </h1>
                 <span className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
                   status.badge,
                 )}>
                   <span className={cn("size-1.5 rounded-full", status.dot)} />
                   {status.label}
                 </span>
               </div>
-              {/* Title */}
-              <h1 className="mt-1.5 text-[1.375rem] font-bold leading-snug tracking-tight text-foreground text-balance">
-                {request.title}
-              </h1>
-              {/* Meta row */}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+
+              {/* Secondary: requester · department · date */}
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="flex size-5 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-bold text-[#475569]">
+                  <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[8px] font-bold text-[#475569]">
                     {initials(request.requester)}
                   </span>
-                  <span className="font-medium text-foreground">{request.requester}</span>
+                  {request.requester}
                 </span>
+                <span className="opacity-40">·</span>
                 <span>{request.department}</span>
+                <span className="opacity-40">·</span>
                 <span>{request.date}</span>
-                <span className="font-semibold text-foreground">{amountDisplay}</span>
-                {request.quotes > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Users className="size-3.5" />
-                    {request.quotes} {request.quotes === 1 ? "quote" : "quotes"}
-                  </span>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Convert to competition etc */}
-          {request.status === "Approved" && request.kind !== "Add New Supplier" && (
-            <ApprovedRequestActions request={request} />
-          )}
+          {/* Amount — isolated right, with vertical breathing room */}
+          <div className="flex shrink-0 flex-col items-end gap-1 pt-1">
+            <p className="text-[11px] text-muted-foreground/70 uppercase tracking-widest">Amount</p>
+            <p className="text-[1.375rem] font-bold tabular-nums text-foreground">{amountDisplay}</p>
+            {request.quotes > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Users className="size-3" />
+                {request.quotes} {request.quotes === 1 ? "quote" : "quotes"}
+              </span>
+            )}
+            {/* Convert to competition etc */}
+            {request.status === "Approved" && request.kind !== "Add New Supplier" && (
+              <div className="mt-2">
+                <ApprovedRequestActions request={request} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
