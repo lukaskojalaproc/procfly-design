@@ -16,6 +16,7 @@ import {
   Network,
   Warehouse,
   Settings,
+  ShieldCheck,
   ChevronDown,
   Menu,
 } from "lucide-react"
@@ -111,6 +112,8 @@ export function Sidebar() {
         </div>
         <div className="mt-auto flex flex-col gap-1">
           <NavItem label="Settings" icon={Settings} href="/settings" active={isActive("/settings")} />
+          <div className="my-1 border-t border-white/10" />
+          <NavItem label="Super Admin" icon={ShieldCheck} href="/super-admin" active={isActive("/super-admin")} />
         </div>
       </nav>
 
