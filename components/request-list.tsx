@@ -77,13 +77,20 @@ const kindIcon: Record<RequestKind, typeof Package> = {
 function RequestRow({ request }: { request: ProcurementRequest }) {
   const Icon = kindIcon[request.kind]
   const status = statusMeta[request.status]
+  const isCritical = priceTier(request.amount) === "critical"
   return (
     <Link
       href={`/requests/${request.id}`}
-      className="group flex items-center gap-4 rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
+      className={cn(
+        "group flex items-center gap-4 rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover",
+        isCritical && "ring-1 ring-[#0F172A]/[0.12] bg-[#FAFAFA]",
+      )}
     >
       {/* Icon */}
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-[#94A3B8]">
+      <div className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-lg text-[#94A3B8]",
+        isCritical ? "bg-[#0F172A]/[0.05]" : "bg-muted/60",
+      )}>
         <Icon className="size-4" />
       </div>
 
