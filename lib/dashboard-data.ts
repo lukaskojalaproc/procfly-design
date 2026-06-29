@@ -83,12 +83,12 @@ export const stats = {
 // Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
 // Keep fills very light so badges read as metadata, not primary information.
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  Draft:             { label: "Draft",            badge: "bg-muted/70 text-muted-foreground/70",                              dot: "bg-muted-foreground/40" },
-  "Pending Approval":{ label: "Pending",           badge: "border border-amber-200/60 bg-amber-50/50 text-amber-600/90",      dot: "bg-amber-400" },
+  Draft:             { label: "Draft",            badge: "border border-[#CBD5E1] bg-white text-[#475569]",                  dot: "bg-[#94A3B8]" },
+  "Pending Approval":{ label: "Pending",           badge: "border border-[#FDE68A]/70 bg-[#FFFBEB] text-[#92400E]",           dot: "bg-amber-400" },
   Approved:          { label: "Approved",          badge: "border border-emerald-200/60 bg-emerald-50/50 text-emerald-600/90", dot: "bg-emerald-500" },
   Rejected:          { label: "Rejected",          badge: "border border-red-200/60 bg-red-50/50 text-red-500/90",            dot: "bg-destructive" },
   Cancelled:         { label: "Cancelled",         badge: "border border-red-100/50 bg-red-50/30 text-red-400/80",            dot: "bg-destructive/60" },
-  Archived:          { label: "Archived",          badge: "bg-muted/50 text-muted-foreground/50",                             dot: "bg-muted-foreground/30" },
+  Archived:          { label: "Archived",          badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]",             dot: "bg-[#94A3B8]" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */

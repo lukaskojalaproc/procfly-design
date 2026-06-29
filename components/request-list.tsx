@@ -29,15 +29,12 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
-  if (tier === "critical") {
-    return (
-      <span className="shrink-0 rounded-md bg-[#0F172A] px-2.5 py-1 text-base font-bold tabular-nums leading-none text-white">
-        {display}
-      </span>
-    )
-  }
+  // Critical tier = plain bold text, larger, no pill
   return (
-    <span className={cn("shrink-0 tabular-nums text-[#0F172A]", isLarge ? "text-sm font-semibold" : "text-sm font-medium")}>
+    <span className={cn(
+      "shrink-0 tabular-nums text-[#0F172A]",
+      tier === "critical" ? "text-base font-bold" : isLarge ? "text-sm font-semibold" : "text-sm font-medium"
+    )}>
       {display}
     </span>
   )
@@ -52,13 +49,13 @@ function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTo
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
-      {/* Thin track */}
-      <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
-        <div className="h-full rounded-full bg-[#94A3B8] transition-all" style={{ width: `${pct}%` }} />
+      {/* Ultra-thin track */}
+      <div className="h-[2px] flex-1 overflow-hidden rounded-full bg-[#EEF0F4]">
+        <div className="h-full rounded-full bg-[#CBD5E1] transition-all" style={{ width: `${pct}%` }} />
       </div>
-      {/* Single inline label */}
+      {/* Lithuanian label */}
       <span className="shrink-0 whitespace-nowrap text-[10px] text-[#94A3B8]">
-        <span className="font-medium text-[#475569]">{remainingStr}</span> left of {totalStr}
+        Liko <span className="font-medium text-[#64748B]">{remainingStr}</span> iš {totalStr}
       </span>
     </div>
   )
@@ -131,8 +128,8 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         )}
       </div>
 
-      {/* Right side: amount + status on one line, fixed width so they never wrap */}
-      <div className="flex shrink-0 items-center gap-3">
+      {/* Right side: amount + status — generous gap between them */}
+      <div className="flex shrink-0 items-center gap-5">
         <AmountDisplay amount={request.amount} currency={request.currency} />
         <span
           className={cn(
