@@ -177,12 +177,13 @@ export function formatWaiting(activatedAt: string): string {
   return remHours > 0 ? `${days}d ${remHours}h waiting` : `${days}d waiting`
 }
 
+const pill = "inline-flex items-center rounded-full bg-[#f3f4f6] px-2.5 py-0.5"
 export const dueStatusMeta: Record<DueStatus, { label: string; badge: string; dot: string }> = {
-  overdue: { label: "Overdue",    badge: "text-[#dc2626] font-semibold", dot: "" },
-  today:   { label: "Due today",  badge: "text-[#d97706] font-semibold", dot: "" },
-  soon:    { label: "Due soon",   badge: "text-[#d97706]",               dot: "" },
-  later:   { label: "Due later",  badge: "text-[#6b7280]",               dot: "" },
-  none:    { label: "No due date",badge: "text-[#9ca3af]",               dot: "" },
+  overdue: { label: "Overdue",    badge: `${pill} text-[#dc2626] font-semibold`, dot: "" },
+  today:   { label: "Due today",  badge: `${pill} text-[#d97706] font-semibold`, dot: "" },
+  soon:    { label: "Due soon",   badge: `${pill} text-[#d97706]`,               dot: "" },
+  later:   { label: "Due later",  badge: `${pill} text-[#6b7280]`,               dot: "" },
+  none:    { label: "No due date",badge: `${pill} text-[#9ca3af]`,               dot: "" },
 }
 
 export const taskStatusMeta: Record<ApprovalTaskStatus, { label: string; badge: string }> = {
