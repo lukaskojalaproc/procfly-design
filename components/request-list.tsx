@@ -31,9 +31,9 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       href={`/requests/${request.id}`}
       className="group flex items-center gap-4 rounded-xl px-3 py-4 transition-colors table-row-hover"
     >
-      <span className={cn("h-10 w-1 shrink-0 rounded-full", statusMeta[request.status].dot)} />
-      {/* Icon: single ProcFly green accent */}
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+      {/* Left accent bar — neutral gray by default, green on hover/active */}
+      <span className="h-10 w-1 shrink-0 rounded-full bg-border transition-colors group-hover:bg-primary" />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
         <Icon className="size-5" />
       </div>
 

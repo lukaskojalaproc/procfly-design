@@ -76,7 +76,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
     <Card className="card-shadow flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
         {/* Single accent color for all icons — ProcFly green */}
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/8 text-primary">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
           <Icon className="size-4.5" />
         </span>
         <span className={cn("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium", deltaCls)}>
@@ -107,7 +107,7 @@ export function AnalyticsOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           {/* Title: font-bold (700) */}
-          <h2 className="text-lg font-bold text-foreground">Overview</h2>
+          <h2 className="text-lg font-bold text-foreground">This month</h2>
           <p className="text-sm text-muted-foreground">
             {periodLabels[period]} · all figures {compare}
           </p>
