@@ -121,112 +121,116 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
   const due = dueStatusMeta[task.dueStatus]
   const isActive = task.taskStatus === "Awaiting Action" || task.taskStatus === "Changes Requested"
   const reviewHref = `/requests/${r.id}?review=1`
+  const isCritical = r.amount >= 500_000
 
   return (
-    <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-primary/40 lg:flex-row lg:items-center">
-      {/* Identity */}
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
-          <Icon className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              {r.ref}
-            </span>
-            {cols.highValue && task.highValue && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[11px] font-semibold text-[#B54708]">
-                <AlertTriangle className="size-3" />
-                High Value
-              </span>
-            )}
-            {cols.taskStatus && (
-              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", taskStatusMeta[task.taskStatus].badge)}>
-                {taskStatusMeta[task.taskStatus].label}
-              </span>
-            )}
-            {cols.priority && task.priority !== "Normal" && (
-              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityMeta[task.priority].badge)}>
-                {priorityMeta[task.priority].label}
-              </span>
-            )}
+    <div className={cn(
+      "rounded-xl",
+      isCritical && "border-l-[3px] border-l-[#029F74] bg-[#EAF7F2] pl-[1px]",
+    )}>
+      <Link
+        href={reviewHref}
+        className={cn(
+          "flex flex-col px-3 py-[1.125rem] transition-colors table-row-hover",
+          isCritical ? "rounded-r-xl rounded-l-none" : "rounded-xl",
+        )}
+      >
+        <div className="flex items-center gap-4">
+          {/* Icon — same size/style as RequestRow */}
+          <div className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
+            isCritical ? "bg-[#029F74]/[0.10] text-[#1F5A43]" : "bg-muted/60",
+          )}>
+            <Icon className="size-4" />
           </div>
-          <p className="mt-1 truncate font-semibold text-foreground">{r.title}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            {cols.requester && (
+
+          {/* Main content */}
+          <div className="min-w-0 flex-1">
+            {/* Row 1: ref + priority chip (urgent only) + title + high-value badge */}
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
+                {r.ref}
+              </span>
+              {task.priority === "Urgent" && (
+                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityMeta["Urgent"].badge)}>
+                  Urgent
+                </span>
+              )}
+              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
+                {r.title}
+              </p>
+              {task.highValue && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#F1E4B5] bg-[#FEF3E8] px-2 py-0.5 text-[10px] font-semibold text-[#B54708]">
+                  <AlertTriangle className="size-3" />
+                  High Value
+                </span>
+              )}
+            </div>
+
+            {/* Row 2: requester · type · step · waiting time */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
+                <span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
                   {initials(r.requester)}
                 </span>
                 {r.requester}
               </span>
-            )}
-            {(cols.type || cols.category) && (
+              <span className="hidden sm:inline">{r.kind} · {r.category}</span>
               <span className="inline-flex items-center gap-1">
-                <span className="size-1 rounded-full bg-border" />
-                {[cols.type ? r.kind : null, cols.category ? r.category : null].filter(Boolean).join(" · ")}
-              </span>
-            )}
-            {cols.department && (
-              <span className="hidden items-center gap-1 md:inline-flex">
-                <span className="size-1 rounded-full bg-border" />
-                {r.department}
-              </span>
-            )}
-            {cols.step && (
-              <span className="inline-flex items-center gap-1">
-                <span className="size-1 rounded-full bg-border" />
-                <ShieldCheck className="size-3.5" />
+                <ShieldCheck className="size-3" />
                 {task.stepRole} · Step {task.stepNumber} of {task.totalSteps}
               </span>
-            )}
-            {cols.waiting && isActive && (
-              <span className="inline-flex items-center gap-1">
-                <span className="size-1 rounded-full bg-border" />
-                <Clock className="size-3.5" />
-                {formatWaiting(task.activatedAt)}
+              {isActive && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="size-3" />
+                  {formatWaiting(task.activatedAt)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right side: due badge + amount + review button */}
+          <div className="flex shrink-0 items-center gap-4">
+            {/* Due date pill */}
+            {isActive ? (
+              <span className={cn(
+                "hidden whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold lg:inline-flex items-center gap-1.5",
+                due.badge,
+              )}>
+                <span className={cn("size-1.5 rounded-full", due.dot)} />
+                {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
+              </span>
+            ) : (
+              <span className="hidden text-xs text-muted-foreground lg:block">
+                {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
               </span>
             )}
+
+            {/* Amount */}
+            <div className="hidden flex-col items-end lg:flex">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Amount</span>
+              <span className={cn(
+                "tabular-nums text-foreground",
+                isCritical ? "text-[15px] font-bold" : "text-[14px] font-semibold",
+              )}>
+                {formatTaskAmount(r.amount, r.currency)}
+              </span>
+            </div>
+
+            {/* Review / View button */}
+            <span className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors",
+              isActive
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-secondary text-foreground hover:bg-secondary/80",
+            )}>
+              {isActive ? "Review" : "View"}
+              <ArrowUpRight className="size-3.5" />
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Due */}
-      {cols.due && (
-        <div className="flex shrink-0 items-center gap-2 lg:w-36 lg:flex-col lg:items-start">
-          {isActive ? (
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", due.badge)}>
-              <span className={cn("size-1.5 rounded-full", due.dot)} />
-              {due.label}
-              {task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Amount */}
-      {cols.amount && (
-        <div className="flex shrink-0 flex-col lg:w-28 lg:items-end">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Amount</span>
-          <span className="font-semibold text-foreground">{formatTaskAmount(r.amount, r.currency)}</span>
-        </div>
-      )}
-
-      {/* Primary action */}
-      <div className="flex shrink-0 items-center border-t border-border pt-3 lg:border-0 lg:pt-0">
-        <Link
-          href={reviewHref}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 lg:w-auto"
-        >
-          {isActive ? "Review" : "View"}
-          <ArrowUpRight className="size-4" />
-        </Link>
-      </div>
-    </Card>
+      </Link>
+    </div>
   )
 }
 
@@ -234,14 +238,14 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
 
 function RowSkeleton() {
   return (
-    <Card className="flex items-center gap-3 p-4">
-      <div className="size-11 shrink-0 animate-pulse rounded-lg bg-muted" />
+    <div className="flex items-center gap-4 rounded-xl px-3 py-[1.125rem]">
+      <div className="size-9 shrink-0 animate-pulse rounded-lg bg-muted" />
       <div className="flex-1 space-y-2">
         <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
         <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
       </div>
-      <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />
-    </Card>
+      <div className="h-7 w-20 animate-pulse rounded-lg bg-muted" />
+    </div>
   )
 }
 
@@ -469,7 +473,7 @@ export function ApprovalsExplorer() {
       )}
 
       {/* List */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col divide-y divide-border/60">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <RowSkeleton key={i} />)
         ) : filtered.length === 0 ? (
