@@ -83,7 +83,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
   return (
     <div className={cn(
       "rounded-xl",
-      isCritical && "border-l-[3px] border-l-[#4F46E5] bg-[#F8FAFC] pl-[1px]",
+      isCritical && "border-l-[3px] border-l-[#0C6B58] bg-[#F7FAFA] pl-[1px]",
     )}>
     <Link
       href={`/requests/${request.id}`}
@@ -95,7 +95,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       {/* Icon */}
       <div className={cn(
         "flex size-9 shrink-0 items-center justify-center rounded-lg text-[#94A3B8]",
-        isCritical ? "bg-[#0F172A]/[0.05]" : "bg-muted/60",
+        isCritical ? "bg-[#0C6B58]/[0.07]" : "bg-muted/60",
       )}>
         <Icon className="size-4" />
       </div>
@@ -110,6 +110,12 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
           <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-[#0F172A]">
             {request.title}
           </p>
+          {isCritical && (
+            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: "#0C6B58", background: "#E6F4F1" }}>
+              High Value
+            </span>
+          )}
         </div>
         {/* Row 2: metadata */}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#475569]">
