@@ -42,7 +42,7 @@ const categoryChartConfig: ChartConfig = {
 function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
   const isUp = kpi.trend === "up"
   const DeltaIcon = isUp ? ArrowUp : ArrowDown
-  const deltaColor = isUp ? "#15803D" : "#B42318"
+  const deltaColor = "#6B7280"
   const sign = isUp ? "+" : "−"
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
@@ -147,10 +147,10 @@ export function AnalyticsOverview() {
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-0.5 w-5 rounded-full bg-chart-1" /> Spend
+                <span className="inline-block h-0.5 w-5 rounded-full bg-foreground" /> Spend
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-0.5 w-5 rounded-full border-t-2 border-dashed border-chart-3" /> Budget
+                <span className="inline-block h-0.5 w-5 rounded-full border-t-2 border-dashed border-muted-foreground/50" /> Budget
               </span>
             </div>
           </div>
@@ -237,7 +237,7 @@ export function AnalyticsOverview() {
                 {categories.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "#029F74" : "#E2E8F0"}
+                    fill={index === 0 ? "#0F172A" : "#E2E8F0"}
                   />
                 ))}
               </Bar>

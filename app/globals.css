@@ -59,8 +59,8 @@
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  /* Primary — ProcFly green #029F74 */
-  --primary: #029F74;
+  /* Primary — near-black, neutral */
+  --primary: #0F172A;
   --primary-foreground: #FFFFFF;
   /* Secondary — light neutral surface */
   --secondary: #F1F5F9;
@@ -68,17 +68,17 @@
   /* Muted — subtle section bg + muted text #64748B */
   --muted: #F1F5F9;
   --muted-foreground: #64748B;
-  /* Accent — light green bg #EAF7F2 with dark green text */
-  --accent: #EAF7F2;
-  --accent-foreground: #1F5A43;
+  /* Accent — neutral light surface */
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
   /* Destructive — danger #B42318 */
   --destructive: #B42318;
   /* Borders — #E2E8F0 */
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #029F74;
-  /* Charts: main line green, secondary gray, rest neutral */
-  --chart-1: #029F74;
+  --ring: #64748B;
+  /* Charts: main line dark, secondary gray, rest neutral */
+  --chart-1: #0F172A;
   --chart-2: #98A2B3;
   --chart-3: #98A2B3;
   --chart-4: #B42318;
@@ -202,11 +202,11 @@
   }
   /* Table row hover — very light gray */
   .table-row-hover:hover {
-    background-color: #F7FAF8;
+    background-color: #F8FAFC;
   }
   /* Secondary button style */
   .btn-secondary {
-    @apply rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary;
+    @apply rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-muted;
   }
 }
 

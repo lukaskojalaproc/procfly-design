@@ -49,11 +49,11 @@ function ActionButton({ label }: { label: string }) {
 // Activity feed icons: green = approved, red = rejected, gray = everything else.
 // Yellow removed.
 const feedIcon: Record<FeedKind, { icon: typeof CheckCircle2; cls: string }> = {
-  approved: { icon: CheckCircle2, cls: "bg-emerald-50 text-emerald-600" },
-  submitted: { icon: Send, cls: "bg-muted text-muted-foreground" },
-  rejected: { icon: XCircle, cls: "bg-red-50 text-red-500" },
-  comment: { icon: MessageSquare, cls: "bg-muted text-muted-foreground" },
-  updated: { icon: PenLine, cls: "bg-muted text-muted-foreground" },
+  approved:  { icon: CheckCircle2, cls: "bg-foreground/[0.06] text-foreground" },
+  submitted: { icon: Send,         cls: "bg-muted text-muted-foreground" },
+  rejected:  { icon: XCircle,      cls: "bg-muted text-muted-foreground" },
+  comment:   { icon: MessageSquare, cls: "bg-muted text-muted-foreground" },
+  updated:   { icon: PenLine,      cls: "bg-muted text-muted-foreground" },
 }
 
 export function SideColumn() {
@@ -64,7 +64,7 @@ export function SideColumn() {
         <div className="mb-4 flex items-center justify-between">
           {/* Title: 700 */}
           <h2 className="text-lg font-bold text-foreground">Needs Attention</h2>
-          <span className="rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-500">
+          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {needsAttention.length}
           </span>
         </div>

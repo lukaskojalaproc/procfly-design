@@ -83,12 +83,12 @@ export const stats = {
 // Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
 // Keep fills very light so badges read as metadata, not primary information.
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  Draft:             { label: "Draft",            badge: "border border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",           dot: "bg-[#667085]" },
-  "Pending Approval":{ label: "Pending",           badge: "border border-[#F1E4B5] bg-[#FEF3E8] text-[#B54708]",            dot: "bg-[#B54708]" },
-  Approved:          { label: "Approved",          badge: "border border-[#ABEFC6] bg-[#ECFDF3] text-[#15803D]",            dot: "bg-[#15803D]" },
-  Rejected:          { label: "Rejected",          badge: "border border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]",            dot: "bg-[#B42318]" },
-  Cancelled:         { label: "Cancelled",         badge: "border border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",            dot: "bg-[#667085]" },
-  Archived:          { label: "Archived",          badge: "border border-[#E2E8F0] bg-[#F8FAFC] text-[#667085]",            dot: "bg-[#667085]" },
+  Draft:              { label: "Draft",    badge: "border border-border bg-muted text-muted-foreground",                    dot: "bg-muted-foreground/50" },
+  "Pending Approval": { label: "Pending",  badge: "border border-foreground/20 bg-foreground/[0.06] text-foreground",      dot: "bg-foreground/60" },
+  Approved:           { label: "Approved", badge: "border border-foreground/20 bg-foreground/[0.06] text-foreground",      dot: "bg-foreground" },
+  Rejected:           { label: "Rejected", badge: "border border-foreground/25 bg-foreground/[0.06] text-foreground",      dot: "bg-foreground/70" },
+  Cancelled:          { label: "Cancelled",badge: "border border-border bg-muted text-muted-foreground",                   dot: "bg-muted-foreground/50" },
+  Archived:           { label: "Archived", badge: "border border-border bg-muted text-muted-foreground",                   dot: "bg-muted-foreground/50" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */
