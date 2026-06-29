@@ -47,15 +47,21 @@ function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTo
   const remainingStr = currency === "EUR" ? `€${formatCompact(remaining)}` : `${formatCompact(remaining)} ${currency}`
   const totalStr = currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`
 
+  const isNearLimit = pct >= 80
+
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
-      {/* Ultra-thin track */}
-      <div className="h-[2px] flex-1 overflow-hidden rounded-full bg-[#EEF0F4]">
-        <div className="h-full rounded-full bg-[#CBD5E1] transition-all" style={{ width: `${pct}%` }} />
+      {/* Track — visible light gray, fill in dark slate */}
+      <div className="h-[4px] flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: isNearLimit ? "#334155" : "#64748B" }}
+        />
       </div>
-      {/* Lithuanian label */}
-      <span className="shrink-0 whitespace-nowrap text-[10px] text-[#94A3B8]">
-        Liko <span className="font-medium text-[#64748B]">{remainingStr}</span> iš {totalStr}
+      {/* Label */}
+      <span className="shrink-0 whitespace-nowrap text-[11px] text-[#475569]">
+        Liko <span className="font-semibold text-[#0F172A]">{remainingStr}</span>
+        <span className="text-[#94A3B8]"> iš {totalStr}</span>
       </span>
     </div>
   )
@@ -83,7 +89,7 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
       href={`/requests/${request.id}`}
       className={cn(
         "group flex items-center gap-4 rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover",
-        isCritical && "ring-1 ring-[#0F172A]/[0.12] bg-[#FAFAFA]",
+        isCritical && "ring-1 ring-[#0F172A]/25 bg-[#F8FAFC]",
       )}
     >
       {/* Icon */}
