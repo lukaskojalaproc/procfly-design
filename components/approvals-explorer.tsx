@@ -5,13 +5,11 @@ import Link from "next/link"
 import {
   Search,
   Clock,
-  AlertTriangle,
   CheckCircle2,
   Package,
   Briefcase,
   UserPlus,
   ShieldCheck,
-  ArrowUpRight,
   X,
   AlertCircle,
   RotateCcw,
@@ -116,28 +114,23 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
   const reviewHref = `/requests/${r.id}?review=1`
   const isCritical = r.amount >= 500_000
 
+  const taskStatus = taskStatusMeta[task.taskStatus]
+
   return (
-    <div className={cn(
-      "rounded-xl",
-      isCritical && "border-l-[3px] border-l-[#029F74] bg-[#EAF7F2] pl-[1px]",
-    )}>
+    <div className="rounded-xl">
       <Link
         href={reviewHref}
-        className={cn(
-          "grid items-center gap-0 px-3 py-[1.125rem] transition-colors table-row-hover",
-          isCritical ? "rounded-r-xl rounded-l-none" : "rounded-xl",
-        )}
-        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(150px,1fr) minmax(170px,1fr) auto" }}
+        className="group flex flex-col rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
       >
-        {/* Col 1 — Icon + identity */}
-        <div className="flex min-w-0 items-center gap-3 pr-6">
-          <div className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
-            isCritical ? "bg-foreground/[0.07] text-foreground" : "bg-muted/60",
-          )}>
+        <div className="flex items-center gap-4">
+          {/* Icon */}
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
             <Icon className="size-4" />
           </div>
-          <div className="min-w-0">
+
+          {/* Main content */}
+          <div className="min-w-0 flex-1">
+            {/* Row 1: ref + urgent + title + high value */}
             <div className="flex items-center gap-2">
               <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
                 {r.ref}
@@ -147,13 +140,19 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
                   Urgent
                 </span>
               )}
-              <p className="min-w-0 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
+              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
                 {r.title}
               </p>
+              {task.highValue && (
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-foreground">
+                  High Value
+                </span>
+              )}
             </div>
+            {/* Row 2: metadata */}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
+                <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
                   {initials(r.requester)}
                 </span>
                 {r.requester}
@@ -171,57 +170,40 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
               )}
             </div>
           </div>
-        </div>
 
-        {/* Col 2 — Due date */}
-        <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
-          {isActive ? (
-            <span className={cn(
-              "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
-              due.badge,
-            )}>
-              <span className={cn("size-1.5 rounded-full", due.dot)} />
-              {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
-            </span>
-          )}
-        </div>
+          {/* Right side: due date + amount pill + task status badge */}
+          <div className="flex shrink-0 items-center gap-4">
+            {/* Due date */}
+            {isActive ? (
+              <span className={cn(
+                "hidden whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold sm:inline-flex items-center gap-1.5",
+                due.badge,
+              )}>
+                <span className={cn("size-1.5 rounded-full", due.dot)} />
+                {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
+              </span>
+            ) : (
+              <span className="hidden text-xs text-muted-foreground sm:block">
+                {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
+              </span>
+            )}
 
-        {/* Col 3 — High Value badge + Amount */}
-        <div className="flex items-center justify-between gap-3 border-l border-border pl-6">
-          {task.highValue ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-foreground/20 bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-semibold text-foreground">
-              <AlertTriangle className="size-3" />
-              High Value
-            </span>
-          ) : (
-            <span />
-          )}
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Amount</span>
+            {/* Amount pill — same style as request-list AmountDisplay */}
             <span className={cn(
-              "tabular-nums text-foreground",
+              "shrink-0 rounded-lg border border-border bg-background px-2.5 py-1 tabular-nums text-foreground shadow-sm",
               isCritical ? "text-[15px] font-bold" : "text-[14px] font-semibold",
             )}>
               {formatTaskAmount(r.amount, r.currency)}
             </span>
-          </div>
-        </div>
 
-        {/* Col 4 — Review / View button */}
-        <div className="flex items-center pl-4">
-          <span className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors whitespace-nowrap",
-            isActive
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "bg-secondary text-foreground hover:bg-secondary/80",
-          )}>
-            {isActive ? "Review" : "View"}
-            <ArrowUpRight className="size-3.5" />
-          </span>
+            {/* Task status badge */}
+            <span className={cn(
+              "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
+              taskStatus.badge,
+            )}>
+              {isActive ? (task.taskStatus === "Changes Requested" ? "Changes" : "Pending") : taskStatus.label}
+            </span>
+          </div>
         </div>
       </Link>
     </div>
