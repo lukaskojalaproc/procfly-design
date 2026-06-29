@@ -42,7 +42,7 @@ const categoryChartConfig: ChartConfig = {
 function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
   const isUp = kpi.trend === "up"
   const DeltaIcon = isUp ? ArrowUp : ArrowDown
-  const deltaColor = isUp ? "#4E9A74" : "#C0392B"
+  const deltaColor = isUp ? "#374151" : "#B91C1C"
   const sign = isUp ? "+" : "−"
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
