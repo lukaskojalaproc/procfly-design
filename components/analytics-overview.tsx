@@ -57,11 +57,20 @@ const categoryChartConfig: ChartConfig = {
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpiIcon[kpi.key]
+  const isGood = kpi.trend === kpi.goodWhen
+  const isBad = kpi.trend !== kpi.goodWhen
   const DeltaIcon = kpi.trend === "up" ? ArrowUpRight : ArrowDownRight
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
-      ? `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}`
-      : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
+      ? `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}`
+      : `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}%`
+
+  // Badge colors per spec
+  const badgeStyle = isGood
+    ? { color: "#15803D", background: "#ECFDF3", border: "1px solid #BBF7D0" }
+    : isBad
+    ? { color: "#B42318", background: "#FEF3F2", border: "1px solid #FECDCA" }
+    : { color: "#475467", background: "#F8FAFC", border: "1px solid #E2E8F0" }
 
   return (
     <Card className="card-shadow flex flex-col gap-3 px-5 py-5">
@@ -69,17 +78,24 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         <span className="flex size-7 items-center justify-center text-muted-foreground/40">
           <Icon className="size-3.5" />
         </span>
-        {/* 2. Delta — very muted, near-invisible: smaller, lower opacity */}
-        <span className="inline-flex items-center gap-0.5 text-[10px] font-normal tabular-nums text-muted-foreground/40">
-          <DeltaIcon className="size-2.5" />
+        {/* Delta badge — pill, 12px/600, 4px 8px padding, semantic color */}
+        <span
+          className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold leading-none tabular-nums"
+          style={{ ...badgeStyle, padding: "4px 8px" }}
+        >
+          <DeltaIcon className="size-3" />
           {deltaText}
         </span>
       </div>
       <div>
-        {/* 1. KPI number — explicitly black, no color inheritance */}
-        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-[#0F172A]">{kpi.value}</p>
+        {/* KPI number — black for all except savings which gets green */}
+        <p className={cn(
+          "text-[1.65rem] font-bold leading-none tabular-nums",
+          kpi.key === "savings" && isGood ? "text-[#15803D]" : "text-[#0F172A]"
+        )}>
+          {kpi.value}
+        </p>
         <p className="mt-2 text-sm font-medium text-[#0F172A]/75">{kpi.label}</p>
-        {/* 3. Sub-label — darker, clearly readable */}
         <p className="mt-0.5 text-xs font-normal text-[#0F172A]/55">{kpi.sub}</p>
       </div>
     </Card>
