@@ -63,24 +63,24 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       ? `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}`
       : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
 
-  // All deltas: same neutral color — no semantic green/red
-  const deltaCls = "text-muted-foreground/70"
-
   return (
     <Card className="card-shadow flex flex-col gap-3 px-5 py-5">
       <div className="flex items-center justify-between">
-        <span className="flex size-7 items-center justify-center text-muted-foreground/45">
+        <span className="flex size-7 items-center justify-center text-muted-foreground/40">
           <Icon className="size-3.5" />
         </span>
-        <span className={cn("inline-flex items-center gap-0.5 text-xs font-medium tabular-nums", deltaCls)}>
-          <DeltaIcon className="size-3" />
+        {/* 2. Delta — very muted, near-invisible: smaller, lower opacity */}
+        <span className="inline-flex items-center gap-0.5 text-[10px] font-normal tabular-nums text-muted-foreground/40">
+          <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
       </div>
       <div>
-        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-foreground">{kpi.value}</p>
-        <p className="mt-2 text-sm font-medium text-foreground/80">{kpi.label}</p>
-        <p className="mt-0.5 text-xs font-normal text-foreground/50">{kpi.sub}</p>
+        {/* 1. KPI number — explicitly black, no color inheritance */}
+        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-[#0F172A]">{kpi.value}</p>
+        <p className="mt-2 text-sm font-medium text-[#0F172A]/75">{kpi.label}</p>
+        {/* 3. Sub-label — darker, clearly readable */}
+        <p className="mt-0.5 text-xs font-normal text-[#0F172A]/55">{kpi.sub}</p>
       </div>
     </Card>
   )
