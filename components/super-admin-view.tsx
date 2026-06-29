@@ -45,11 +45,12 @@ const MOCK_KEYS: ApiKey[] = [
   { id: "k2", name: "Read-only Reporting",     prefix: "pk_live_yyyy", scopes: ["items:read"],                expiresAt: null,          createdAt: "2026-03-01" },
 ]
 
+const pill = "inline-flex w-fit items-center rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold"
 const STATUS_PILL: Record<CompanyStatus, string> = {
-  Active:    "bg-[#F1F5F9] text-[#166534]",
-  Trial:     "bg-[#F1F5F9] text-[#92400e]",
-  Suspended: "bg-[#F1F5F9] text-[#dc2626]",
-  Inactive:  "bg-[#F1F5F9] text-[#64748B]",
+  Active:    `${pill} text-[#166534]`,
+  Trial:     `${pill} text-[#92400e]`,
+  Suspended: `${pill} text-[#dc2626]`,
+  Inactive:  `${pill} text-[#64748B]`,
 }
 
 const SCOPES = ["items:read", "items:write", "suppliers:read", "suppliers:write", "contracts:read", "approvals:read"]
@@ -174,47 +175,52 @@ export function SuperAdminView() {
 
         {/* Selected company */}
         <Card title="Selected company">
-          <div className="mb-4 rounded-xl border border-border bg-background p-4">
+          {/* Company info strip */}
+          <div className="mb-4 rounded-xl border-l-4 border-l-primary border border-border bg-muted/30 p-4">
             <div className="flex items-center gap-2">
               <span className="text-base font-bold text-foreground">{selected.name}</span>
-              <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold", STATUS_PILL[selected.status])}>
-                {selected.status}
-              </span>
+              <span className={STATUS_PILL[selected.status]}>{selected.status}</span>
             </div>
-            <div className="mt-2 space-y-0.5 text-[13px] text-muted-foreground">
-              <p><span className="font-medium text-foreground">Company prefix:</span> {selected.prefix}</p>
-              <p><span className="font-medium text-foreground">Registration code:</span> {selected.registrationCode}</p>
-              <p>
-                <span className="font-medium text-foreground">Your access:</span>{" "}
+            <div className="mt-2 grid grid-cols-1 gap-y-1 text-[13px]">
+              <p className="text-muted-foreground">
+                <span className="font-semibold text-[#475569]">Prefix: </span>{selected.prefix}
+              </p>
+              <p className="text-muted-foreground">
+                <span className="font-semibold text-[#475569]">Reg. code: </span>{selected.registrationCode}
+              </p>
+              <p className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="font-semibold text-[#475569]">Your access: </span>
                 {selected.yourAccess ? (
-                  <span className="inline-flex rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">{selected.yourAccess} · enabled</span>
+                  <span className={`${pill} text-[#166534]`}>{selected.yourAccess} · enabled</span>
                 ) : (
-                  <span className="text-[#dc2626]">No access yet</span>
+                  <span className={`${pill} text-[#94A3B8]`}>No access yet</span>
                 )}
               </p>
             </div>
           </div>
 
-          <FormField label="Company status" className="mb-3">
-            <div className="flex gap-2">
-              <select className="po-input flex-1 appearance-none" value={statusDraft} onChange={(e) => setStatusDraft(e.target.value as CompanyStatus)}>
-                {(["Active", "Trial", "Suspended", "Inactive"] as CompanyStatus[]).map((s) => <option key={s}>{s}</option>)}
-              </select>
-              <OutlineBtn onClick={updateStatus}>Update status</OutlineBtn>
-            </div>
-          </FormField>
+          <div className="flex flex-col gap-3">
+            <FormField label="Company status">
+              <div className="flex gap-2">
+                <select className="po-input flex-1 appearance-none" value={statusDraft} onChange={(e) => setStatusDraft(e.target.value as CompanyStatus)}>
+                  {(["Active", "Trial", "Suspended", "Inactive"] as CompanyStatus[]).map((s) => <option key={s}>{s}</option>)}
+                </select>
+                <OutlineBtn onClick={updateStatus}>Update status</OutlineBtn>
+              </div>
+            </FormField>
 
-          <FormField label="Grant self access as">
-            <div className="flex gap-2">
-              <select className="po-input flex-1 appearance-none" value={roleDraft} onChange={(e) => setRoleDraft(e.target.value as AccessRole)}>
-                {(["SuperAdmin", "Admin", "Member", "Viewer"] as AccessRole[]).map((r) => <option key={r}>{r}</option>)}
-              </select>
-              <PrimaryBtn onClick={grantAccess}>Grant self access</PrimaryBtn>
-            </div>
-          </FormField>
+            <FormField label="Grant self access as">
+              <div className="flex gap-2">
+                <select className="po-input flex-1 appearance-none" value={roleDraft} onChange={(e) => setRoleDraft(e.target.value as AccessRole)}>
+                  {(["SuperAdmin", "Admin", "Member", "Viewer"] as AccessRole[]).map((r) => <option key={r}>{r}</option>)}
+                </select>
+                <PrimaryBtn onClick={grantAccess}>Grant self access</PrimaryBtn>
+              </div>
+            </FormField>
+          </div>
 
           {!selected.yourAccess && (
-            <p className="mt-3 rounded-lg bg-[#F1F5F9] px-3 py-2.5 text-[12px] text-[#475569]">
+            <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-[12px] leading-relaxed text-[#475569]">
               You do not have membership in this company yet. Grant yourself access before managing company-scoped actions.
             </p>
           )}
@@ -261,22 +267,18 @@ export function SuperAdminView() {
                   <td className="px-3 py-3 text-[#475569]">{co.prefix}</td>
                   <td className="px-3 py-3 text-[#475569]">{co.registrationCode}</td>
                   <td className="px-3 py-3">
-                    <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold", STATUS_PILL[co.status])}>
-                      {co.status}
-                    </span>
+                    <span className={STATUS_PILL[co.status]}>{co.status}</span>
                   </td>
-                  <td className="px-3 py-3 text-[#475569]">
+                  <td className="px-3 py-3">
                     {co.yourAccess ? (
-                      <span className="inline-flex rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#475569]">
-                        {co.yourAccess} · enabled
-                      </span>
+                      <span className={`${pill} text-[#166534]`}>{co.yourAccess} · enabled</span>
                     ) : (
-                      <span className="text-[#dc2626] text-[12px]">No access yet</span>
+                      <span className={`${pill} text-[#94A3B8]`}>No access yet</span>
                     )}
                   </td>
                   <td className="px-3 py-3">
                     {co.id === selectedId ? (
-                      <span className="inline-flex rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] font-semibold text-[#0F172A]">Selected</span>
+                      <span className={`${pill} text-[#0F172A]`}>Selected</span>
                     ) : (
                       <OutlineBtn onClick={() => { setSelectedId(co.id); setStatusDraft(co.status) }}>
                         Manage
