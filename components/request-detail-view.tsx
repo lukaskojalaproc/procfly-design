@@ -7,22 +7,18 @@ import {
   Briefcase,
   UserPlus,
   FileText,
-  Box,
   X,
-  Monitor,
-  ShieldCheck,
-  Building2,
-  Landmark,
-  Wallet,
-  History,
-  ListChecks,
-  MessageSquare,
   Check,
   CornerUpLeft,
   Gavel,
   ChevronRight,
   Users,
+  ArrowLeft,
+  MessageSquare,
+  ListChecks,
+  Clock,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   initials,
@@ -41,6 +37,8 @@ import { useRequestActivity, recordDecision } from "@/lib/request-activity-store
 import { routeDecision, type NotificationType } from "@/lib/notification-store"
 import { getApprovalTasks, formatWaiting } from "@/lib/approvals-data"
 
+// ─── Types & configs ─────────────────────────────────────────────────────────
+
 const decisionConfig: Record<
   "approve" | "reject" | "changes",
   { state: ApprovalState; event: "approved" | "rejected" | "changes_requested" }
@@ -56,32 +54,35 @@ const kindIcon: Record<RequestKind, typeof Package> = {
   "Add New Supplier":  UserPlus,
 }
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title }: { title: string }) {
+function Section({ title }: { title: string }) {
   return (
-    <div className="border-b border-border pb-3 pt-6">
-      <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{title}</h2>
-    </div>
+    <p className="mb-3 mt-8 text-[11px] font-bold uppercase tracking-widest text-muted-foreground first:mt-0">
+      {title}
+    </p>
   )
 }
 
-function FieldRow({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+function Field({ label, value, children }: { label: string; value?: string | null; children?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[180px_1fr] gap-4 border-b border-border/50 py-2.5 text-sm last:border-b-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground">{children ?? value ?? "—"}</span>
+    <div className="flex items-start justify-between gap-6 border-b border-border/60 py-2.5 last:border-0">
+      <span className="min-w-[160px] shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="text-right text-sm font-medium text-foreground">{children ?? value ?? "—"}</span>
     </div>
   )
 }
 
 type RequestTab = "details" | "discussion"
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function RequestDetailView({ request }: { request: ProcurementRequest }) {
-  const detail     = getRequestDetail(request)
-  const Icon       = kindIcon[request.kind]
+  const detail  = getRequestDetail(request)
+  const Icon    = kindIcon[request.kind]
+  const status  = statusMeta[request.status]
   const [tab, setTab] = useState<RequestTab>("details")
-  const activity   = useRequestActivity(request.id)
+  const activity = useRequestActivity(request.id)
 
   const searchParams = useSearchParams()
   const canReview = searchParams.get("review") === "1" && request.status === "Pending Approval"
@@ -103,26 +104,25 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
   function submitDecision(kind: "approve" | "reject" | "changes") {
     if (!reviewTask) return
-    const stepIndex = reviewTask.stepNumber - 1
     const cfg     = decisionConfig[kind]
     const comment = decisionComment.trim()
     recordDecision({
       requestId: request.id,
-      stepIndex,
-      step:  reviewTask.stepRole,
-      state: cfg.state,
-      event: cfg.event,
-      by:    assignedApprover,
+      stepIndex: reviewTask.stepNumber - 1,
+      step:      reviewTask.stepRole,
+      state:     cfg.state,
+      event:     cfg.event,
+      by:        assignedApprover,
       comment,
     })
     routeDecision({
-      requestId:     request.id,
-      requestRef:    request.ref,
-      requestTitle:  request.title,
-      actor:         assignedApprover,
-      type:          cfg.event as Exclude<NotificationType, "comment" | "mention">,
-      text:          comment,
-      requester:     request.requester,
+      requestId:    request.id,
+      requestRef:   request.ref,
+      requestTitle: request.title,
+      actor:        assignedApprover,
+      type:         cfg.event as Exclude<NotificationType, "comment" | "mention">,
+      text:         comment,
+      requester:    request.requester,
     })
     setDecisionComment("")
   }
@@ -133,11 +133,14 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   }, [request.requester, detail.approvals])
 
   const approvers = useMemo(() => {
-    const names = detail.approvals.slice(1).map((a) => a.name).filter((n) => n !== request.requester)
-    return [...new Set(names)]
+    return [...new Set(detail.approvals.slice(1).map((a) => a.name).filter((n) => n !== request.requester))]
   }, [detail.approvals, request.requester])
 
   const commentCount = activity.filter((a) => a.kind === "comment").length
+
+  const amountDisplay = request.currency === "EUR"
+    ? `€${formatAmount(request.amount)}`
+    : `${formatAmount(request.amount)} ${request.currency}`
 
   const estimatedTotalLabel = detail.supplierOnboarding
     ? detail.supplierOnboarding.expectedAnnualSpend
@@ -164,21 +167,16 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
     return items.sort((x, y) => x.at.localeCompare(y.at))
   }, [request, activity])
 
-  const tabs = [
-    { key: "details"    as const, label: "Details",    icon: ListChecks },
-    { key: "discussion" as const, label: "Discussion",  icon: MessageSquare, count: commentCount },
-  ]
-
-  const status = statusMeta[request.status]
-
   return (
     <div className="flex flex-col">
 
-      {/* ── Top sticky Approval Review action bar ─────────────────────── */}
+      {/* ── Approval Review Bar ───────────────────────────────────────────── */}
       {canReview && (
-        <div className="sticky top-0 z-40 -mx-6 px-6 py-3 shadow-md" style={{ background: "var(--color-sidebar)" }}>
+        <div
+          className="sticky top-0 z-40 -mx-6 mb-4 px-6 py-3 shadow-lg"
+          style={{ background: "var(--color-sidebar)" }}
+        >
           <div className="flex flex-wrap items-center gap-3">
-            {/* Left: context */}
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
                 <Gavel className="size-3.5" />
@@ -186,37 +184,36 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               <span className="text-sm font-semibold text-white">Approval Review</span>
               {reviewTask && (
                 <>
-                  <span className="text-white/40">·</span>
-                  <span className="text-sm text-white/70">
+                  <span className="text-white/30">·</span>
+                  <span className="text-sm text-white/65">
                     Step {reviewTask.stepNumber} of {reviewTask.totalSteps} · {reviewTask.stepRole}
                   </span>
                   {reviewTask.deadline && (
                     <>
-                      <span className="text-white/40">·</span>
-                      <span className="text-xs text-white/60">{reviewTask.deadline}</span>
+                      <span className="text-white/30">·</span>
+                      <span className="text-xs text-white/55">{reviewTask.deadline}</span>
                     </>
                   )}
-                  <span className="text-white/40">·</span>
-                  <span className="text-xs text-white/60">{formatWaiting(reviewTask.activatedAt)} waiting</span>
+                  <span className="text-white/30">·</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-white/55">
+                    <Clock className="size-3" />
+                    {formatWaiting(reviewTask.activatedAt)} waiting
+                  </span>
                 </>
               )}
             </div>
-
-            {/* Middle: comment input */}
             <input
               type="text"
-              placeholder="Add a note (required to reject or request changes)"
+              placeholder="Note (required to reject or request changes)"
               value={decisionComment}
               onChange={(e) => setDecisionComment(e.target.value)}
-              className="h-8 w-64 shrink rounded-lg border border-white/20 bg-white/10 px-3 text-xs text-white outline-none placeholder:text-white/40 focus:border-white/40 focus:ring-0"
+              className="h-8 w-56 shrink rounded-lg border border-white/20 bg-white/10 px-3 text-xs text-white outline-none placeholder:text-white/40 focus:border-white/40"
             />
-
-            {/* Right: action buttons */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => submitDecision("approve")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a3d2a] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a3d2a] hover:opacity-90 transition-opacity"
               >
                 <Check className="size-3.5" />
                 Approve
@@ -225,7 +222,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 type="button"
                 onClick={() => submitDecision("changes")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <CornerUpLeft className="size-3.5" />
                 Request Changes
@@ -234,7 +231,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 type="button"
                 onClick={() => submitDecision("reject")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 transition-opacity hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <X className="size-3.5" />
                 Reject
@@ -244,85 +241,101 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
       )}
 
-      {/* ── Page Header (no Card) ─────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 pt-6">
-        <div className="flex items-start gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-            <Icon className="size-6" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] text-muted-foreground">{request.ref}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{request.kind}</span>
-              <span className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                status.badge,
-              )}>
-                <span className={cn("size-1.5 rounded-full", status.dot)} />
-                {status.label}
-              </span>
+      {/* ── Page Header ───────────────────────────────────────────────────── */}
+      <div className="mb-6">
+        {/* Back link */}
+        <Link
+          href="/requests"
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          All requests
+        </Link>
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            {/* Kind icon */}
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
+              <Icon className="size-5" />
             </div>
-            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-foreground text-balance">
-              {request.title}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="flex size-5 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
-                  {initials(request.requester)}
+            <div>
+              {/* Ref + kind + status row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+                  {request.ref}
                 </span>
-                <span className="font-medium text-foreground">{request.requester}</span>
-              </span>
-              <span>{request.department}</span>
-              <span>{request.date}</span>
-              <span className="font-semibold text-foreground">{estimatedTotalLabel}</span>
-              {request.quotes > 0 && (
-                <span className="inline-flex items-center gap-1">
-                  <Users className="size-3" />
-                  {request.quotes} {request.quotes === 1 ? "quote" : "quotes"}
+                <span className="text-[11px] text-muted-foreground">{request.kind}</span>
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                  status.badge,
+                )}>
+                  <span className={cn("size-1.5 rounded-full", status.dot)} />
+                  {status.label}
                 </span>
-              )}
+              </div>
+              {/* Title */}
+              <h1 className="mt-1.5 text-[1.375rem] font-bold leading-snug tracking-tight text-foreground text-balance">
+                {request.title}
+              </h1>
+              {/* Meta row */}
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-bold text-[#475569]">
+                    {initials(request.requester)}
+                  </span>
+                  <span className="font-medium text-foreground">{request.requester}</span>
+                </span>
+                <span>{request.department}</span>
+                <span>{request.date}</span>
+                <span className="font-semibold text-foreground">{amountDisplay}</span>
+                {request.quotes > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="size-3.5" />
+                    {request.quotes} {request.quotes === 1 ? "quote" : "quotes"}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Convert to competition etc */}
+          {request.status === "Approved" && request.kind !== "Add New Supplier" && (
+            <ApprovedRequestActions request={request} />
+          )}
         </div>
-
-        {request.status === "Approved" && request.kind !== "Add New Supplier" && (
-          <ApprovedRequestActions request={request} />
-        )}
       </div>
 
-      <div className="mt-5 h-px bg-border" />
-
-      {/* ── Tab bar ───────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 border-b border-border">
-        {tabs.map((t) => {
-          const TabIcon = t.icon
-          const active  = tab === t.key
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <TabIcon className="size-4" />
-              {t.label}
-              {"count" in t && t.count ? (
-                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                  {t.count}
-                </span>
-              ) : null}
-            </button>
-          )
-        })}
+      {/* ── Tabs ──────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-0 border-b border-border">
+        {(
+          [
+            { key: "details"    as const, label: "Details",    Icon: ListChecks,    count: null },
+            { key: "discussion" as const, label: "Discussion", Icon: MessageSquare, count: commentCount || null },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={cn(
+              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+              tab === t.key
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <t.Icon className="size-4" />
+            {t.label}
+            {t.count ? (
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {t.count}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
-      {/* ── Discussion tab ────────────────────────────────────────────── */}
+      {/* ── Discussion tab ────────────────────────────────────────────────── */}
       {tab === "discussion" && (
         <div className="pt-6">
           <RequestDiscussion
@@ -337,289 +350,274 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
       )}
 
-      {/* ── Details tab — sticky 2-column layout ─────────────────────── */}
+      {/* ── Details tab ───────────────────────────────────────────────────── */}
       {tab === "details" && (
-        <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-[1fr_300px]">
+        <div className="grid grid-cols-1 gap-10 pt-6 lg:grid-cols-[1fr_304px]">
 
-          {/* Left: scrollable sections separated by dividers */}
-          <div>
-            {/* ── General ── */}
-            <SectionHeader title="General" />
-            <div className="py-2">
-              <FieldRow label="Description"          value={detail.description} />
-              <FieldRow label="Procurement category" value={request.category} />
-              <FieldRow label="Department"           value={request.department} />
-              <FieldRow label="Cost center"          value={detail.costCenter} />
-              <FieldRow label="Business priority"    value={detail.businessPriority} />
-              <FieldRow label="Currency"             value={request.currency} />
-              <FieldRow label="Created"              value={request.date} />
-              <FieldRow label="Last updated"         value={request.updated} />
-            </div>
+          {/* ── Left: scrollable content ─────────────────────────────────── */}
+          <div className="min-w-0">
 
-            {/* ── Product Details ── */}
+            {/* General */}
+            <Section title="General" />
+            <Field label="Description"          value={detail.description} />
+            <Field label="Procurement category" value={request.category} />
+            <Field label="Department"           value={request.department} />
+            <Field label="Cost center"          value={detail.costCenter} />
+            <Field label="Business priority"    value={detail.businessPriority} />
+            <Field label="Currency"             value={request.currency} />
+            <Field label="Created"              value={request.date} />
+            <Field label="Last updated"         value={request.updated} />
+
+            {/* Product Details */}
             {detail.product && (
               <>
-                <SectionHeader title="Product Details" />
-                <div className="py-2">
-                  <FieldRow label="Procurement category" value={detail.product.procurementCategory} />
-                  <FieldRow label="Preferred supplier"  value={detail.product.preferredSupplier} />
-                  <FieldRow label="Needed by"           value={detail.product.neededBy} />
-                  <FieldRow label="Delivery location"   value={detail.product.deliveryLocation} />
-                  <FieldRow label="Purchase type"       value={detail.product.purchaseType} />
-                </div>
+                <Section title="Product Details" />
+                <Field label="Procurement category" value={detail.product.procurementCategory} />
+                <Field label="Preferred supplier"   value={detail.product.preferredSupplier} />
+                <Field label="Needed by"            value={detail.product.neededBy} />
+                <Field label="Delivery location"    value={detail.product.deliveryLocation} />
+                <Field label="Purchase type"        value={detail.product.purchaseType} />
               </>
             )}
 
-            {/* ── Service Details ── */}
+            {/* Service Details */}
             {detail.service && (
               <>
-                <SectionHeader title="Service Details" />
-                <div className="py-2">
-                  <FieldRow label="Procurement category" value={detail.service.procurementCategory} />
-                  <FieldRow label="Preferred supplier"  value={detail.service.preferredSupplier} />
-                  <FieldRow label="Service start"       value={detail.service.serviceStartDate} />
-                  <FieldRow label="Service end"         value={detail.service.serviceEndDate} />
-                  <FieldRow label="Business owner"      value={detail.service.businessOwner} />
-                  <FieldRow label="Contract required"   value={detail.service.contractRequired} />
-                  <FieldRow label="Service type"        value={detail.service.serviceType} />
-                </div>
+                <Section title="Service Details" />
+                <Field label="Procurement category" value={detail.service.procurementCategory} />
+                <Field label="Preferred supplier"   value={detail.service.preferredSupplier} />
+                <Field label="Service start"        value={detail.service.serviceStartDate} />
+                <Field label="Service end"          value={detail.service.serviceEndDate} />
+                <Field label="Business owner"       value={detail.service.businessOwner} />
+                <Field label="Contract required"    value={detail.service.contractRequired} />
+                <Field label="Service type"         value={detail.service.serviceType} />
               </>
             )}
 
-            {/* ── Software Details ── */}
+            {/* Software Details */}
             {detail.software && (
               <>
-                <SectionHeader title="Software Details" />
-                <div className="py-2">
-                  <FieldRow label="Software name"       value={detail.software.softwareName} />
-                  <FieldRow label="Preferred supplier"  value={detail.software.preferredSupplier} />
-                  <FieldRow label="Business owner"      value={detail.software.businessOwner} />
-                  <FieldRow label="IT owner"            value={detail.software.itOwner} />
-                  <FieldRow label="Number of users"     value={detail.software.users} />
-                  <FieldRow label="Billing cycle"       value={detail.software.billingCycle} />
-                  <FieldRow label="Subscription start"  value={detail.software.subscriptionStart} />
-                  <FieldRow label="Subscription end"    value={detail.software.subscriptionEnd} />
-                  <FieldRow label="Contract duration"   value={detail.software.contractDuration} />
-                  <FieldRow label="License type"        value={detail.software.licenseType} />
-                  <FieldRow label="Auto renewal"        value={detail.software.autoRenewal} />
-                </div>
+                <Section title="Software Details" />
+                <Field label="Software name"      value={detail.software.softwareName} />
+                <Field label="Preferred supplier" value={detail.software.preferredSupplier} />
+                <Field label="Business owner"     value={detail.software.businessOwner} />
+                <Field label="IT owner"           value={detail.software.itOwner} />
+                <Field label="Number of users"    value={detail.software.users} />
+                <Field label="Billing cycle"      value={detail.software.billingCycle} />
+                <Field label="Subscription start" value={detail.software.subscriptionStart} />
+                <Field label="Subscription end"   value={detail.software.subscriptionEnd} />
+                <Field label="Contract duration"  value={detail.software.contractDuration} />
+                <Field label="License type"       value={detail.software.licenseType} />
+                <Field label="Auto renewal"       value={detail.software.autoRenewal} />
 
-                <SectionHeader title="Data Protection" />
-                <div className="py-2">
-                  <FieldRow label="Personal data processed" value={detail.software.dataProcessing} />
-                  {detail.software.dataProcessing !== "No" && (
-                    <>
-                      <FieldRow label="Data hosting region" value={detail.software.hostingRegion} />
-                      <FieldRow label="DPA required"        value={detail.software.dpaRequired} />
-                    </>
-                  )}
-                </div>
+                <Section title="Data Protection" />
+                <Field label="Personal data processed" value={detail.software.dataProcessing} />
+                {detail.software.dataProcessing !== "No" && (
+                  <>
+                    <Field label="Data hosting region" value={detail.software.hostingRegion} />
+                    <Field label="DPA required"        value={detail.software.dpaRequired} />
+                  </>
+                )}
               </>
             )}
 
-            {/* ── Supplier Onboarding ── */}
+            {/* Supplier Onboarding */}
             {detail.supplierOnboarding && (
               <>
-                <SectionHeader title="Supplier Information" />
-                <div className="py-2">
-                  <FieldRow label="Legal entity name"    value={detail.supplierOnboarding.legalName} />
-                  <FieldRow label="Country"              value={detail.supplierOnboarding.country} />
-                  <FieldRow label="Registration number"  value={detail.supplierOnboarding.registrationNumber} />
-                  <FieldRow label="VAT number"           value={detail.supplierOnboarding.vatNumber} />
-                  <FieldRow label="Website"              value={detail.supplierOnboarding.website} />
-                  <FieldRow label="Contact name"         value={detail.supplierOnboarding.contactName} />
-                  <FieldRow label="Contact email"        value={detail.supplierOnboarding.contactEmail} />
-                  <FieldRow label="Supplier category"    value={detail.supplierOnboarding.supplierCategory} />
-                  <FieldRow label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
-                </div>
+                <Section title="Supplier Information" />
+                <Field label="Legal entity name"    value={detail.supplierOnboarding.legalName} />
+                <Field label="Country"              value={detail.supplierOnboarding.country} />
+                <Field label="Registration number"  value={detail.supplierOnboarding.registrationNumber} />
+                <Field label="VAT number"           value={detail.supplierOnboarding.vatNumber} />
+                <Field label="Website"              value={detail.supplierOnboarding.website} />
+                <Field label="Contact name"         value={detail.supplierOnboarding.contactName} />
+                <Field label="Contact email"        value={detail.supplierOnboarding.contactEmail} />
+                <Field label="Supplier category"    value={detail.supplierOnboarding.supplierCategory} />
+                <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
 
-                <SectionHeader title="Finance" />
-                <div className="py-2">
-                  <FieldRow label="Payment terms"   value={detail.supplierOnboarding.paymentTerms} />
-                  <FieldRow label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
-                </div>
+                <Section title="Finance" />
+                <Field label="Payment terms"   value={detail.supplierOnboarding.paymentTerms} />
+                <Field label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
 
-                <SectionHeader title="Compliance" />
-                <div className="py-2">
-                  <FieldRow label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
-                  <FieldRow label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
-                </div>
+                <Section title="Compliance" />
+                <Field label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
+                <Field label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
               </>
             )}
 
-            {/* ── Financial ── */}
-            <SectionHeader title="Financial Information" />
-            <div className="py-2">
-              {detail.supplierOnboarding ? (
-                <>
-                  <FieldRow label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
-                  <FieldRow label="Currency"              value={request.currency} />
-                </>
-              ) : detail.software ? (
-                <>
-                  <FieldRow label="Recurring cost"   value={estimatedTotalLabel} />
-                  <FieldRow label="Annual cost"       value={estimatedTotalLabel} />
-                  <FieldRow label="Estimated total"   value={estimatedTotalLabel} />
-                  <FieldRow label="Currency"          value={request.currency} />
-                </>
-              ) : detail.product ? (
-                <>
-                  <FieldRow label="Quantity"
-                    value={String(detail.lineItems.reduce((s, i) => s + i.qty, 0) || "—")} />
-                  <FieldRow label="Unit price"
-                    value={detail.lineItems[0]
-                      ? `${formatAmount(detail.lineItems[0].unitPrice)} ${request.currency}`
-                      : "—"} />
-                  <FieldRow label="Estimated total" value={estimatedTotalLabel} />
-                  <FieldRow label="Currency"        value={request.currency} />
-                </>
-              ) : (
-                <>
-                  <FieldRow label="Estimated total" value={estimatedTotalLabel} />
-                  <FieldRow label="Currency"        value={request.currency} />
-                </>
-              )}
-            </div>
+            {/* Financial Information */}
+            <Section title="Financial Information" />
+            {detail.supplierOnboarding ? (
+              <>
+                <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                <Field label="Currency"              value={request.currency} />
+              </>
+            ) : detail.software ? (
+              <>
+                <Field label="Recurring cost"  value={estimatedTotalLabel} />
+                <Field label="Annual cost"     value={estimatedTotalLabel} />
+                <Field label="Estimated total" value={estimatedTotalLabel} />
+                <Field label="Currency"        value={request.currency} />
+              </>
+            ) : detail.product ? (
+              <>
+                <Field label="Quantity"
+                  value={String(detail.lineItems.reduce((s, i) => s + i.qty, 0) || "—")} />
+                <Field label="Unit price"
+                  value={detail.lineItems[0]
+                    ? `${formatAmount(detail.lineItems[0].unitPrice)} ${request.currency}`
+                    : "—"} />
+                <Field label="Estimated total" value={estimatedTotalLabel} />
+                <Field label="Currency"        value={request.currency} />
+              </>
+            ) : (
+              <>
+                <Field label="Estimated total" value={estimatedTotalLabel} />
+                <Field label="Currency"        value={request.currency} />
+              </>
+            )}
 
-            {/* ── Line Items ── */}
+            {/* Line Items */}
             {!detail.supplierOnboarding && detail.lineItems.length > 0 && (
               <>
-                <SectionHeader title="Line Items" />
-                <div className="py-4">
-                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                    <span>{detail.service ? "Deliverable" : detail.software ? "License / Plan" : "Item"}</span>
-                    <span className="text-right">{detail.software ? "Seats" : "Qty"}</span>
-                    <span className="text-right">{detail.service ? "Rate" : detail.software ? "Price / Seat" : "Unit Price"}</span>
-                    <span className="text-right">Total</span>
-                  </div>
-                  {detail.lineItems.map((item, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-border py-3 text-sm last:border-b-0">
-                      <span className="font-medium text-foreground">{item.name}</span>
-                      <span className="text-right text-muted-foreground">{item.qty}</span>
-                      <span className="text-right text-muted-foreground">
-                        {formatAmount(item.unitPrice)} {request.currency}
-                      </span>
-                      <span className="text-right font-semibold text-foreground">
-                        {formatAmount(item.qty * item.unitPrice)} {request.currency}
-                      </span>
-                    </div>
-                  ))}
-                  {detail.software && (
-                    <p className="pt-3 text-xs text-muted-foreground">
-                      Billing cycle: {detail.software.billingCycle}
-                    </p>
-                  )}
+                <Section title="Line Items" />
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {detail.service ? "Deliverable" : detail.software ? "License / Plan" : "Item"}
+                        </th>
+                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {detail.software ? "Seats" : "Qty"}
+                        </th>
+                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {detail.service ? "Rate" : detail.software ? "Price / Seat" : "Unit Price"}
+                        </th>
+                        <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {detail.lineItems.map((item, i) => (
+                        <tr key={i} className="bg-card">
+                          <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{item.qty}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">
+                            {formatAmount(item.unitPrice)} {request.currency}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-foreground">
+                            {formatAmount(item.qty * item.unitPrice)} {request.currency}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
 
-            {/* ── Documents ── */}
-            <SectionHeader title="Documents" />
-            <div className="py-4">
-              {detail.documents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No documents attached.</p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-border">
-                  {detail.documents.map((doc, i) => {
-                    const attached = doc.fileName !== "Awaiting upload"
-                    const docStatus: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
-                    const statusClass =
-                      docStatus === "Uploaded"
-                        ? "bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]"
-                        : docStatus === "Pending Review"
-                          ? "bg-[#FEF6E8] text-[#B54708] border border-[#F1E4B5]"
-                          : "bg-[#FEF3F2] text-[#B42318] border border-[#F3D6D2]"
-                    return (
-                      <li key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                            <FileText className="size-4" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {doc.label}
-                              {doc.required && <span className="ml-1 text-destructive">*</span>}
-                            </p>
-                            <p className={cn("truncate text-xs", attached ? "text-muted-foreground" : "text-destructive")}>
-                              {attached
-                                ? `${doc.fileName}${doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}${doc.uploadDate ? ` · ${doc.uploadDate}` : ""}`
-                                : doc.fileName}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium", statusClass)}>
-                          {docStatus}
+            {/* Documents */}
+            <Section title="Documents" />
+            {detail.documents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No documents attached.</p>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border divide-y divide-border">
+                {detail.documents.map((doc, i) => {
+                  const attached = doc.fileName !== "Awaiting upload"
+                  const docStatus: DocumentStatus = doc.status ?? (attached ? "Uploaded" : "Missing")
+                  const statusCls =
+                    docStatus === "Uploaded"
+                      ? "bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]"
+                      : docStatus === "Pending Review"
+                        ? "bg-[#FEF6E8] text-[#B54708] border border-[#F1E4B5]"
+                        : "bg-[#FEF3F2] text-[#B42318] border border-[#F3D6D2]"
+                  return (
+                    <div key={i} className="flex items-center justify-between gap-4 bg-card px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                          <FileText className="size-4" />
                         </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-
-            {/* ── Activity History ── */}
-            <SectionHeader title="Activity History" />
-            <div className="py-4">
-              <ol className="flex flex-col">
-                {activityHistory.map((item, i) => (
-                  <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
-                    {i !== activityHistory.length - 1 && (
-                      <span className="absolute left-[11px] top-6 h-[calc(100%-1rem)] w-px bg-border" />
-                    )}
-                    <span className="relative z-10 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <span className="size-1.5 rounded-full bg-foreground/60" />
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-sm font-medium text-foreground">{item.action}</span>
-                      <span className="text-xs text-muted-foreground">{item.user} · {item.at}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {doc.label}
+                            {doc.required && <span className="ml-0.5 text-destructive">*</span>}
+                          </p>
+                          <p className={cn("text-xs", attached ? "text-muted-foreground" : "text-destructive")}>
+                            {attached
+                              ? `${doc.fileName}${doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}${doc.uploadDate ? ` · ${doc.uploadDate}` : ""}`
+                              : "Awaiting upload"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold", statusCls)}>
+                        {docStatus}
+                      </span>
                     </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Activity History */}
+            <Section title="Activity History" />
+            <ol className="flex flex-col">
+              {activityHistory.map((item, i) => (
+                <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                  {i !== activityHistory.length - 1 && (
+                    <span className="absolute left-[11px] top-6 h-[calc(100%-0.75rem)] w-px bg-border" />
+                  )}
+                  <span className="relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <span className="size-1.5 rounded-full bg-muted-foreground/60" />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col pt-0.5">
+                    <span className="text-sm font-medium text-foreground">{item.action}</span>
+                    <span className="text-xs text-muted-foreground">{item.user} · {item.at}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
 
-          {/* Right: sticky sidebar */}
-          <div className="flex flex-col gap-5 lg:sticky lg:top-16 lg:self-start">
+          {/* ── Right: sticky sidebar ─────────────────────────────────────── */}
+          <div className="flex flex-col gap-5 lg:sticky lg:top-6 lg:self-start">
 
-            {/* Key Numbers card */}
+            {/* Key Numbers */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Key Numbers
               </p>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Requested amount</p>
-                  <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">
-                    {request.currency === "EUR"
-                      ? `€${formatAmount(request.amount)}`
-                      : `${formatAmount(request.amount)} ${request.currency}`}
-                  </p>
-                </div>
-                {request.budgetTotal && (
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Budget used</span>
-                      <span>
-                        {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}{" "}
-                        / {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-foreground/60 transition-all"
-                        style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
-                      />
-                    </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Requested amount</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">{amountDisplay}</p>
+              </div>
+              {request.budgetTotal && (
+                <div className="mt-4">
+                  <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Budget used</span>
+                    <span>
+                      {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
+                      {" / "}
+                      {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
+                    </span>
                   </div>
-                )}
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-foreground/60 transition-all"
+                      style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4">
                 {request.quotes > 0 && (
-                  <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Supplier quotes</span>
                     <span className="font-semibold text-foreground">{request.quotes}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Department</span>
                   <span className="font-semibold text-foreground">{request.department}</span>
                 </div>
