@@ -6,7 +6,6 @@ import {
   Search,
   Package,
   PackageX,
-  AlertTriangle,
   CircleDollarSign,
   Tags,
   RotateCcw,
@@ -59,14 +58,7 @@ function StatusPill({ status }: { status: StockStatus }) {
   return <span className={statusStyles[status]}>{status}</span>
 }
 
-function LowStockBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold text-[#92400e]">
-      <AlertTriangle className="size-3" />
-      Low Stock
-    </span>
-  )
-}
+
 
 // ---------------------------------------------------------------------------
 // KPI card
@@ -440,11 +432,6 @@ function ItemRow({ item: i }: { item: InventoryItem }) {
       <td className="px-5 py-4 text-right">
         <span className="font-semibold tabular-nums text-foreground">{i.quantity}</span>
         <span className="text-xs text-muted-foreground"> / min {i.minQuantity}</span>
-        {low && (
-          <div className="mt-1">
-            <LowStockBadge />
-          </div>
-        )}
       </td>
       <td className="px-5 py-4 text-muted-foreground">
         <span className="inline-flex items-center gap-1">
@@ -493,7 +480,7 @@ function ItemCard({ item: i }: { item: InventoryItem }) {
         <p className="text-xs text-muted-foreground">{i.category}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="text-sm font-bold tabular-nums text-foreground">{formatAmount(totalValue(i))} EUR</span>
-          {low && <LowStockBadge />}
+          <StatusPill status={status} />
         </div>
       </div>
     </Link>
