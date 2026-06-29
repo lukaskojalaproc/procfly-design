@@ -176,28 +176,28 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
       {/* ── Top sticky Approval Review action bar ─────────────────────── */}
       {canReview && (
-        <div className="sticky top-0 z-40 -mx-6 border-b border-border bg-background/95 px-6 py-3 shadow-sm backdrop-blur">
+        <div className="sticky top-0 z-40 -mx-6 px-6 py-3 shadow-md" style={{ background: "var(--color-sidebar)" }}>
           <div className="flex flex-wrap items-center gap-3">
             {/* Left: context */}
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
                 <Gavel className="size-3.5" />
               </span>
-              <span className="text-sm font-semibold text-foreground">Approval Review</span>
+              <span className="text-sm font-semibold text-white">Approval Review</span>
               {reviewTask && (
                 <>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-white/40">·</span>
+                  <span className="text-sm text-white/70">
                     Step {reviewTask.stepNumber} of {reviewTask.totalSteps} · {reviewTask.stepRole}
                   </span>
                   {reviewTask.deadline && (
                     <>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-xs text-muted-foreground">{reviewTask.deadline}</span>
+                      <span className="text-white/40">·</span>
+                      <span className="text-xs text-white/60">{reviewTask.deadline}</span>
                     </>
                   )}
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-xs text-muted-foreground">{formatWaiting(reviewTask.activatedAt)} waiting</span>
+                  <span className="text-white/40">·</span>
+                  <span className="text-xs text-white/60">{formatWaiting(reviewTask.activatedAt)} waiting</span>
                 </>
               )}
             </div>
@@ -208,7 +208,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               placeholder="Add a note (required to reject or request changes)"
               value={decisionComment}
               onChange={(e) => setDecisionComment(e.target.value)}
-              className="h-8 w-64 shrink rounded-lg border border-border bg-muted px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground/40 focus:ring-0"
+              className="h-8 w-64 shrink rounded-lg border border-white/20 bg-white/10 px-3 text-xs text-white outline-none placeholder:text-white/40 focus:border-white/40 focus:ring-0"
             />
 
             {/* Right: action buttons */}
@@ -216,7 +216,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               <button
                 type="button"
                 onClick={() => submitDecision("approve")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a3d2a] transition-opacity hover:opacity-90"
               >
                 <Check className="size-3.5" />
                 Approve
@@ -225,7 +225,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 type="button"
                 onClick={() => submitDecision("changes")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <CornerUpLeft className="size-3.5" />
                 Request Changes
@@ -234,7 +234,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 type="button"
                 onClick={() => submitDecision("reject")}
                 disabled={!decisionComment.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 transition-opacity hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <X className="size-3.5" />
                 Reject
