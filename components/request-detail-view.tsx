@@ -89,7 +89,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   const activity = useRequestActivity(request.id)
 
   const searchParams = useSearchParams()
-  const canReview = searchParams.get("review") === "1" && request.status === "Pending Approval"
+  const canReview = request.status === "Pending Approval"
 
   const reviewTask = useMemo(() => {
     if (!canReview) return null
@@ -341,7 +341,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
       <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
 
       {/* ── Main layout: left tabbed content + right discussion panel ────── */}
-      <div className="flex min-h-0 flex-1 items-start gap-6 pt-8">
+      <div className="flex min-h-0 flex-1 items-stretch gap-6 pt-8">
 
         {/* ── Left: tabs + tab content ─────────────────────────────────────── */}
         <div className="flex min-w-0 flex-1 flex-col">
@@ -718,8 +718,8 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
 
         {/* ── Right: Chat / Discussion panel ───────────────────────────────── */}
-        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col lg:sticky lg:top-6 lg:self-start">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ maxHeight: "calc(100vh - 7rem)", minHeight: "320px" }}>
+        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col">
+          <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             {/* Panel header */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <MessageSquare className="size-4 text-muted-foreground" />
