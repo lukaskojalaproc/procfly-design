@@ -65,38 +65,38 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       ? `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}`
       : `${kpi.trend === "up" ? "+" : "−"}${kpi.delta}%`
 
-  // Badge colors per spec
+  // Badge: soft outline, white bg, colored text only — premium minimal style
   const badgeStyle = isGood
-    ? { color: "#15803D", background: "#ECFDF3", border: "1px solid #BBF7D0" }
+    ? { color: "#15803D", background: "#F5FBF7", border: "1px solid #DCEFE3" }
     : isBad
-    ? { color: "#B42318", background: "#FEF3F2", border: "1px solid #FECDCA" }
-    : { color: "#475467", background: "#F8FAFC", border: "1px solid #E2E8F0" }
+    ? { color: "#B42318", background: "#FEF6F5", border: "1px solid #F3D6D2" }
+    : { color: "#667085", background: "#F8FAFC", border: "1px solid #EAEEF3" }
 
   return (
     <Card className="card-shadow flex flex-col gap-3 px-5 py-5">
       <div className="flex items-center justify-between">
-        <span className="flex size-7 items-center justify-center text-muted-foreground/40">
-          <Icon className="size-3.5" />
+        {/* Icon — near-invisible neutral gray, no color */}
+        <span className="flex size-6 items-center justify-center text-[#CBD5E1]">
+          <Icon className="size-3" />
         </span>
-        {/* Delta badge — pill, 12px/600, 4px 8px padding, semantic color */}
+        {/* Badge — small, subtle, secondary. Not a CTA. */}
         <span
-          className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold leading-none tabular-nums"
-          style={{ ...badgeStyle, padding: "4px 8px" }}
+          className="inline-flex items-center gap-px rounded text-[11px] font-medium leading-none tabular-nums"
+          style={{ ...badgeStyle, padding: "3px 6px" }}
         >
-          <DeltaIcon className="size-3" />
+          <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
       </div>
       <div>
-        {/* KPI number — black for all except savings which gets green */}
-        <p className={cn(
-          "text-[1.65rem] font-bold leading-none tabular-nums",
-          kpi.key === "savings" && isGood ? "text-[#15803D]" : "text-[#0F172A]"
-        )}>
+        {/* 1. Big number — black for all */}
+        <p className="text-[1.65rem] font-bold leading-none tabular-nums text-[#0F172A]">
           {kpi.value}
         </p>
-        <p className="mt-2 text-sm font-medium text-[#0F172A]/75">{kpi.label}</p>
-        <p className="mt-0.5 text-xs font-normal text-[#0F172A]/55">{kpi.sub}</p>
+        {/* 2. KPI label */}
+        <p className="mt-2 text-sm font-medium text-[#0F172A]/80">{kpi.label}</p>
+        {/* 3. Helper text — darker, clearly readable */}
+        <p className="mt-0.5 text-xs font-normal text-[#475569]">{kpi.sub}</p>
       </div>
     </Card>
   )
