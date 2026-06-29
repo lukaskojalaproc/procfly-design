@@ -13,7 +13,6 @@ import {
   initials,
   statusMeta,
   formatAmount,
-  formatCompact,
   priceTier,
   type ProcurementRequest,
   type RequestKind,
@@ -27,13 +26,12 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
     return <span className="shrink-0 text-sm tabular-nums text-[#94A3B8]">—</span>
   }
   const isLarge = tier === "high" || tier === "critical"
-  const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
+  const amountStr = formatAmount(amount)
   const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
-  // Critical tier = plain bold text, larger, no pill
   return (
     <span className={cn(
       "shrink-0 tabular-nums text-[#0F172A]",
-      tier === "critical" ? "text-base font-bold" : isLarge ? "text-sm font-semibold" : "text-sm font-medium"
+      tier === "critical" ? "text-[15px] font-bold" : isLarge ? "text-[14px] font-semibold" : "text-[14px] font-medium"
     )}>
       {display}
     </span>
@@ -44,8 +42,8 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
 function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTotal: number; currency: string }) {
   const pct = Math.min((amount / budgetTotal) * 100, 100)
   const remaining = Math.max(budgetTotal - amount, 0)
-  const remainingStr = currency === "EUR" ? `€${formatCompact(remaining)}` : `${formatCompact(remaining)} ${currency}`
-  const totalStr = currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`
+  const remainingStr = currency === "EUR" ? `€${formatAmount(remaining)}` : `${formatAmount(remaining)} ${currency}`
+  const totalStr = currency === "EUR" ? `€${formatAmount(budgetTotal)}` : `${formatAmount(budgetTotal)} ${currency}`
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
