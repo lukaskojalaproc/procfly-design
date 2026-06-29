@@ -344,33 +344,41 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         <div className="flex min-w-0 flex-1 flex-col">
 
           {/* Tab bar */}
-          <div className="flex items-center gap-6 border-b border-border">
+          <div className="flex items-center gap-0 border-b border-border">
             {([
               { id: "overview"  as const, label: "Overview" },
               { id: "details"   as const, label: detailsLabel },
               { id: "financial" as const, label: "Financial" },
               { id: "documents" as const, label: "Documents", count: detail.documents.length || null },
               { id: "activity"  as const, label: "Activity" },
-            ]).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "relative -mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-sm font-semibold transition-colors",
-                  tab === t.id
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t.label}
-                {"count" in t && t.count ? (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                    {t.count}
-                  </span>
-                ) : null}
-              </button>
-            ))}
+            ]).map((t) => {
+              const isActive = tab === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "relative -mb-px flex items-center gap-2 whitespace-nowrap border-b-[2.5px] px-4 pb-3 pt-1 text-sm transition-all duration-150",
+                    isActive
+                      ? "border-foreground font-semibold text-foreground"
+                      : "border-transparent font-normal text-muted-foreground/55 hover:text-muted-foreground",
+                  )}
+                >
+                  {t.label}
+                  {"count" in t && t.count ? (
+                    <span className={cn(
+                      "inline-flex items-center justify-center rounded-full px-1.5 py-px text-[10px] font-semibold leading-none tabular-nums transition-colors",
+                      isActive
+                        ? "bg-foreground/10 text-foreground"
+                        : "bg-muted/60 text-muted-foreground/50",
+                    )}>
+                      {t.count}
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })}
           </div>
 
           {/* Tab content */}
