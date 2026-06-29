@@ -15,7 +15,6 @@ import {
   Users,
   ArrowLeft,
   MessageSquare,
-  ListChecks,
   Clock,
 } from "lucide-react"
 import Link from "next/link"
@@ -58,22 +57,28 @@ const kindIcon: Record<RequestKind, typeof Package> = {
 
 function Section({ title }: { title: string }) {
   return (
-    <p className="mb-3 mt-8 text-[11px] font-bold uppercase tracking-widest text-muted-foreground first:mt-0">
+    <p className="mb-0 mt-8 text-[11px] font-bold uppercase tracking-widest text-muted-foreground first:mt-0">
       {title}
     </p>
   )
 }
 
-function Field({ label, value, children }: { label: string; value?: string | null; children?: React.ReactNode }) {
+function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/60 py-2.5 last:border-0">
-      <span className="min-w-[160px] shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium text-foreground">{children ?? value ?? "—"}</span>
+    <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
+      {children}
     </div>
   )
 }
 
-type RequestTab = "details" | "discussion"
+function Field({ label, value, children }: { label: string; value?: string | null; children?: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[200px_1fr] items-start gap-4 border-b border-border/60 px-4 py-3 last:border-0">
+      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{children ?? value ?? "—"}</span>
+    </div>
+  )
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -81,7 +86,6 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   const detail  = getRequestDetail(request)
   const Icon    = kindIcon[request.kind]
   const status  = statusMeta[request.status]
-  const [tab, setTab] = useState<RequestTab>("details")
   const activity = useRequestActivity(request.id)
 
   const searchParams = useSearchParams()
@@ -305,84 +309,45 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
       </div>
 
-      {/* ── Tabs ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-0 border-b border-border">
-        {(
-          [
-            { key: "details"    as const, label: "Details",    Icon: ListChecks,    count: null },
-            { key: "discussion" as const, label: "Discussion", Icon: MessageSquare, count: commentCount || null },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              tab === t.key
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <t.Icon className="size-4" />
-            {t.label}
-            {t.count ? (
-              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                {t.count}
-              </span>
-            ) : null}
-          </button>
-        ))}
-      </div>
+      {/* ── Main layout: left detail + right chat panel ──────────────────── */}
+      <div className="flex min-h-0 flex-1 gap-6 pt-6">
 
-      {/* ── Discussion tab ────────────────────────────────────────────────── */}
-      {tab === "discussion" && (
-        <div className="pt-6">
-          <RequestDiscussion
-            requestId={request.id}
-            currentUser={request.requester}
-            participants={participants}
-            requestRef={request.ref}
-            requestTitle={request.title}
-            requester={request.requester}
-            approvers={approvers}
-          />
-        </div>
-      )}
+        {/* ── Left: approval flow + fields ─────────────────────────────────── */}
+        <div className="flex min-w-0 flex-1 flex-col gap-0">
 
-      {/* ── Details tab ───────────────────────────────────────────────────── */}
-      {tab === "details" && (
-        <div className="flex flex-col gap-0 pt-6">
-
-          {/* ── Approval Flow — full-width horizontal canvas ──────────────── */}
+          {/* Approval Flow */}
           <RequestApprovalFlow requestId={request.id} approvals={detail.approvals} />
 
-          {/* ── Below: left fields + right sidebar ───────────────────────── */}
-          <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-[1fr_280px]">
+          {/* Fields + Key Numbers sidebar */}
+          <div className="grid grid-cols-1 gap-8 pt-6 lg:grid-cols-[1fr_260px]">
 
           {/* ── Left: scrollable content ─────────────────────────────────── */}
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-2xl">
 
             {/* General */}
             <Section title="General" />
-            <Field label="Description"          value={detail.description} />
-            <Field label="Procurement category" value={request.category} />
-            <Field label="Department"           value={request.department} />
-            <Field label="Cost center"          value={detail.costCenter} />
-            <Field label="Business priority"    value={detail.businessPriority} />
-            <Field label="Currency"             value={request.currency} />
-            <Field label="Created"              value={request.date} />
-            <Field label="Last updated"         value={request.updated} />
+            <FieldGroup>
+              <Field label="Description"          value={detail.description} />
+              <Field label="Procurement category" value={request.category} />
+              <Field label="Department"           value={request.department} />
+              <Field label="Cost center"          value={detail.costCenter} />
+              <Field label="Business priority"    value={detail.businessPriority} />
+              <Field label="Currency"             value={request.currency} />
+              <Field label="Created"              value={request.date} />
+              <Field label="Last updated"         value={request.updated} />
+            </FieldGroup>
 
             {/* Product Details */}
             {detail.product && (
               <>
                 <Section title="Product Details" />
-                <Field label="Procurement category" value={detail.product.procurementCategory} />
-                <Field label="Preferred supplier"   value={detail.product.preferredSupplier} />
-                <Field label="Needed by"            value={detail.product.neededBy} />
-                <Field label="Delivery location"    value={detail.product.deliveryLocation} />
-                <Field label="Purchase type"        value={detail.product.purchaseType} />
+                <FieldGroup>
+                  <Field label="Procurement category" value={detail.product.procurementCategory} />
+                  <Field label="Preferred supplier"   value={detail.product.preferredSupplier} />
+                  <Field label="Needed by"            value={detail.product.neededBy} />
+                  <Field label="Delivery location"    value={detail.product.deliveryLocation} />
+                  <Field label="Purchase type"        value={detail.product.purchaseType} />
+                </FieldGroup>
               </>
             )}
 
@@ -390,13 +355,15 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             {detail.service && (
               <>
                 <Section title="Service Details" />
-                <Field label="Procurement category" value={detail.service.procurementCategory} />
-                <Field label="Preferred supplier"   value={detail.service.preferredSupplier} />
-                <Field label="Service start"        value={detail.service.serviceStartDate} />
-                <Field label="Service end"          value={detail.service.serviceEndDate} />
-                <Field label="Business owner"       value={detail.service.businessOwner} />
-                <Field label="Contract required"    value={detail.service.contractRequired} />
-                <Field label="Service type"         value={detail.service.serviceType} />
+                <FieldGroup>
+                  <Field label="Procurement category" value={detail.service.procurementCategory} />
+                  <Field label="Preferred supplier"   value={detail.service.preferredSupplier} />
+                  <Field label="Service start"        value={detail.service.serviceStartDate} />
+                  <Field label="Service end"          value={detail.service.serviceEndDate} />
+                  <Field label="Business owner"       value={detail.service.businessOwner} />
+                  <Field label="Contract required"    value={detail.service.contractRequired} />
+                  <Field label="Service type"         value={detail.service.serviceType} />
+                </FieldGroup>
               </>
             )}
 
@@ -404,26 +371,30 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             {detail.software && (
               <>
                 <Section title="Software Details" />
-                <Field label="Software name"      value={detail.software.softwareName} />
-                <Field label="Preferred supplier" value={detail.software.preferredSupplier} />
-                <Field label="Business owner"     value={detail.software.businessOwner} />
-                <Field label="IT owner"           value={detail.software.itOwner} />
-                <Field label="Number of users"    value={detail.software.users} />
-                <Field label="Billing cycle"      value={detail.software.billingCycle} />
-                <Field label="Subscription start" value={detail.software.subscriptionStart} />
-                <Field label="Subscription end"   value={detail.software.subscriptionEnd} />
-                <Field label="Contract duration"  value={detail.software.contractDuration} />
-                <Field label="License type"       value={detail.software.licenseType} />
-                <Field label="Auto renewal"       value={detail.software.autoRenewal} />
+                <FieldGroup>
+                  <Field label="Software name"      value={detail.software.softwareName} />
+                  <Field label="Preferred supplier" value={detail.software.preferredSupplier} />
+                  <Field label="Business owner"     value={detail.software.businessOwner} />
+                  <Field label="IT owner"           value={detail.software.itOwner} />
+                  <Field label="Number of users"    value={detail.software.users} />
+                  <Field label="Billing cycle"      value={detail.software.billingCycle} />
+                  <Field label="Subscription start" value={detail.software.subscriptionStart} />
+                  <Field label="Subscription end"   value={detail.software.subscriptionEnd} />
+                  <Field label="Contract duration"  value={detail.software.contractDuration} />
+                  <Field label="License type"       value={detail.software.licenseType} />
+                  <Field label="Auto renewal"       value={detail.software.autoRenewal} />
+                </FieldGroup>
 
                 <Section title="Data Protection" />
-                <Field label="Personal data processed" value={detail.software.dataProcessing} />
-                {detail.software.dataProcessing !== "No" && (
-                  <>
-                    <Field label="Data hosting region" value={detail.software.hostingRegion} />
-                    <Field label="DPA required"        value={detail.software.dpaRequired} />
-                  </>
-                )}
+                <FieldGroup>
+                  <Field label="Personal data processed" value={detail.software.dataProcessing} />
+                  {detail.software.dataProcessing !== "No" && (
+                    <>
+                      <Field label="Data hosting region" value={detail.software.hostingRegion} />
+                      <Field label="DPA required"        value={detail.software.dpaRequired} />
+                    </>
+                  )}
+                </FieldGroup>
               </>
             )}
 
@@ -431,28 +402,35 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             {detail.supplierOnboarding && (
               <>
                 <Section title="Supplier Information" />
-                <Field label="Legal entity name"    value={detail.supplierOnboarding.legalName} />
-                <Field label="Country"              value={detail.supplierOnboarding.country} />
-                <Field label="Registration number"  value={detail.supplierOnboarding.registrationNumber} />
-                <Field label="VAT number"           value={detail.supplierOnboarding.vatNumber} />
-                <Field label="Website"              value={detail.supplierOnboarding.website} />
-                <Field label="Contact name"         value={detail.supplierOnboarding.contactName} />
-                <Field label="Contact email"        value={detail.supplierOnboarding.contactEmail} />
-                <Field label="Supplier category"    value={detail.supplierOnboarding.supplierCategory} />
-                <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                <FieldGroup>
+                  <Field label="Legal entity name"     value={detail.supplierOnboarding.legalName} />
+                  <Field label="Country"               value={detail.supplierOnboarding.country} />
+                  <Field label="Registration number"   value={detail.supplierOnboarding.registrationNumber} />
+                  <Field label="VAT number"            value={detail.supplierOnboarding.vatNumber} />
+                  <Field label="Website"               value={detail.supplierOnboarding.website} />
+                  <Field label="Contact name"          value={detail.supplierOnboarding.contactName} />
+                  <Field label="Contact email"         value={detail.supplierOnboarding.contactEmail} />
+                  <Field label="Supplier category"     value={detail.supplierOnboarding.supplierCategory} />
+                  <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
+                </FieldGroup>
 
                 <Section title="Finance" />
-                <Field label="Payment terms"   value={detail.supplierOnboarding.paymentTerms} />
-                <Field label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
+                <FieldGroup>
+                  <Field label="Payment terms"   value={detail.supplierOnboarding.paymentTerms} />
+                  <Field label="Invoicing email" value={detail.supplierOnboarding.invoicingEmail} />
+                </FieldGroup>
 
                 <Section title="Compliance" />
-                <Field label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
-                <Field label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
+                <FieldGroup>
+                  <Field label="VAT verification status" value={detail.supplierOnboarding.vatVerificationStatus} />
+                  <Field label="Risk status"             value={detail.supplierOnboarding.riskStatus} />
+                </FieldGroup>
               </>
             )}
 
             {/* Financial Information */}
             <Section title="Financial Information" />
+            <FieldGroup>
             {detail.supplierOnboarding ? (
               <>
                 <Field label="Expected annual spend" value={detail.supplierOnboarding.expectedAnnualSpend} />
@@ -482,6 +460,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 <Field label="Currency"        value={request.currency} />
               </>
             )}
+            </FieldGroup>
 
             {/* Line Items */}
             {!detail.supplierOnboarding && detail.lineItems.length > 0 && (
@@ -636,8 +615,38 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
           </div>
         </div>
+
+        </div>{/* end left */}
+
+        {/* ── Right: Chat / Discussion panel ───────────────────────────────── */}
+        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col">
+          <div className="sticky top-0 flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden" style={{ maxHeight: "calc(100vh - 5rem)" }}>
+            {/* Panel header */}
+            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+              <MessageSquare className="size-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">Discussion</span>
+              {commentCount > 0 && (
+                <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {commentCount}
+                </span>
+              )}
+            </div>
+            {/* Discussion content */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <RequestDiscussion
+                requestId={request.id}
+                currentUser={request.requester}
+                participants={participants}
+                requestRef={request.ref}
+                requestTitle={request.title}
+                requester={request.requester}
+                approvers={approvers}
+              />
+            </div>
+          </div>
         </div>
-      )}
+
+      </div>{/* end main layout */}
     </div>
   )
 }

@@ -21,28 +21,28 @@ const stateStyles: Record<DisplayState, {
   icon: typeof Check
 }> = {
   approved: {
-    card: "border-[#BBF7D0] bg-[#ECFDF3]",
-    dot: "bg-[#15803D] ring-[#BBF7D0]",
+    card: "border-foreground bg-foreground",
+    dot: "bg-white ring-white/30",
     label: "Approved",
-    labelCls: "text-[#15803D] bg-[#ECFDF3] border border-[#BBF7D0]",
+    labelCls: "text-white bg-transparent border border-white/30",
     icon: Check,
   },
   in_progress: {
-    card: "border-[#F1E4B5] bg-[#FFFBEB] ring-1 ring-[#F1E4B5]",
+    card: "border-foreground bg-card ring-2 ring-foreground ring-offset-2",
     dot: "bg-[#B54708] ring-[#F1E4B5]",
     label: "In Progress",
     labelCls: "text-[#B54708] bg-[#FEF6E8] border border-[#F1E4B5]",
     icon: Clock,
   },
   not_started: {
-    card: "border-border bg-muted/30",
-    dot: "bg-muted-foreground/30 ring-border",
+    card: "border-border bg-card",
+    dot: "bg-border ring-border",
     label: "Not Started",
-    labelCls: "text-muted-foreground bg-muted border border-border",
+    labelCls: "text-muted-foreground bg-muted/60 border border-border",
     icon: Clock,
   },
   rejected: {
-    card: "border-[#F3D6D2] bg-[#FEF3F2]",
+    card: "border-border bg-card",
     dot: "bg-[#B42318] ring-[#F3D6D2]",
     label: "Rejected",
     labelCls: "text-[#B42318] bg-[#FEF3F2] border border-[#F3D6D2]",
@@ -112,14 +112,25 @@ export function RequestApprovalFlow({
                 >
                   {/* Top: avatar + name */}
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-bold text-foreground shadow-sm ring-1 ring-border">
+                    <span className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm ring-1",
+                      dState === "approved"
+                        ? "bg-white/20 text-white ring-white/20"
+                        : "bg-background text-foreground ring-border",
+                    )}>
                       {initials(step.name)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold leading-tight text-foreground">
+                      <p className={cn(
+                        "truncate text-[13px] font-semibold leading-tight",
+                        dState === "approved" ? "text-white" : "text-foreground",
+                      )}>
                         {step.name}
                       </p>
-                      <p className="truncate text-[11px] text-muted-foreground">{step.role}</p>
+                      <p className={cn(
+                        "truncate text-[11px]",
+                        dState === "approved" ? "text-white/60" : "text-muted-foreground",
+                      )}>{step.role}</p>
                     </div>
                   </div>
 
@@ -134,20 +145,21 @@ export function RequestApprovalFlow({
                       <Icon className="size-2.5" />
                       {isCreator ? "Created" : s.label}
                     </span>
-                    <span
-                      className={cn(
-                        "size-2.5 rounded-full ring-2",
-                        s.dot,
-                      )}
-                    />
+                    <span className={cn("size-2.5 rounded-full ring-2", s.dot)} />
                   </div>
 
                   {/* Date / comment */}
                   {step.date && (
-                    <p className="mt-2 truncate text-[10px] text-muted-foreground">{step.date}</p>
+                    <p className={cn(
+                      "mt-2 truncate text-[10px]",
+                      dState === "approved" ? "text-white/50" : "text-muted-foreground",
+                    )}>{step.date}</p>
                   )}
                   {step.comment && (
-                    <p className="mt-1.5 line-clamp-2 text-[11px] italic text-muted-foreground">
+                    <p className={cn(
+                      "mt-1.5 line-clamp-2 text-[11px] italic",
+                      dState === "approved" ? "text-white/60" : "text-muted-foreground",
+                    )}>
                       &ldquo;{step.comment}&rdquo;
                     </p>
                   )}
