@@ -118,17 +118,17 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
-        <button className="group flex w-full items-center gap-3 rounded-lg border border-black/40 bg-black/40 px-2 py-2 text-left transition-all hover:bg-black/60 active:scale-[0.98]">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-black/40 text-xs font-bold text-white">
+        <button className="group flex w-full items-center gap-3 rounded-lg border border-white/20 bg-white px-2 py-2 text-left transition-all hover:bg-white/90 active:scale-[0.98]">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
             PF
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-bold text-white">
+            <p className="truncate text-sm font-bold text-[#0F172A]">
               ProcFly Demo Workspace
             </p>
-            <p className="truncate text-xs text-white/70">Select Workspace</p>
+            <p className="truncate text-xs text-[#64748B]">Select Workspace</p>
           </div>
-          <ChevronDown className="size-4 shrink-0 text-white/80 transition-transform group-hover:text-white" />
+          <ChevronDown className="size-4 shrink-0 text-[#475569] transition-transform group-hover:text-[#0F172A]" />
         </button>
       </div>
     </aside>
