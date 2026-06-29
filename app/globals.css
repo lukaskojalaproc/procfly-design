@@ -72,9 +72,9 @@
   --accent: oklch(0.96 0.025 162);
   --accent-foreground: oklch(0.32 0.09 162);
   --destructive: oklch(0.575 0.2 27);
-  /* Border — #E2E8F0 as specified */
-  --border: oklch(0.921 0.006 240);
-  --input: oklch(0.921 0.006 240);
+  /* Border — softened, less "boxy" */
+  --border: oklch(0.938 0.004 240);
+  --input: oklch(0.938 0.004 240);
   --ring: oklch(0.58 0.12 162);
   /* Charts: spend = green, budget = neutral gray */
   --chart-1: oklch(0.58 0.12 162);
@@ -185,12 +185,12 @@
 }
 
 @layer utilities {
-  /* Card shadow — subtle but visible, with a crisp #E2E8F0 border ring */
+  /* Item 8: card border much softer — barely visible ring, lighter shadow */
   .card-shadow {
     box-shadow:
-      0 1px 3px 0 oklch(0 0 0 / 0.06),
-      0 4px 12px -2px oklch(0 0 0 / 0.08),
-      0 0 0 1px oklch(0.921 0.006 240);
+      0 1px 2px 0 oklch(0 0 0 / 0.04),
+      0 3px 10px -2px oklch(0 0 0 / 0.05),
+      0 0 0 1px oklch(0.945 0.004 240);
   }
   /* Progress bar track/fill globals */
   .progress-track {

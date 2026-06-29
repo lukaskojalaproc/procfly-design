@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils"
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-background/80 px-6 py-3 backdrop-blur">
+    <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/80 px-6 py-2 backdrop-blur">
       <div className="relative flex-1 max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+        {/* Item 9: input thinner — py-1.5 */}
         <input
           type="search"
           placeholder="Search requests, suppliers, approvals..."
-          className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+          className="w-full rounded-lg border border-border/60 bg-card py-1.5 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
         />
       </div>
       <button className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted">
@@ -47,7 +48,8 @@ export function PageHeader({
 }) {
   const trail = crumbs ?? [{ label: crumb }]
   return (
-    <div className="flex flex-col gap-4">
+    // Item 10: tighter vertical spacing — gap-2 instead of gap-4
+    <div className="flex flex-col gap-2">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">
           Home
@@ -69,10 +71,10 @@ export function PageHeader({
         })}
       </nav>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-          <p className="mt-1 text-muted-foreground">{description}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center gap-2">
           {actions ?? (

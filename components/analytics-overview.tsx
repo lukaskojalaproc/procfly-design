@@ -64,36 +64,34 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       ? `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}`
       : `${kpi.trend === "up" ? "+" : "-"}${kpi.delta}%`
 
-  // Only "savings" gets a coloured number — everything else stays foreground (black).
-  const valueColour = kpi.key === "savings" ? "text-primary" : "text-foreground"
+  // Item 1: all KPI numbers black — no green on savings either
+  const valueColour = "text-foreground"
 
-  // Delta pill: muted tones — not vivid green/red.
+  // Item 2: delta — near-neutral, color only a faint hint
   const deltaCls = isGood
-    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-    : "bg-red-50 text-red-500 border border-red-100"
+    ? "bg-foreground/[0.04] text-foreground/50 border border-foreground/[0.06]"
+    : "bg-foreground/[0.04] text-foreground/50 border border-foreground/[0.06]"
 
-  // Only savings icon is green; all others are neutral muted.
-  const iconCls = kpi.key === "savings"
-    ? "bg-primary/[0.08] text-primary"
-    : "bg-muted text-muted-foreground"
+  // Item 11: icon bg barely-there — not visible gray square
+  const iconCls = "bg-muted/50 text-muted-foreground/70"
 
   return (
     <Card className="card-shadow flex flex-col gap-5 px-6 py-7">
       <div className="flex items-center justify-between">
         <span className={cn("flex size-9 items-center justify-center rounded-lg", iconCls)}>
-          <Icon className="size-4.5" />
+          <Icon className="size-4" />
         </span>
-        <span className={cn("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium", deltaCls)}>
-          <DeltaIcon className="size-3" />
+        {/* Item 2: delta badge — smaller, muted */}
+        <span className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium", deltaCls)}>
+          <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
       </div>
       <div>
         <p className={cn("text-[1.75rem] font-bold leading-none tabular-nums", valueColour)}>{kpi.value}</p>
-        {/* Label: 500 weight */}
-        <p className="mt-2.5 text-sm font-medium text-foreground/90">{kpi.label}</p>
-        {/* Sub: darker gray — not too light */}
-        <p className="mt-1 text-xs font-normal text-foreground/50">{kpi.sub}</p>
+        <p className="mt-2.5 text-sm font-medium text-foreground/85">{kpi.label}</p>
+        {/* Item 7: sub-label — less transparent, more readable */}
+        <p className="mt-1 text-xs font-normal text-foreground/45">{kpi.sub}</p>
       </div>
     </Card>
   )
@@ -117,7 +115,8 @@ export function AnalyticsOverview() {
             {periodLabels[period]} · all figures {compare}
           </p>
         </div>
-        <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-sm">
+        {/* Item 3: active filter — dark/foreground fill, not green */}
+        <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p}
@@ -126,7 +125,7 @@ export function AnalyticsOverview() {
               className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 period === p
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-foreground/[0.08] text-foreground shadow-none"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -165,9 +164,10 @@ export function AnalyticsOverview() {
           <ChartContainer config={spendChartConfig} className="h-[240px] w-full">
             <AreaChart data={spend} margin={{ left: 4, right: 4, top: 4 }}>
               <defs>
+                {/* Item 6: fill much weaker — line stays visible, area fades away */}
                 <linearGradient id="fillSpend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0.01} />
+                  <stop offset="5%" stopColor="var(--color-spend)" stopOpacity={0.08} />
+                  <stop offset="95%" stopColor="var(--color-spend)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -240,11 +240,12 @@ export function AnalyticsOverview() {
                   />
                 }
               />
+              {/* Item 5: first bar muted green, rest very light gray */}
               <Bar dataKey="spend" radius={4} barSize={18}>
                 {categories.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "var(--chart-1)" : "oklch(0.88 0.004 240)"}
+                    fill={index === 0 ? "oklch(0.58 0.08 162)" : "oklch(0.91 0.003 240)"}
                   />
                 ))}
               </Bar>
