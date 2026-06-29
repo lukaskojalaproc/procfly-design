@@ -185,12 +185,12 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
   }, [request, activity])
 
   return (
-    <div className="flex flex-col">
+    <div className={cn("flex flex-col", canReview && "pb-20")}>
 
-      {/* ── Approval Review Bar ───────────────────────────────────────────── */}
+      {/* ── Approval Review Bar — fixed bottom footer ─────────────────────── */}
       {canReview && (
         <div
-          className="sticky top-0 z-40 -mx-6 mb-4 px-6 py-3 shadow-lg"
+          className="fixed inset-x-0 bottom-0 z-40 px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:left-64"
           style={{ background: "var(--color-sidebar)" }}
         >
           <div className="flex flex-wrap items-center gap-3">
@@ -522,7 +522,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               </div>
             )}
 
-            {/* ── Financial ───────────────────────────────────────────────── */}
+            {/* ── Financial ──────────────────────────────────────────���────── */}
             {tab === "financial" && (
               <div className="flex flex-col gap-6">
                 <div>
@@ -671,7 +671,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
 
         {/* ── Right: Chat / Discussion panel — full height ─────────────────── */}
         <div className="hidden w-[360px] shrink-0 lg:flex lg:flex-col lg:sticky lg:top-6 lg:self-start">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ height: "calc(100vh - 7rem)" }}>
+          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm" style={{ height: canReview ? "calc(100vh - 6rem)" : "calc(100vh - 7rem)" }}>
             {/* Panel header */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <MessageSquare className="size-4 text-muted-foreground" />
