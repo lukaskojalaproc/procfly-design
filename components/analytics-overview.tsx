@@ -72,11 +72,15 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
     ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
     : "bg-red-50 text-red-500 border border-red-100"
 
+  // Only savings icon is green; all others are neutral muted.
+  const iconCls = kpi.key === "savings"
+    ? "bg-primary/[0.08] text-primary"
+    : "bg-muted text-muted-foreground"
+
   return (
     <Card className="card-shadow flex flex-col gap-5 px-6 py-7">
       <div className="flex items-center justify-between">
-        {/* Single accent color for all icons — ProcFly green */}
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
+        <span className={cn("flex size-9 items-center justify-center rounded-lg", iconCls)}>
           <Icon className="size-4.5" />
         </span>
         <span className={cn("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium", deltaCls)}>

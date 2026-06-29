@@ -20,14 +20,23 @@ import {
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
 
-/** Inline amount — shown in the title row, right-aligned, no fixed width. */
+/**
+ * Amount block — stacked vertically: number on top, currency below.
+ * Gives the amount its own column with breathing room.
+ */
 function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
   const tier = priceTier(amount)
-  if (tier === "none") return <span className="shrink-0 text-sm text-muted-foreground/50">—</span>
+  if (tier === "none") {
+    return (
+      <span className="flex shrink-0 flex-col items-end leading-none">
+        <span className="text-sm tabular-nums text-muted-foreground/40">—</span>
+      </span>
+    )
+  }
   const isLarge = tier === "high" || tier === "critical"
   const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
   return (
-    <span className="shrink-0 tabular-nums">
+    <span className="flex shrink-0 flex-col items-end leading-none tabular-nums">
       <span className={cn(
         "font-semibold",
         tier === "critical" ? "text-foreground" : "text-foreground/80",
@@ -35,7 +44,7 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
       )}>
         {amountStr}
       </span>
-      <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/60">
+      <span className="mt-1 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/50">
         {currency}
       </span>
     </span>
@@ -57,7 +66,8 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
     >
       {/* Left accent bar */}
       <span className="h-11 w-1 shrink-0 rounded-full bg-border transition-colors group-hover:bg-primary" />
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
+      {/* Icon — neutral, not green. Green reserved for CTA only. */}
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-5" />
       </div>
 
