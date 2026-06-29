@@ -388,45 +388,60 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
             {tab === "overview" && (
               <div className="flex flex-col gap-6">
                 {/* Key Numbers — full-width banner */}
-                <div className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-border bg-card p-5 shadow-sm">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Requested amount</p>
-                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{amountDisplay}</p>
-                  </div>
-                  {request.budgetTotal && (
-                    <div className="min-w-[220px] flex-1 max-w-xs">
-                      <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Budget used</span>
-                        <span>
-                          {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
-                          {" / "}
-                          {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-foreground/60 transition-all"
-                          style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
-                        />
-                      </div>
+                <div className="flex items-stretch gap-0 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+
+                  {/* Left: amount + budget bar */}
+                  <div className="flex flex-1 items-center gap-10 px-6 py-5">
+                    {/* Amount */}
+                    <div className="shrink-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Requested amount</p>
+                      <p className="mt-1.5 text-[2rem] font-bold tabular-nums leading-none text-foreground">{amountDisplay}</p>
+                      {request.quotes > 0 && (
+                        <p className="mt-1.5 text-[11px] text-muted-foreground">
+                          {request.quotes} {request.quotes === 1 ? "quote" : "quotes"}
+                        </p>
+                      )}
                     </div>
-                  )}
-                  <div className="flex gap-8">
-                    {request.quotes > 0 && (
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">Quotes</p>
-                        <p className="mt-0.5 text-sm font-semibold text-foreground">{request.quotes}</p>
+
+                    {/* Budget bar */}
+                    {request.budgetTotal && (
+                      <div className="flex-1 min-w-[160px] max-w-sm">
+                        <div className="flex items-baseline justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Budget used</span>
+                          <span className="text-[11px] tabular-nums text-muted-foreground">
+                            {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
+                            <span className="mx-1 opacity-40">/</span>
+                            {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-foreground/50 transition-all"
+                            style={{ width: `${Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}%` }}
+                          />
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-muted-foreground/60">
+                          {Math.min(100, Math.round((request.amount / request.budgetTotal) * 100))}% of budget
+                        </p>
                       </div>
                     )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-px bg-border/60 my-4" />
+
+                  {/* Right: department + cost center — secondary meta */}
+                  <div className="flex shrink-0 flex-col justify-center gap-3 px-6 py-5">
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Department</p>
-                      <p className="mt-0.5 text-sm font-semibold text-foreground">{request.department}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Department</p>
+                      <p className="mt-0.5 text-sm font-medium text-foreground">{request.department}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Cost center</p>
-                      <p className="mt-0.5 text-sm font-semibold text-foreground">{detail.costCenter}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Cost center</p>
+                      <p className="mt-0.5 text-sm font-medium text-foreground">{detail.costCenter}</p>
                     </div>
                   </div>
+
                 </div>
 
                 {/* General */}
@@ -624,7 +639,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
               </div>
             )}
 
-            {/* ── Documents ───────────────────────────────────────────────── */}
+            {/* ── Documents ───���───────────────────────────────────────────── */}
             {tab === "documents" && (
               detail.documents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No documents attached.</p>
