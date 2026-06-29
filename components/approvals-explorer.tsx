@@ -13,6 +13,7 @@ import {
   X,
   AlertCircle,
   RotateCcw,
+  ChevronRight,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -117,96 +118,93 @@ function TaskRow({ task, cols }: { task: ResolvedApprovalTask; cols: ReturnType<
   const taskStatus = taskStatusMeta[task.taskStatus]
 
   return (
-    <div className="rounded-xl">
-      <Link
-        href={reviewHref}
-        className="group flex flex-col rounded-xl px-3 py-[1.125rem] transition-colors table-row-hover"
-      >
-        <div className="flex items-center gap-4">
-          {/* Icon */}
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-            <Icon className="size-4" />
-          </div>
-
-          {/* Main content */}
-          <div className="min-w-0 flex-1">
-            {/* Row 1: ref + urgent + title + high value */}
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-                {r.ref}
-              </span>
-              {task.priority === "Urgent" && (
-                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityMeta["Urgent"].badge)}>
-                  Urgent
-                </span>
-              )}
-              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
-                {r.title}
-              </p>
-              {task.highValue && (
-                <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-foreground">
-                  High Value
-                </span>
-              )}
-            </div>
-            {/* Row 2: metadata */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
-                  {initials(r.requester)}
-                </span>
-                {r.requester}
-              </span>
-              <span className="hidden sm:inline">{r.kind} · {r.category}</span>
-              <span className="inline-flex items-center gap-1">
-                <ShieldCheck className="size-3" />
-                {task.stepRole} · Step {task.stepNumber} of {task.totalSteps}
-              </span>
-              {isActive && (
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="size-3" />
-                  {formatWaiting(task.activatedAt)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Right side: due date + amount pill + task status badge */}
-          <div className="flex shrink-0 items-center gap-4">
-            {/* Due date */}
-            {isActive ? (
-              <span className={cn(
-                "hidden whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold sm:inline-flex items-center gap-1.5",
-                due.badge,
-              )}>
-                <span className={cn("size-1.5 rounded-full", due.dot)} />
-                {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
-              </span>
-            ) : (
-              <span className="hidden text-xs text-muted-foreground sm:block">
-                {task.decidedAt ? `Decided ${task.decidedAt.slice(0, 10)}` : "—"}
-              </span>
-            )}
-
-            {/* Amount pill — same style as request-list AmountDisplay */}
-            <span className={cn(
-              "shrink-0 rounded-lg border border-border bg-background px-2.5 py-1 tabular-nums text-foreground shadow-sm",
-              isCritical ? "text-[15px] font-bold" : "text-[14px] font-semibold",
-            )}>
-              {formatTaskAmount(r.amount, r.currency)}
+    <Link
+      href={reviewHref}
+      className="group grid rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-foreground/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+      style={{ gridTemplateColumns: "minmax(0,2fr) minmax(140px,1fr) minmax(180px,1fr) auto" }}
+    >
+      {/* Col 1 — Identity */}
+      <div className="min-w-0 pr-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] text-muted-foreground">{r.ref}</span>
+          {task.priority === "Urgent" && (
+            <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityMeta["Urgent"].badge)}>
+              Urgent
             </span>
-
-            {/* Task status badge */}
-            <span className={cn(
-              "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
-              taskStatus.badge,
-            )}>
-              {isActive ? (task.taskStatus === "Changes Requested" ? "Changes" : "Pending") : taskStatus.label}
+          )}
+          {task.highValue && (
+            <span className="text-[11px] font-bold uppercase tracking-widest text-foreground">
+              High Value
             </span>
-          </div>
+          )}
         </div>
-      </Link>
-    </div>
+        <h4 className="mt-1 line-clamp-1 font-semibold text-foreground">{r.title}</h4>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="flex size-4 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-semibold text-[#475569]">
+              {initials(r.requester)}
+            </span>
+            <span className="font-medium text-foreground">{r.requester}</span>
+          </span>
+          <span>{r.kind} · {r.category}</span>
+          <span className="inline-flex items-center gap-1">
+            <ShieldCheck className="size-3" />
+            {task.stepRole} · Step {task.stepNumber} of {task.totalSteps}
+          </span>
+          {isActive && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {formatWaiting(task.activatedAt)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Col 2 — Due date */}
+      <div className="flex flex-col justify-center gap-0.5 border-l border-border pl-6">
+        <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Due date</span>
+        {isActive ? (
+          <span className={cn(
+            "mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
+            due.badge,
+          )}>
+            <span className={cn("size-1.5 rounded-full", due.dot)} />
+            {due.label}{task.deadline ? ` · ${task.deadline.slice(5)}` : ""}
+          </span>
+        ) : (
+          <span className="text-sm font-medium text-muted-foreground">
+            {task.decidedAt ? task.decidedAt.slice(0, 10) : "—"}
+          </span>
+        )}
+      </div>
+
+      {/* Col 3 — Amount + status */}
+      <div className="flex items-center justify-between gap-4 border-l border-border pl-6">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Amount</p>
+          <p className={cn(
+            "tabular-nums text-foreground",
+            isCritical ? "text-[15px] font-bold" : "text-lg font-bold",
+          )}>
+            {formatTaskAmount(r.amount, r.currency)}
+          </p>
+        </div>
+        <span className={cn(
+          "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+          taskStatus.badge,
+        )}>
+          {isActive ? (task.taskStatus === "Changes Requested" ? "Changes" : "Pending") : taskStatus.label}
+        </span>
+      </div>
+
+      {/* Col 4 — Action */}
+      <div className="flex items-center pl-4">
+        <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors whitespace-nowrap group-hover:bg-foreground group-hover:text-background">
+          {isActive ? "Review" : "View"}
+          <ChevronRight className="size-3.5" />
+        </span>
+      </div>
+    </Link>
   )
 }
 
