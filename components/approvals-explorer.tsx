@@ -12,7 +12,6 @@ import {
   UserPlus,
   ShieldCheck,
   ArrowUpRight,
-  Layers,
   X,
   AlertCircle,
   RotateCcw,
@@ -377,10 +376,10 @@ export function ApprovalsExplorer() {
       {/* Tabs + search + filters */}
       <Card className="flex flex-col gap-4 p-4">
         {/* Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1 border-b border-border">
           {loading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+                <div key={i} className="mb-px h-8 w-32 animate-pulse rounded bg-muted" />
               ))
             : APPROVAL_TABS.map((key) => {
                 const isActive = tab === key
@@ -389,17 +388,16 @@ export function ApprovalsExplorer() {
                     key={key}
                     onClick={() => setTab(key)}
                     className={cn(
-                        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
                       isActive
-                        ? "border-foreground/30 bg-foreground/[0.06] text-foreground"
-                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? "border-foreground text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {key === "All" && <Layers className="size-4" />}
                     {key}
                     <span
                       className={cn(
-                        "ml-0.5 rounded-full px-1.5 text-xs font-semibold",
+                        "rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
                         isActive ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground",
                       )}
                     >

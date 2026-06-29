@@ -141,7 +141,7 @@ function FilterSelect({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-medium text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-medium text-foreground outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
         >
           {options.map((o) => (
             <option key={o} value={o}>
@@ -338,12 +338,12 @@ export function ContractsExplorer() {
             <span
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                tab === t ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                tab === t ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground",
               )}
             >
               {tabCounts[t] ?? 0}
             </span>
-            {tab === t && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />}
+            {tab === t && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-foreground" />}
           </button>
         ))}
       </div>
@@ -356,7 +356,7 @@ export function ContractsExplorer() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by contract number, name, supplier, request ID, PO number, or owner..."
-          className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
         />
       </div>
 
