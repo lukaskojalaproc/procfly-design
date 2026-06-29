@@ -83,12 +83,12 @@ export const stats = {
 // Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
 // Keep fills very light so badges read as metadata, not primary information.
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  Draft:             { label: "Draft",            badge: "border border-[#CBD5E1] bg-white text-[#475569]",                  dot: "bg-[#94A3B8]" },
-  "Pending Approval":{ label: "Pending",           badge: "border border-[#FDE68A]/70 bg-[#FFFBEB] text-[#92400E]",           dot: "bg-amber-400" },
-  Approved:          { label: "Approved",          badge: "border border-emerald-200/60 bg-emerald-50/50 text-emerald-600/90", dot: "bg-emerald-500" },
-  Rejected:          { label: "Rejected",          badge: "border border-red-200/60 bg-red-50/50 text-red-500/90",            dot: "bg-destructive" },
-  Cancelled:         { label: "Cancelled",         badge: "border border-red-100/50 bg-red-50/30 text-red-400/80",            dot: "bg-destructive/60" },
-  Archived:          { label: "Archived",          badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]",             dot: "bg-[#94A3B8]" },
+  Draft:             { label: "Draft",            badge: "border border-[#D1D5DB] bg-white text-[#6B7280]",               dot: "bg-[#9CA3AF]" },
+  "Pending Approval":{ label: "Pending",           badge: "border border-[#FCD34D]/50 bg-[#FFFDF0] text-[#92400E]",          dot: "bg-[#F59E0B]" },
+  Approved:          { label: "Approved",          badge: "border border-[#A7C9B8]/60 bg-[#F2F8F5] text-[#276048]",          dot: "bg-[#4E9A74]" },
+  Rejected:          { label: "Rejected",          badge: "border border-[#FBBFBC]/60 bg-[#FFF5F5] text-[#9B1C1C]",          dot: "bg-[#EF4444]/70" },
+  Cancelled:         { label: "Cancelled",         badge: "border border-[#D1D5DB] bg-[#F9FAFB] text-[#9CA3AF]",             dot: "bg-[#D1D5DB]" },
+  Archived:          { label: "Archived",          badge: "border border-[#D1D5DB] bg-[#F9FAFB] text-[#9CA3AF]",             dot: "bg-[#9CA3AF]" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */

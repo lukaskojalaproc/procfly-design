@@ -42,7 +42,7 @@ const categoryChartConfig: ChartConfig = {
 function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
   const isUp = kpi.trend === "up"
   const DeltaIcon = isUp ? ArrowUp : ArrowDown
-  const deltaColor = isUp ? "#16A34A" : "#DC2626"
+  const deltaColor = isUp ? "#4E9A74" : "#C0392B"
   const sign = isUp ? "+" : "−"
   const deltaText =
     kpi.key === "pending" || kpi.key === "competitions"
@@ -61,7 +61,7 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
   return (
     <div className={cn(
       "flex min-w-0 flex-1 flex-col gap-2 px-5 py-4",
-      !isLast && "border-r border-[#E5E7EB]",
+      !isLast && "border-r border-border",
     )}>
       {/* Top: label + delta — ZipHQ keeps these on one line, small caps */}
       <div className="flex items-center justify-between gap-2">
@@ -80,16 +80,15 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
       {/* Value — prefix same color as body (ZipHQ style), suffix smaller */}
       <div className="flex items-baseline gap-[1px] tabular-nums leading-none">
         {prefix && (
-          <span className="text-[1.25rem] font-bold text-[#111827]">{prefix}</span>
+          <span className="text-[1.25rem] font-bold text-foreground">{prefix}</span>
         )}
-        <span className="text-[2.25rem] font-black tracking-tight text-[#111827]">{body}</span>
+        <span className="text-[2.25rem] font-black tracking-tight text-foreground">{body}</span>
         {suffix && (
-          <span className="ml-0.5 text-[1.25rem] font-bold text-[#6B7280]">{suffix}</span>
+          <span className="ml-0.5 text-[1.25rem] font-bold text-muted-foreground">{suffix}</span>
         )}
       </div>
 
-      {/* Sub — slightly darker than before, matches ZipHQ muted label */}
-      <p className="truncate text-[11px] text-[#6B7280]">{kpi.sub}</p>
+      <p className="truncate text-[11px] text-muted-foreground">{kpi.sub}</p>
     </div>
   )
 }
@@ -130,7 +129,7 @@ export function AnalyticsOverview() {
       </div>
 
       {/* KPI strip — Gong-style: no cards, dividers between stats */}
-      <div className="flex overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
+      <div className="flex overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {kpis.map((kpi, i) => (
           <KpiStat key={kpi.key} kpi={kpi} isLast={i === kpis.length - 1} />
         ))}
@@ -238,7 +237,7 @@ export function AnalyticsOverview() {
                 {categories.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "#818CF8" : "#E2E8F0"}
+                    fill={index === 0 ? "#4E9A74" : "#E5EAE7"}
                   />
                 ))}
               </Bar>

@@ -50,38 +50,39 @@
 
 :root {
   color-scheme: light;
-  /* Canvas — very slightly warm white, not pure gray */
-  --background: oklch(0.984 0.002 240);
-  /* Text — almost black, high contrast (Linear/Stripe level) */
-  --foreground: oklch(0.13 0.025 250);
-  /* Cards — pure white with premium shadow handled via utilities */
+  /* Background — near-white, ever so slightly warm */
+  --background: oklch(0.985 0.002 95);
+  /* Primary text — very dark gray, not pure black */
+  --foreground: oklch(0.14 0.008 250);
+  /* Cards — pure white */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.025 250);
+  --card-foreground: oklch(0.14 0.008 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.025 250);
-  /* Primary green — slightly desaturated, more premium */
-  --primary: oklch(0.58 0.12 162);
+  --popover-foreground: oklch(0.14 0.008 250);
+  /* Primary — calm, slightly desaturated green */
+  --primary: oklch(0.52 0.10 162);
   --primary-foreground: oklch(0.99 0 0);
-  /* Secondary / Muted — softer fills */
-  --secondary: oklch(0.965 0.004 240);
-  --secondary-foreground: oklch(0.22 0.025 250);
-  --muted: oklch(0.965 0.004 240);
-  /* Muted text — darker than before for better contrast */
-  --muted-foreground: oklch(0.48 0.018 250);
-  /* Accent — very light green tint */
-  --accent: oklch(0.96 0.025 162);
-  --accent-foreground: oklch(0.32 0.09 162);
-  --destructive: oklch(0.575 0.2 27);
-  /* Border — softened, less "boxy" */
-  --border: oklch(0.938 0.004 240);
-  --input: oklch(0.938 0.004 240);
-  --ring: oklch(0.58 0.12 162);
-  /* Charts: spend = indigo, budget = neutral gray */
-  --chart-1: oklch(0.65 0.10 264);
-  --chart-2: oklch(0.7 0.13 75);
-  --chart-3: oklch(0.68 0.01 240);
-  --chart-4: oklch(0.575 0.2 27);
-  --chart-5: oklch(0.43 0.1 264);
+  /* Secondary / Muted — very light neutral */
+  --secondary: oklch(0.965 0.003 95);
+  --secondary-foreground: oklch(0.22 0.008 250);
+  --muted: oklch(0.963 0.003 95);
+  /* Secondary text — neutral gray, clearly readable */
+  --muted-foreground: oklch(0.50 0.010 250);
+  /* Accent — whisper green tint */
+  --accent: oklch(0.965 0.018 162);
+  --accent-foreground: oklch(0.30 0.09 162);
+  /* Destructive — muted red, only for statuses */
+  --destructive: oklch(0.55 0.16 22);
+  /* Borders — very soft, barely visible */
+  --border: oklch(0.930 0.004 95);
+  --input: oklch(0.930 0.004 95);
+  --ring: oklch(0.52 0.10 162);
+  /* Charts: spend = calm green (matches primary), rest neutral */
+  --chart-1: oklch(0.52 0.10 162);
+  --chart-2: oklch(0.68 0.07 162);
+  --chart-3: oklch(0.80 0.04 162);
+  --chart-4: oklch(0.55 0.16 22);
+  --chart-5: oklch(0.70 0.06 95);
   /* Radius — slightly larger for modern premium feel */
   --radius: 0.875rem;
   /* Sidebar — #1F5A43 exactly */
