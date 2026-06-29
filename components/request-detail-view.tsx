@@ -411,9 +411,9 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                       <div className="flex-1 min-w-[160px] max-w-sm">
                         <div className="flex items-baseline justify-between gap-2 mb-2">
                           <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Budget used</span>
-                          <span className="text-[11px] tabular-nums text-muted-foreground">
+                          <span className="text-[12px] font-bold tabular-nums text-foreground">
                             {request.currency === "EUR" ? "€" : ""}{formatAmount(request.amount)}
-                            <span className="mx-1 opacity-40">/</span>
+                            <span className="mx-1 font-normal text-muted-foreground/40">/</span>
                             {request.currency === "EUR" ? "€" : ""}{formatAmount(request.budgetTotal)}
                           </span>
                         </div>
