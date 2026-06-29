@@ -36,29 +36,18 @@ import {
 // ---------------------------------------------------------------------------
 // Status pill
 // ---------------------------------------------------------------------------
-const statusStyles: Record<ContractStatus, { dot: string; text: string; bg: string }> = {
-  Draft:              { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
-  "Pending Approval": { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
-  Active:             { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
-  "Expiring Soon":    { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
-  Expired:            { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
-  Terminated:         { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
+const pill = "inline-flex w-fit items-center rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-semibold"
+const statusStyles: Record<ContractStatus, string> = {
+  Draft:              `${pill} text-[#64748B]`,
+  "Pending Approval": `${pill} text-[#92400e]`,
+  Active:             `${pill} text-[#166534]`,
+  "Expiring Soon":    `${pill} text-[#d97706]`,
+  Expired:            `${pill} text-[#dc2626]`,
+  Terminated:         `${pill} text-[#64748B]`,
 }
 
 function StatusPill({ status }: { status: ContractStatus }) {
-  const s = statusStyles[status]
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-        s.bg,
-        s.text,
-      )}
-    >
-      <span className={cn("size-1.5 rounded-full", s.dot)} />
-      {status}
-    </span>
-  )
+  return <span className={statusStyles[status]}>{status}</span>
 }
 
 /** Highlights contracts approaching expiry (7 / 14 / 30 days). */

@@ -35,28 +35,17 @@ import {
 // ---------------------------------------------------------------------------
 // Status pill
 // ---------------------------------------------------------------------------
-const statusStyles: Record<SupplierStatus, { dot: string; text: string; bg: string }> = {
-  Pending:   { dot: "bg-[#d97706]", text: "text-[#92400e]", bg: "border border-[#fde68a] bg-[#fffbeb]" },
-  Active:    { dot: "bg-[#16a34a]", text: "text-[#166534]", bg: "border border-[#bbf7d0] bg-[#f0fdf4]" },
-  Preferred: { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
-  Blocked:   { dot: "bg-[#dc2626]", text: "text-[#991b1b]", bg: "border border-[#fecaca] bg-[#fef2f2]" },
-  Archived:  { dot: "bg-[#94A3B8]", text: "text-[#64748B]", bg: "border border-[#CBD5E1] bg-[#F8FAFC]" },
+const pill = "inline-flex w-fit items-center rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-semibold"
+const statusStyles: Record<SupplierStatus, string> = {
+  Pending:   `${pill} text-[#92400e]`,
+  Active:    `${pill} text-[#166534]`,
+  Preferred: `${pill} text-[#64748B]`,
+  Blocked:   `${pill} text-[#dc2626]`,
+  Archived:  `${pill} text-[#64748B]`,
 }
 
 function StatusPill({ status }: { status: SupplierStatus }) {
-  const s = statusStyles[status]
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-        s.bg,
-        s.text,
-      )}
-    >
-      <span className={cn("size-1.5 rounded-full", s.dot)} />
-      {status}
-    </span>
-  )
+  return <span className={statusStyles[status]}>{status}</span>
 }
 
 const riskStyles: Record<RiskStatus, string> = {
