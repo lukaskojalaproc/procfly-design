@@ -2,29 +2,23 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   Search,
   SlidersHorizontal,
   Network as NetworkIcon,
   ShieldCheck,
   ChevronDown,
+  ChevronRight,
   X,
   Package,
   Briefcase,
   UserPlus,
-  Clock,
   Users,
-  Paperclip,
-  MessageSquare,
-  CalendarClock,
   ChevronLeft,
-  ChevronRight,
   Inbox,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { RequestRowMenu } from "@/components/request-row-menu"
 import {
   requests,
   myRequests,
@@ -34,10 +28,11 @@ import {
   statusMeta,
   formatAmount,
   formatCompact,
-  isHighValue,
+  priceTier,
   type ProcurementRequest,
   type RequestKind,
 } from "@/lib/dashboard-data"
+import { RequestRowMenu } from "@/components/request-row-menu"
 import { useCurrentRole } from "@/lib/role-store"
 
 const kindIcon: Record<RequestKind, typeof Package> = {
@@ -119,28 +114,38 @@ function inAmountRange(amount: number, range: string) {
   }
 }
 
-/** Compact, consistent amount cell with full value in a tooltip. */
-function AmountCell({ request }: { request: ProcurementRequest }) {
-  if (request.amount <= 0) {
-    return (
-      <div className="flex flex-col items-end">
-        <span className="text-sm font-medium text-muted-foreground">No cost</span>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Estimated</span>
-      </div>
-    )
+function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
+  const tier = priceTier(amount)
+  if (tier === "none") {
+    return <span className="shrink-0 text-sm tabular-nums text-muted-foreground">—</span>
   }
+  const isLarge = tier === "high" || tier === "critical"
+  const amountStr = formatAmount(amount)
+  const display = currency === "EUR" ? `€${amountStr}` : `${amountStr} ${currency}`
   return (
-    <div className="flex flex-col items-end gap-0.5" title={`${formatAmount(request.amount)}.00 ${request.currency}`}>
-      <div className="flex items-center gap-1.5">
-        {isHighValue(request.amount) && (
-          <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-accent-foreground">
-            High value
-          </span>
-        )}
-        <span className="tabular-nums text-base font-semibold text-foreground">{formatCompact(request.amount)}</span>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{request.currency}</span>
+    <span className={cn(
+      "shrink-0 tabular-nums text-foreground",
+      tier === "critical" ? "text-[15px] font-bold" : isLarge ? "text-[14px] font-semibold" : "text-[14px] font-medium"
+    )}>
+      {display}
+    </span>
+  )
+}
+
+function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTotal: number; currency: string }) {
+  const pct = Math.min((amount / budgetTotal) * 100, 100)
+  const remaining = Math.max(budgetTotal - amount, 0)
+  const remainingStr = currency === "EUR" ? `€${formatCompact(remaining)}` : `${formatCompact(remaining)} ${currency}`
+  const totalStr = currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="h-[4px] flex-1 overflow-hidden rounded-full bg-border">
+        <div className="h-full rounded-full bg-muted-foreground/40 transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Estimated total</span>
+      <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
+        <span className="text-[11px] font-semibold text-foreground">{remainingStr}</span>
+        <span className="text-[10px] text-muted-foreground">/ {totalStr}</span>
+      </div>
     </div>
   )
 }
@@ -188,118 +193,104 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
   )
 }
 
+function quotesLabel(n: number) {
+  if (n === 1) return "1 pasiūlymas"
+  if (n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 10 || n % 100 >= 20)) return `${n} pasiūlymai`
+  return `${n} pasiūlymų`
+}
+
 function RequestRow({ request, canSeeApproval }: { request: ProcurementRequest; canSeeApproval: boolean }) {
   const Icon = kindIcon[request.kind]
   const status = statusMeta[request.status]
-  const router = useRouter()
+  const isCritical = priceTier(request.amount) === "critical"
   return (
-    <Link
-      href={`/requests/${request.id}`}
-      aria-label={`Open request ${request.ref}: ${request.title}`}
-      className="group flex cursor-pointer flex-col gap-3 rounded-xl px-3 py-3.5 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:flex-row lg:items-center lg:gap-4"
-    >
-      {/* Request */}
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
-          <Icon className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              {request.ref}
-            </span>
-            <p className="truncate font-semibold text-foreground">{request.title}</p>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="flex size-4 items-center justify-center rounded-full bg-accent text-[9px] font-semibold text-accent-foreground">
-                {initials(request.requester)}
-              </span>
-              {request.requester}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-border" />
-              {request.kind} · {request.category}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-border" />
-              <Clock className="size-3" />
-              Updated {relativeUpdated(request.updated)}
-            </span>
-          </div>
-          {/* Counters */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {request.quotes > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                <Users className="size-3" />
-                {request.quotes} quotes
-              </span>
-            )}
-            {!!request.attachments && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                <Paperclip className="size-3" />
-                {request.attachments}
-              </span>
-            )}
-            {!!request.comments && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                <MessageSquare className="size-3" />
-                {request.comments}
-              </span>
-            )}
-            {request.status === "Rejected" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                Changes required
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Status */}
-      <div className="flex shrink-0 flex-col gap-1 lg:w-40">
-        <span
-          className={cn(
-            "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-            status.badge,
-          )}
-        >
-          <span className={cn("size-1.5 rounded-full", status.dot)} />
-          {status.label}
-        </span>
-        {request.status === "Pending Approval" && canSeeApproval && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              router.push("/approvals")
-            }}
-            className="inline-flex w-fit items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-          >
-            View Approval Details
-            <ChevronRight className="size-3" />
-          </button>
+    <div className={cn(
+      "rounded-xl",
+      isCritical && "border-l-[3px] border-l-[#029F74] bg-[#EAF7F2] pl-[1px]",
+    )}>
+      <Link
+        href={`/requests/${request.id}`}
+        aria-label={`Open request ${request.ref}: ${request.title}`}
+        className={cn(
+          "group flex flex-col rounded-r-xl px-3 py-[1.125rem] transition-colors table-row-hover",
+          isCritical ? "rounded-l-none" : "rounded-xl",
         )}
-      </div>
+      >
+        {/* Top row: icon + content + amount + status */}
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
+            isCritical ? "bg-[#029F74]/[0.10] text-[#1F5A43]" : "bg-muted/60",
+          )}>
+            <Icon className="size-4" />
+          </div>
 
-      {/* Needed By */}
-      <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground lg:w-28 lg:flex-col lg:items-start lg:gap-0.5">
-        <span className="inline-flex items-center gap-1 lg:text-[10px] lg:uppercase lg:tracking-wide">
-          <CalendarClock className="size-3 lg:hidden" />
-          <span className="hidden lg:inline">Needed by</span>
-        </span>
-        <span className="font-medium text-foreground">{formatNeededBy(request.neededBy)}</span>
-      </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
+                {request.ref}
+              </span>
+              <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug text-foreground">
+                {request.title}
+              </p>
+              {isCritical && (
+                <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ color: "#1F5A43", background: "#EAF7F2" }}>
+                  High Value
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
+                  {initials(request.requester)}
+                </span>
+                {request.requester}
+              </span>
+              <span className="hidden sm:inline">{request.department}</span>
+              <span className="hidden md:inline">{request.date}</span>
+              <span className="hidden md:inline">{request.kind}</span>
+              {request.quotes > 0 && (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Users className="size-3" />
+                  {quotesLabel(request.quotes)}
+                </span>
+              )}
+            </div>
+            {canSeeApproval && request.status === "Pending Approval" && (
+              <div className="mt-1.5">
+                <Link
+                  href="/approvals"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                >
+                  View Approval Details
+                  <ChevronRight className="size-3" />
+                </Link>
+              </div>
+            )}
+          </div>
 
-      {/* Total */}
-      <div className="shrink-0 lg:w-36">
-        <AmountCell request={request} />
-      </div>
+          <div className="flex shrink-0 items-center gap-5">
+            <AmountDisplay amount={request.amount} currency={request.currency} />
+            <span className={cn(
+              "w-20 rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium",
+              status.badge,
+            )}>
+              {status.label}
+            </span>
+          </div>
 
-      {/* Actions */}
-      <RequestRowMenu request={request} />
-    </Link>
+          <RequestRowMenu request={request} />
+        </div>
+
+        {request.budgetTotal && (
+          <div className="mt-3 pl-[3.25rem]">
+            <BudgetBar amount={request.amount} budgetTotal={request.budgetTotal} currency={request.currency} />
+          </div>
+        )}
+      </Link>
+    </div>
   )
 }
 
@@ -514,17 +505,6 @@ export function RequestsExplorer() {
           </div>
         )}
       </Card>
-
-      {/* Column header (desktop) */}
-      {pageItems.length > 0 && (
-        <div className="hidden items-center gap-4 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground lg:flex">
-          <span className="flex-1">Request</span>
-          <span className="w-40">Status</span>
-          <span className="w-28">Needed By</span>
-          <span className="w-36 text-right">Total</span>
-          <span className="w-9" aria-hidden />
-        </div>
-      )}
 
       {/* List */}
       <div className="flex flex-col divide-y divide-border/60">
