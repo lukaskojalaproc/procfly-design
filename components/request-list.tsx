@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Package, Briefcase, UserPlus, Users, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { PriceTag } from "@/components/price-tag"
 import { RequestRowMenu } from "@/components/request-row-menu"
 import {
   requests,
@@ -13,10 +12,35 @@ import {
   maxAmount,
   initials,
   statusMeta,
+  formatAmount,
+  formatCompact,
+  priceTier,
   type ProcurementRequest,
   type RequestKind,
 } from "@/lib/dashboard-data"
 import { useCurrentRole } from "@/lib/role-store"
+
+/** Inline amount — shown in the title row, right-aligned, no fixed width. */
+function AmountDisplay({ amount, currency }: { amount: number; currency: string }) {
+  const tier = priceTier(amount)
+  if (tier === "none") return <span className="shrink-0 text-sm text-muted-foreground/50">—</span>
+  const isLarge = tier === "high" || tier === "critical"
+  const amountStr = isLarge ? formatCompact(amount) : formatAmount(amount)
+  return (
+    <span className="shrink-0 tabular-nums">
+      <span className={cn(
+        "font-semibold",
+        tier === "critical" ? "text-foreground" : "text-foreground/80",
+        isLarge ? "text-base" : "text-sm",
+      )}>
+        {amountStr}
+      </span>
+      <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/60">
+        {currency}
+      </span>
+    </span>
+  )
+}
 
 const kindIcon: Record<RequestKind, typeof Package> = {
   "Buy Product": Package,
@@ -37,16 +61,20 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
         <Icon className="size-5" />
       </div>
 
-      {/* Title + metadata — flex-col with explicit vertical gap */}
+      {/* Title + metadata */}
       <div className="min-w-0 flex-1">
-        {/* Row 1: ref + title */}
+        {/* Row 1: ref + title + amount right-aligned */}
         <div className="flex items-center gap-2">
-          <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+          <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
             {request.ref}
           </span>
-          <p className="truncate text-[0.9375rem] font-semibold leading-snug text-foreground">{request.title}</p>
+          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold leading-snug text-foreground">
+            {request.title}
+          </p>
+          {/* Amount lives here — right-aligned, plenty of room, no competition */}
+          <AmountDisplay amount={request.amount} currency={request.currency} />
         </div>
-        {/* Row 2: metadata — wider gaps, lighter separators */}
+        {/* Row 2: metadata */}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="flex size-4.5 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
@@ -73,11 +101,6 @@ function RequestRow({ request }: { request: ProcurementRequest }) {
             </span>
           )}
         </div>
-      </div>
-
-      {/* Amount — pushed left with explicit margin from status */}
-      <div className="mr-4">
-        <PriceTag amount={request.amount} currency={request.currency} max={maxAmount} />
       </div>
 
       <span
