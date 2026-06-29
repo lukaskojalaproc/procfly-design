@@ -1,16 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  TrendingUp,
-  TrendingDown,
-  PiggyBank,
-  Timer,
-  Clock,
-  Gavel,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react"
+import { ArrowUp, ArrowDown } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -38,13 +29,6 @@ import {
 
 const PERIODS: Period[] = ["month", "quarter", "year"]
 
-const kpiIcon: Record<Kpi["key"], typeof TrendingUp> = {
-  spend: TrendingUp,
-  savings: PiggyBank,
-  approval: Timer,
-  pending: Clock,
-  competitions: Gavel,
-}
 
 const spendChartConfig: ChartConfig = {
   spend: { label: "Spend", color: "var(--chart-1)" },
@@ -55,8 +39,7 @@ const categoryChartConfig: ChartConfig = {
   spend: { label: "Spend", color: "var(--chart-1)" },
 }
 
-function KpiCard({ kpi }: { kpi: Kpi }) {
-  // Arrow up = green, arrow down = red — always, no exceptions
+function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
   const isUp = kpi.trend === "up"
   const DeltaIcon = isUp ? ArrowUp : ArrowDown
   const deltaColor = isUp ? "#16A34A" : "#DC2626"
@@ -67,26 +50,30 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
       : `${sign}${kpi.delta}%`
 
   return (
-    <Card className="card-shadow flex flex-col justify-between gap-3 px-4 py-4">
-      {/* Top row: delta badge right-aligned */}
-      <div className="flex items-center justify-end">
+    <div className={cn(
+      "flex min-w-0 flex-1 flex-col gap-2 px-6 py-4",
+      !isLast && "border-r border-[#E2E8F0]",
+    )}>
+      {/* Label row */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
+          {kpi.label}
+        </p>
         <span
-          className="inline-flex items-center gap-0.5 text-[11px] font-medium leading-none tabular-nums"
+          className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium tabular-nums"
           style={{ color: deltaColor }}
         >
           <DeltaIcon className="size-2.5" />
           {deltaText}
         </span>
       </div>
-      {/* Bottom: number then label */}
-      <div>
-        <p className="text-2xl font-bold leading-none tabular-nums text-[#0F172A]">
-          {kpi.value}
-        </p>
-        <p className="mt-1.5 text-xs font-medium text-[#64748B]">{kpi.label}</p>
-        <p className="mt-0.5 text-[10px] text-[#94A3B8]">{kpi.sub}</p>
-      </div>
-    </Card>
+      {/* Value row */}
+      <p className="text-[1.625rem] font-semibold leading-none tabular-nums text-[#0F172A]">
+        {kpi.value}
+      </p>
+      {/* Sub */}
+      <p className="text-[11px] text-[#94A3B8]">{kpi.sub}</p>
+    </div>
   )
 }
 
@@ -125,10 +112,10 @@ export function AnalyticsOverview() {
         </div>
       </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.key} kpi={kpi} />
+      {/* KPI strip — Gong-style: no cards, dividers between stats */}
+      <div className="flex overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
+        {kpis.map((kpi, i) => (
+          <KpiStat key={kpi.key} kpi={kpi} isLast={i === kpis.length - 1} />
         ))}
       </div>
 
