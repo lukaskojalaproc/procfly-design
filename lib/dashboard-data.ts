@@ -92,8 +92,8 @@ export const statusMeta: Record<RequestStatus, { label: string; badge: string; d
   Approved:           { label: "Approved",  badge: "border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]", dot: "bg-[#16a34a]" },
   // Red — only Rejected
   Rejected:           { label: "Rejected",  badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b]", dot: "bg-[#dc2626]" },
-  // Dark grey — cancelled (stopped, not failure)
-  Cancelled:          { label: "Cancelled", badge: "border border-[#d1d5db] bg-[#f3f4f6] text-[#6b7280]", dot: "bg-[#9ca3af]" },
+  // Red text, white background — Cancelled
+  Cancelled:          { label: "Cancelled", badge: "border border-[#fecaca] bg-white text-[#dc2626]",     dot: "bg-[#dc2626]" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */
