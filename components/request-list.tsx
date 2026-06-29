@@ -13,6 +13,7 @@ import {
   initials,
   statusMeta,
   formatAmount,
+  formatCompact,
   priceTier,
   type ProcurementRequest,
   type RequestKind,
@@ -42,8 +43,8 @@ function AmountDisplay({ amount, currency }: { amount: number; currency: string 
 function BudgetBar({ amount, budgetTotal, currency }: { amount: number; budgetTotal: number; currency: string }) {
   const pct = Math.min((amount / budgetTotal) * 100, 100)
   const remaining = Math.max(budgetTotal - amount, 0)
-  const remainingStr = currency === "EUR" ? `€${formatAmount(remaining)}` : `${formatAmount(remaining)} ${currency}`
-  const totalStr = currency === "EUR" ? `€${formatAmount(budgetTotal)}` : `${formatAmount(budgetTotal)} ${currency}`
+  const remainingStr = currency === "EUR" ? `€${formatCompact(remaining)}` : `${formatCompact(remaining)} ${currency}`
+  const totalStr = currency === "EUR" ? `€${formatCompact(budgetTotal)}` : `${formatCompact(budgetTotal)} ${currency}`
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
