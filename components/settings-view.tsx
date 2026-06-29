@@ -17,8 +17,13 @@ import {
   type ColumnDef,
   type SettingsRow,
 } from "@/lib/settings-data"
+import { SuperAdminView } from "@/components/super-admin-view"
 
-const ALL_TABS = [{ id: "general", label: "General" }, ...settingsTabs.map((t) => ({ id: t.id, label: t.label }))]
+const ALL_TABS = [
+  { id: "general", label: "General" },
+  ...settingsTabs.map((t) => ({ id: t.id, label: t.label })),
+  { id: "super-admin", label: "Super Admin" },
+]
 
 export function SettingsView() {
   const [active, setActive] = useState("general")
@@ -51,12 +56,14 @@ export function SettingsView() {
       {/* Active tab content */}
       {active === "general" ? (
         <GeneralTab />
+      ) : active === "super-admin" ? (
+        <SuperAdminView />
       ) : (
         <TableTab config={settingsTabs.find((t) => t.id === active)!} key={active} />
       )}
 
-      {/* Save bar */}
-      <div className="flex items-center justify-end gap-3 pt-1">
+      {/* Save bar — hidden on Super Admin tab */}
+      <div className={cn("flex items-center justify-end gap-3 pt-1", active === "super-admin" && "hidden")}>
         {saved && (
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
             <Check className="size-4" /> All changes saved
