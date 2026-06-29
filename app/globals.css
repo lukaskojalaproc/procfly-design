@@ -50,37 +50,37 @@
 
 :root {
   color-scheme: light;
-  /* Background — near-white, ever so slightly warm */
-  --background: oklch(0.985 0.002 95);
-  /* Primary text — very dark gray, not pure black */
-  --foreground: oklch(0.14 0.008 250);
-  /* Cards — pure white */
+  /* Background — pure white */
+  --background: oklch(1 0 0);
+  /* Primary text — near-black */
+  --foreground: oklch(0.13 0.006 250);
+  /* Cards — white with the faintest separation */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.008 250);
+  --card-foreground: oklch(0.13 0.006 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.008 250);
-  /* Primary — dark slate, no green */
-  --primary: oklch(0.20 0.008 250);
-  --primary-foreground: oklch(0.98 0 0);
-  /* Secondary / Muted — very light neutral */
-  --secondary: oklch(0.965 0.003 95);
-  --secondary-foreground: oklch(0.22 0.008 250);
-  --muted: oklch(0.963 0.003 95);
-  /* Secondary text — neutral gray, clearly readable */
-  --muted-foreground: oklch(0.50 0.010 250);
-  /* Accent — light neutral tint */
-  --accent: oklch(0.960 0.003 250);
-  --accent-foreground: oklch(0.20 0.008 250);
-  /* Destructive — muted red, only for statuses */
+  --popover-foreground: oklch(0.13 0.006 250);
+  /* Primary accent — aqua/teal #0AAFA0 */
+  --primary: oklch(0.64 0.13 192);
+  --primary-foreground: oklch(0.99 0 0);
+  /* Secondary / Muted — very light gray */
+  --secondary: oklch(0.966 0.002 250);
+  --secondary-foreground: oklch(0.22 0.006 250);
+  --muted: oklch(0.964 0.002 250);
+  /* Secondary text — neutral gray */
+  --muted-foreground: oklch(0.50 0.008 250);
+  /* Accent — whisper aqua tint */
+  --accent: oklch(0.960 0.020 192);
+  --accent-foreground: oklch(0.40 0.10 192);
+  /* Destructive — muted red */
   --destructive: oklch(0.55 0.16 22);
-  /* Borders — very soft, barely visible */
-  --border: oklch(0.928 0.004 95);
-  --input: oklch(0.928 0.004 95);
-  --ring: oklch(0.20 0.008 250);
-  /* Charts: calm green for spend line, rest neutral grays */
-  --chart-1: oklch(0.52 0.10 162);
-  --chart-2: oklch(0.68 0.07 162);
-  --chart-3: oklch(0.80 0.03 95);
+  /* Borders — very soft gray */
+  --border: oklch(0.926 0.003 250);
+  --input: oklch(0.926 0.003 250);
+  --ring: oklch(0.64 0.13 192);
+  /* Charts: aqua spend line, lime secondary, grays for rest */
+  --chart-1: oklch(0.64 0.13 192);
+  --chart-2: oklch(0.82 0.18 130);
+  --chart-3: oklch(0.75 0.08 192);
   --chart-4: oklch(0.55 0.16 22);
   --chart-5: oklch(0.70 0.04 95);
   /* Radius — slightly larger for modern premium feel */
@@ -200,9 +200,9 @@
   .progress-fill {
     @apply h-full rounded-full bg-primary transition-all;
   }
-  /* Table row hover — neutral muted, no green tint */
+  /* Table row hover — very light gray */
   .table-row-hover:hover {
-    background-color: oklch(0.965 0.004 240 / 0.7);
+    background-color: oklch(0.966 0.002 250 / 0.8);
   }
   /* Secondary button style */
   .btn-secondary {
