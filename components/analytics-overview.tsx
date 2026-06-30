@@ -80,11 +80,11 @@ function KpiStat({ kpi, isLast }: { kpi: Kpi; isLast: boolean }) {
       {/* Value — prefix same color as body (ZipHQ style), suffix smaller */}
       <div className="flex items-baseline gap-[2px] tabular-nums leading-none">
         {prefix && (
-          <span className="text-2xl font-medium text-foreground">{prefix}</span>
+          <span className="text-base font-medium text-foreground">{prefix}</span>
         )}
-        <span className="text-5xl font-semibold tracking-tight text-foreground">{body}</span>
+        <span className="text-3xl font-semibold tracking-tight text-foreground">{body}</span>
         {suffix && (
-          <span className="ml-0.5 text-2xl font-medium text-muted-foreground">{suffix}</span>
+          <span className="ml-0.5 text-base font-medium text-muted-foreground">{suffix}</span>
         )}
       </div>
 
