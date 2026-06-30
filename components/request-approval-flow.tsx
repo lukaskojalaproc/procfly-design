@@ -22,26 +22,26 @@ const stateStyles: Record<DisplayState, {
 }> = {
   // Green — only Approved
   approved: {
-    card: "border-border bg-card",
+    card: "border-l-4 border-l-[#16a34a] border-t border-r border-b border-[#bbf7d0] bg-[#f9fefb]",
     dot: "bg-[#16a34a] ring-[#bbf7d0]",
     label: "Approved",
-    labelCls: "text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0]",
+    labelCls: "text-[#166534] bg-[#dcfce7] border border-[#bbf7d0] font-bold",
     icon: Check,
   },
   // Slate-dark — In Progress
   in_progress: {
-    card: "border-border bg-card",
-    dot: "bg-[#475569] ring-[#CBD5E1]",
+    card: "border-l-4 border-l-[#0F172A] border-t border-r border-b border-[#CBD5E1] bg-[#F8FAFC]",
+    dot: "bg-[#0F172A] ring-[#CBD5E1]",
     label: "In Progress",
-    labelCls: "text-[#0F172A] bg-[#F1F5F9] border border-[#CBD5E1]",
+    labelCls: "text-[#0F172A] bg-[#E2E8F0] border border-[#CBD5E1] font-bold",
     icon: Clock,
   },
   // Slate-muted — Not Started
   not_started: {
-    card: "border-border/60 bg-card",
+    card: "border border-border/60 bg-card",
     dot: "bg-[#CBD5E1] ring-[#E2E8F0]",
     label: "Not Started",
-    labelCls: "text-[#64748B] bg-[#F8FAFC] border border-[#E2E8F0]",
+    labelCls: "text-[#94A3B8] bg-[#F8FAFC] border border-[#E2E8F0]",
     icon: Clock,
   },
   // Red — only Rejected
@@ -117,9 +117,13 @@ export function RequestApprovalFlow({
                   {/* Top: avatar + name */}
                   <div className="flex items-start gap-2.5">
                     <span className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm ring-1",
+                      "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm ring-2",
                       dState === "not_started"
-                        ? "bg-muted text-muted-foreground ring-border/40"
+                        ? "bg-muted text-muted-foreground ring-border/30"
+                        : dState === "approved"
+                        ? "bg-[#16a34a] text-white ring-[#bbf7d0]"
+                        : dState === "in_progress"
+                        ? "bg-[#0F172A] text-white ring-[#CBD5E1]"
                         : "bg-background text-foreground ring-border",
                     )}>
                       {initials(step.name)}
