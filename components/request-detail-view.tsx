@@ -718,7 +718,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
         </div>
 
         {/* ── Right: Chat / Discussion panel ───────────────────────────────── */}
-        <div className="hidden w-[320px] shrink-0 lg:flex lg:flex-col">
+        <div className="hidden w-[320px] shrink-0 pt-[37px] lg:flex lg:flex-col">
           <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             {/* Panel header */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
