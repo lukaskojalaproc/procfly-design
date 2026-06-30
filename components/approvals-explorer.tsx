@@ -55,7 +55,7 @@ const PAGE_SIZE = 8
 
 // --- Summary cards ----------------------------------------------------------
 
-function StatBar({ stats }: { stats: { label: string; value: string; accent?: boolean }[] }) {
+function StatBar({ stats }: { stats: { label: string; value: string; accent?: boolean; danger?: boolean }[] }) {
   return (
     <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map((s, i) => (
@@ -63,7 +63,7 @@ function StatBar({ stats }: { stats: { label: string; value: string; accent?: bo
           <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             {s.label}
           </span>
-          <span className={cn("text-[1.6rem] font-bold leading-none tracking-tight tabular-nums", s.accent ? "text-[#ca8a04]" : "text-foreground")}>
+          <span className={cn("text-[1.6rem] font-bold leading-none tracking-tight tabular-nums", s.danger ? "text-[#dc2626]" : s.accent ? "text-[#ca8a04]" : "text-foreground")}>
             {s.value}
           </span>
         </div>
@@ -344,7 +344,7 @@ export function ApprovalsExplorer() {
         <StatBar stats={[
           { label: "Awaiting My Action", value: `${summary.awaiting}`, accent: summary.awaiting > 0 },
           { label: "Value at Stake", value: formatCompactEur(summary.valueAtStake) },
-          { label: "Overdue", value: `${summary.overdue}`, accent: summary.overdue > 0 },
+          { label: "Overdue", value: `${summary.overdue}`, danger: summary.overdue > 0 },
           { label: "Due Soon", value: `${summary.dueSoon}` },
           { label: "Completed by Me", value: `${summary.completedByMe}` },
         ]} />
