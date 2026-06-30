@@ -85,7 +85,7 @@ export const stats = {
 const p = "bg-[#F1F5F9]"
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
   Draft:              { label: "Draft",     badge: `${p} text-[#94A3B8]`,  dot: "bg-[#94A3B8]" },
-  Archived:           { label: "Archived",  badge: `${p} text-[#CBD5E1]`,  dot: "bg-[#CBD5E1]" },
+  Archived:           { label: "Archived",  badge: `${p} text-[#64748B] italic`,  dot: "bg-[#64748B]" },
   "Pending Approval": { label: "Pending",   badge: `${p} text-[#ca8a04]`,  dot: "bg-[#ca8a04]" },
   Approved:           { label: "Approved",  badge: `${p} text-[#166534]`,  dot: "bg-[#16a34a]" },
   Rejected:           { label: "Rejected",  badge: `${p} text-[#991b1b]`,  dot: "bg-[#dc2626]" },
