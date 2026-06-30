@@ -82,18 +82,14 @@ export const stats = {
 
 // Badge classes are used with px-2.5 py-0.5 text-[11px] font-medium rounded-full in request-list.tsx.
 // Keep fills very light so badges read as metadata, not primary information.
+const p = "bg-[#F1F5F9]"
 export const statusMeta: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
-  // Slate-neutral — no action needed
-  Draft:              { label: "Draft",     badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]", dot: "bg-[#94A3B8]" },
-  Archived:           { label: "Archived",  badge: "border border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B]", dot: "bg-[#94A3B8]" },
-  // Slate-dark — in motion
-  "Pending Approval": { label: "Pending",   badge: "border border-[#CBD5E1] bg-[#F1F5F9] text-[#475569]", dot: "bg-[#475569]" },
-  // Green — only Approved
-  Approved:           { label: "Approved",  badge: "border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]", dot: "bg-[#16a34a]" },
-  // Red — only Rejected
-  Rejected:           { label: "Rejected",  badge: "border border-[#fecaca] bg-[#fef2f2] text-[#991b1b]", dot: "bg-[#dc2626]" },
-  // Red text, white background — Cancelled
-  Cancelled:          { label: "Cancelled", badge: "border border-[#fecaca] bg-white text-[#dc2626]",     dot: "bg-[#dc2626]" },
+  Draft:              { label: "Draft",     badge: `${p} text-[#94A3B8]`,  dot: "bg-[#94A3B8]" },
+  Archived:           { label: "Archived",  badge: `${p} text-[#CBD5E1]`,  dot: "bg-[#CBD5E1]" },
+  "Pending Approval": { label: "Pending",   badge: `${p} text-[#ca8a04]`,  dot: "bg-[#ca8a04]" },
+  Approved:           { label: "Approved",  badge: `${p} text-[#166534]`,  dot: "bg-[#16a34a]" },
+  Rejected:           { label: "Rejected",  badge: `${p} text-[#991b1b]`,  dot: "bg-[#dc2626]" },
+  Cancelled:          { label: "Cancelled", badge: `${p} text-[#dc2626]`,  dot: "bg-[#dc2626]" },
 }
 
 /** Amount above which a request is flagged "High Value". Configurable in workspace settings. */
