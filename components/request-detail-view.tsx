@@ -65,17 +65,17 @@ function Section({ title }: { title: string }) {
 
 function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3">
+    <div className="mt-3 overflow-hidden rounded-xl border border-border/40 bg-card">
       {children}
     </div>
   )
 }
 
-function Field({ label, value, children, wide }: { label: string; value?: string | null; children?: React.ReactNode; wide?: boolean }) {
+function Field({ label, value, children }: { label: string; value?: string | null; children?: React.ReactNode }) {
   return (
-    <div className={cn("flex flex-col gap-1 rounded-xl border border-border/40 bg-card px-4 py-3", wide && "col-span-2")}>
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50">{label}</span>
-      <span className="text-sm font-medium text-foreground">{children ?? value ?? "—"}</span>
+    <div className="grid grid-cols-[180px_1fr] items-start gap-4 border-b border-border/25 px-5 py-3.5 last:border-0">
+      <span className="shrink-0 pt-px text-[12px] text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold text-foreground">{children ?? value ?? "—"}</span>
     </div>
   )
 }
@@ -458,7 +458,7 @@ export function RequestDetailView({ request }: { request: ProcurementRequest }) 
                 <div>
                   <Section title="General" />
                   <FieldGroup>
-                    <Field label="Description"           value={detail.description} wide />
+                    <Field label="Description"           value={detail.description} />
                     <Field label="Procurement category"  value={request.category} />
                     <Field label="Department"            value={request.department} />
                     <Field label="Cost center"           value={detail.costCenter} />
