@@ -60,7 +60,7 @@ function StatBar({ stats }: { stats: { label: string; value: string; accent?: bo
     <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map((s, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
-          <span className={cn("text-[11px] font-medium uppercase tracking-widest", s.accent ? "text-[#ca8a04]" : "text-muted-foreground")}>
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             {s.label}
           </span>
           <span className={cn("text-[1.6rem] font-bold leading-none tracking-tight tabular-nums", s.accent ? "text-[#ca8a04]" : "text-foreground")}>
