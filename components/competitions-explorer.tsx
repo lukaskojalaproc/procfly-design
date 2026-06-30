@@ -93,10 +93,10 @@ function StatBar({ stats }: { stats: { label: string; value: string; sub?: strin
     <div className="flex items-stretch divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map((s, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-3.5">
-          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <span className={cn("text-[11px] font-medium uppercase tracking-widest", s.accent ? "text-[#ca8a04]" : "text-muted-foreground")}>
             {s.label}
           </span>
-          <span className="text-[1.6rem] font-bold leading-none tracking-tight tabular-nums text-foreground">
+          <span className={cn("text-[1.6rem] font-bold leading-none tracking-tight tabular-nums", s.accent ? "text-[#ca8a04]" : "text-foreground")}>
             {s.value}
           </span>
           {s.sub && <span className="text-[11px] text-muted-foreground">{s.sub}</span>}
@@ -378,7 +378,7 @@ export function CompetitionsExplorer() {
       {/* Stat bar */}
       <StatBar stats={[
         { label: "Active", value: `${competitionStats.active}`, sub: "bidding live" },
-        { label: "Ready to Start", value: `${tabCounts["Ready to Start"]}`, sub: "awaiting launch" },
+        { label: "Ready to Start", value: `${tabCounts["Ready to Start"]}`, sub: "awaiting launch", accent: true },
         { label: "Awarded", value: `${competitionStats.awarded}`, sub: `of ${competitionStats.total} total` },
         { label: "Total Savings", value: fmtEur(totalSavings), sub: "awarded events" },
         { label: "Live Bid Value", value: fmtEur(liveValue), sub: "spend up for bid" },
